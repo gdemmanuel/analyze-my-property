@@ -9,6 +9,7 @@ interface CacheEntry<T> {
   data: T;
   timestamp: number;
   expiresAt: number;
+  found: boolean; // Track whether entry was found in cache
 }
 
 interface CacheConfig {
@@ -18,6 +19,9 @@ interface CacheConfig {
 const DEFAULT_CACHE_CONFIG: CacheConfig = {
   ttlMs: 24 * 60 * 60 * 1000, // 24 hours
 };
+
+// Sentinel value to distinguish "not in cache" from "cache contains null"
+const NOT_IN_CACHE = Symbol('NOT_IN_CACHE');
 
 class RentCastCache {
   private cache: Map<string, CacheEntry<any>> = new Map();
@@ -84,13 +88,14 @@ class RentCastCache {
 
   /**
    * Get a value from cache if it exists and hasn't expired
+   * Returns NOT_IN_CACHE symbol if entry not found (distinguishes from null results)
    */
-  get<T>(functionName: string, params: Record<string, any>): T | null {
+  get<T>(functionName: string, params: Record<string, any>): T | typeof NOT_IN_CACHE {
     const key = this.generateKey(functionName, params);
     const entry = this.cache.get(key);
 
     if (!entry) {
-      return null;
+      return NOT_IN_CACHE;
     }
 
     if (entry.expiresAt <= Date.now()) {
@@ -98,7 +103,7 @@ class RentCastCache {
       this.cache.delete(key);
       this.saveToLocalStorage();
       console.log(`[Cache] Expired cache entry removed: ${key}`);
-      return null;
+      return NOT_IN_CACHE;
     }
 
     const ageMinutes = Math.round((Date.now() - entry.timestamp) / (1000 * 60));
@@ -107,7 +112,7 @@ class RentCastCache {
   }
 
   /**
-   * Set a value in cache
+   * Set a value in cache (including null values)
    */
   set<T>(functionName: string, params: Record<string, any>, data: T): void {
     const key = this.generateKey(functionName, params);
@@ -116,6 +121,7 @@ class RentCastCache {
       data,
       timestamp: now,
       expiresAt: now + this.config.ttlMs,
+      found: true,
     };
 
     this.cache.set(key, entry);
@@ -123,6 +129,13 @@ class RentCastCache {
 
     const hoursToExpire = Math.round(this.config.ttlMs / (60 * 60 * 1000));
     console.log(`[Cache] STORED: ${functionName} (expires in ${hoursToExpire}h)`);
+  }
+
+  /**
+   * Check if a key is the NOT_IN_CACHE sentinel
+   */
+  isNotInCache(value: any): boolean {
+    return value === NOT_IN_CACHE;
   }
 
   /**
@@ -174,3 +187,4 @@ class RentCastCache {
 }
 
 export const cacheService = new RentCastCache();
+export { NOT_IN_CACHE };

@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { MarketInsight, Amenity, PropertyConfig } from "../types";
 import { RentCastProperty } from "./rentcastService";
-import { cacheService } from "./cacheService";
+import { cacheService, NOT_IN_CACHE } from "./cacheService";
 import {
   PropertyFacts,
   PropertyAudit,
@@ -310,11 +310,8 @@ export const searchWebForSTRData = async (address: string, bedrooms?: number, ba
 
     // 🔧 Check cache first
     const cached = cacheService.get<{ adr: number; occupancy: number } | null>('searchWebForSTRData', { address, bedrooms, bathrooms });
-    if (cached !== undefined) {
-      if (cached === null) {
-        console.log('[Cache] HIT: searchWebForSTRData returned null (no data available)');
-        return null;
-      }
+    if (cached !== NOT_IN_CACHE) {
+      console.log(`[Cache] ✅ HIT: searchWebForSTRData (${cached === null ? 'null' : 'found data'})`);
       return cached;
     }
 
@@ -469,7 +466,7 @@ export const analyzeProperty = async (query: string, factualData?: RentCastPrope
     // 🔧 Check cache first - use address as cache key
     const cacheAddress = factualData?.formattedAddress || query;
     const cached = cacheService.get<MarketInsight>('analyzeProperty', { address: cacheAddress });
-    if (cached) {
+    if (cached !== NOT_IN_CACHE) {
       console.log(`[Cache] ✅ Using cached analysis for ${cacheAddress}`);
       return cached;
     }
