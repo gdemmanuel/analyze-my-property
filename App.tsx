@@ -1272,10 +1272,43 @@ const App: React.FC = () => {
 
               <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-xl">
                 <h2 className="text-2xl font-black text-slate-800 mb-8 uppercase tracking-tighter flex items-center gap-4"><div className="p-3 bg-rose-50 rounded-xl text-[#f43f5e]"><Sparkles size={24} /></div> Property Amenities</h2>
+                
+                {/* Add New Amenity Section */}
+                <div className="mb-8 p-6 bg-rose-50 rounded-2xl border-2 border-rose-200">
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      placeholder="Enter amenity name (e.g., Hot Tub, Smart TV, Pool)..."
+                      value={newAmenityName}
+                      onChange={(e) => setNewAmenityName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddAmenity()}
+                      className="flex-1 px-4 py-3 bg-white border border-rose-200 rounded-xl font-black outline-none text-slate-800 placeholder-slate-400"
+                    />
+                    <button
+                      onClick={handleAddAmenity}
+                      disabled={isSuggestingAmenity || !newAmenityName}
+                      className="px-6 py-3 bg-[#f43f5e] hover:bg-[#e11d48] disabled:bg-slate-300 text-white rounded-xl font-black uppercase tracking-wider transition-all disabled:cursor-not-allowed"
+                    >
+                      {isSuggestingAmenity ? 'Adding...' : 'Add'}
+                    </button>
+                  </div>
+                  <p className="text-[10px] font-black text-rose-700 uppercase tracking-widest mt-3">Claude will auto-calculate cost, ADR boost, and occupancy impact</p>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {amenities.map(am => (
                     <div key={am.id} className="p-6 border rounded-2xl bg-white">
-                      <div className="flex justify-between mb-4"><p className="font-black uppercase">{am.name}</p></div>
+                      <div className="flex justify-between mb-4">
+                        <p className="font-black uppercase">{am.name}</p>
+                        {am.id !== 'furnishings' && (
+                          <button
+                            onClick={() => removeAmenity(am.id)}
+                            className="text-slate-400 hover:text-[#f43f5e] transition-colors"
+                          >
+                            <Trash size={16} />
+                          </button>
+                        )}
+                      </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1"><label className="text-[10px] font-black text-slate-400">COST ($)</label><input type="number" value={am.cost} onChange={(e) => handleEditAmenity(am.id, { cost: parseFloat(e.target.value) || 0 })} className="w-full bg-slate-50 rounded-xl px-4 py-2" /></div>
                         <div className="space-y-1"><label className="text-[10px] font-black text-slate-400">ADR BOOST</label><input type="number" value={am.adrBoost} onChange={(e) => handleEditAmenity(am.id, { adrBoost: parseFloat(e.target.value) || 0 })} className="w-full bg-slate-50 rounded-xl px-4 py-2" /></div>
