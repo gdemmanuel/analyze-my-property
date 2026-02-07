@@ -1,4 +1,6 @@
 
+import { cacheService } from './cacheService';
+
 const RENTCAST_API_KEY = import.meta.env.VITE_RENTCAST_API_KEY;
 
 export interface RentCastProperty {
@@ -30,6 +32,13 @@ export const fetchPropertyData = async (address: string): Promise<RentCastProper
 
     try {
         const cleanAddress = address.trim();
+        
+        // 🔧 Check cache first
+        const cached = cacheService.get<RentCastProperty>('fetchPropertyData', { address: cleanAddress });
+        if (cached) {
+            return cached;
+        }
+
         const encodedAddress = encodeURIComponent(cleanAddress);
 
         console.log(`[RentCast] Fetching data for: ${cleanAddress}`);
@@ -72,7 +81,7 @@ export const fetchPropertyData = async (address: string): Promise<RentCastProper
             const errorText = await propRes.text();
             console.error(`RentCast API Error: ${propRes.status} - ${errorText}`);
             if (listingData) {
-                return {
+                const result = {
                     id: listingData.id || 'N/A',
                     formattedAddress: listingData.formattedAddress || cleanAddress,
                     addressLine1: listingData.addressLine1 || '',
@@ -87,6 +96,9 @@ export const fetchPropertyData = async (address: string): Promise<RentCastProper
                     propertyType: listingData.propertyType || '',
                     lastSalePrice: listingData.price
                 };
+                // 🔧 Cache the result
+                cacheService.set('fetchPropertyData', { address: cleanAddress }, result);
+                return result;
             }
             return null;
         }
@@ -124,7 +136,7 @@ export const fetchPropertyData = async (address: string): Promise<RentCastProper
                 finalMainImage: finalMainImage ? 'Found' : 'Missing'
             });
 
-            return {
+            const result = {
                 ...property,
                 bedrooms: listingData?.bedrooms || property.bedrooms,
                 bathrooms: listingData?.bathrooms || property.bathrooms,
@@ -135,6 +147,10 @@ export const fetchPropertyData = async (address: string): Promise<RentCastProper
                 images: finalImages,
                 mainImage: finalMainImage
             } as RentCastProperty;
+
+            // 🔧 Cache the result
+            cacheService.set('fetchPropertyData', { address: cleanAddress }, result);
+            return result;
         }
 
         return null;
@@ -148,6 +164,12 @@ export const fetchMarketStats = async (zipCode: string): Promise<any | null> => 
     if (!RENTCAST_API_KEY) return null;
 
     try {
+        // 🔧 Check cache first
+        const cached = cacheService.get<any>('fetchMarketStats', { zipCode });
+        if (cached) {
+            return cached;
+        }
+
         const response = await fetch(`https://api.rentcast.io/v1/markets?zipCode=${zipCode}`, {
             headers: { 'X-Api-Key': RENTCAST_API_KEY, 'Accept': 'application/json' }
         });
@@ -157,7 +179,11 @@ export const fetchMarketStats = async (zipCode: string): Promise<any | null> => 
             return null;
         }
 
-        return await response.json();
+        const data = await response.json();
+        
+        // 🔧 Cache the result
+        cacheService.set('fetchMarketStats', { zipCode }, data);
+        return data;
     } catch (error) {
         console.error("Failed to fetch market stats from RentCast", error);
         return null;
@@ -168,6 +194,12 @@ export const fetchRentEstimate = async (address: string): Promise<any | null> =>
     if (!RENTCAST_API_KEY) return null;
 
     try {
+        // 🔧 Check cache first
+        const cached = cacheService.get<any>('fetchRentEstimate', { address });
+        if (cached) {
+            return cached;
+        }
+
         const encodedAddress = encodeURIComponent(address);
         const response = await fetch(`https://api.rentcast.io/v1/avm/rent/long-term?address=${encodedAddress}`, {
             headers: { 'X-Api-Key': RENTCAST_API_KEY, 'Accept': 'application/json' }
@@ -186,6 +218,8 @@ export const fetchRentEstimate = async (address: string): Promise<any | null> =>
             hasComps: data.comparableProperties ? data.comparableProperties.length : 0
         });
         
+        // 🔧 Cache the result
+        cacheService.set('fetchRentEstimate', { address }, data);
         return data;
     } catch (error) {
         console.error("Failed to fetch rent estimate from RentCast", error);
@@ -206,6 +240,12 @@ export const fetchSTRComps = async (address: string, propertyType?: string, bedr
     if (!RENTCAST_API_KEY) return null;
 
     try {
+        // 🔧 Check cache first
+        const cached = cacheService.get<any>('fetchSTRComps', { address, propertyType, bedrooms, bathrooms });
+        if (cached) {
+            return cached;
+        }
+
         const encodedAddress = encodeURIComponent(address);
         let url = `https://api.rentcast.io/v1/listings/rental/long-term?address=${encodedAddress}&radius=5&limit=5`;
         if (propertyType) url += `&propertyType=${encodeURIComponent(propertyType)}`;
@@ -236,6 +276,8 @@ export const fetchSTRComps = async (address: string, propertyType?: string, bedr
             console.warn(`[RentCast] No LTR comps returned (empty array or null)`);
         }
         
+        // 🔧 Cache the result
+        cacheService.set('fetchSTRComps', { address, propertyType, bedrooms, bathrooms }, data);
         return data;
     } catch (error) {
         console.error("Failed to fetch LTR comps from RentCast", error);
