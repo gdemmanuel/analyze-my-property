@@ -1,0 +1,7 @@
+{
+  "name": "AirBNB ROI Evaluator",
+  "description": "A sophisticated property evaluation tool designed for Airbnb investors. It calculates 30-year mortgage impacts, HELOC-funded down payments, management fees, and market performance using real-time AI grounding.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

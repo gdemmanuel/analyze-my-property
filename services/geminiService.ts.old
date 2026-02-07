@@ -1,0 +1,211 @@
+
+import { GoogleGenAI, Type, Chat } from "@google/genai";
+import { MarketInsight, Amenity, PropertyConfig } from "../types";
+
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+export const getAddressSuggestions = async (input: string): Promise<string[]> => {
+  if (input.length < 5) return [];
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Provide a list of 5 real-world property address suggestions that match or are similar to: "${input}". 
+      Return ONLY a JSON array of strings. No other text.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING }
+        },
+        temperature: 0.1
+      }
+    });
+    return JSON.parse(response.text || "[]");
+  } catch (e) {
+    console.error("Suggestion error:", e);
+    throw e;
+  }
+};
+
+export const suggestAmenityImpact = async (amenityName: string, location: string): Promise<Partial<Amenity>> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Estimate the impact of adding "${amenityName}" to a short-term rental in "${location}". 
+      Provide:
+      1. Estimated upfront COST.
+      2. Estimated Daily Rate (ADR) boost in USD.
+      3. Estimated Occupancy % boost.
+      Return ONLY JSON.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            cost: { type: Type.NUMBER },
+            adrBoost: { type: Type.NUMBER },
+            occBoost: { type: Type.NUMBER }
+          },
+          required: ["cost", "adrBoost", "occBoost"]
+        },
+        temperature: 0.1
+      }
+    });
+    return JSON.parse(response.text || "{}");
+  } catch (e) {
+    console.error("Amenity suggestion error:", e);
+    return { cost: 5000, adrBoost: 20, occBoost: 2 };
+  }
+};
+
+export const startPropertyChat = (insight: MarketInsight, config: PropertyConfig): Chat => {
+  const systemInstruction = `You are a world-class real estate investment analyst. 
+  The user is currently evaluating a property with the following profile:
+  - Address: ${insight.summary}
+  - Acquisition Price: $${config.price.toLocaleString()}
+  - Physical Stats: ${insight.beds} beds, ${insight.baths} baths, ${insight.sqft} sqft
+  - Market Performance: ${insight.marketPerformance}
+  - Regulations: ${insight.regulations}
+  - Recommendation: ${insight.recommendation}
+  - Comps: ${JSON.stringify(insight.comps)}
+  
+  FORMATTING RULES:
+  1. Use **Markdown** for all responses.
+  2. Use **bold** for all financial figures (e.g., **$12,500**).
+  3. Use bulleted lists for summarizing pros, cons, or risks.
+  4. Use short paragraphs. 
+  5. If providing a calculation, show the steps in a clear list.
+  
+  Your goal is to answer questions about this specific deal's numbers, risks, and potential. 
+  Be data-driven, concise, and professional. 
+  Always reference the data provided if relevant.`;
+
+  return ai.chats.create({
+    model: 'gemini-3-pro-preview',
+    config: {
+      systemInstruction,
+    },
+  });
+};
+
+export const analyzeProperty = async (query: string): Promise<MarketInsight> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: `Act as an expert real estate underwriter. Perform a rigorous, multi-strategy audit for property: ${query}. 
+      
+      1. MARKET PRICE: Find current listing or estimated market value.
+      2. STR: High-confidence ADR and Occupancy for short-term rentals.
+      3. MTR: Monthly rent for 30-90 day furnished rentals.
+      4. LTR: Monthly rent for 12-month traditional leases.
+      5. OPERATING COSTS: Area-specific Property Tax, HOA, and Cleaning Fee estimates.
+      6. FURNISHINGS: Calculate a professional mid-range furnishing budget using EXACTLY this breakdown logic based on bedroom/bathroom count:
+         - Per Bedroom (Bed/Linens): $3,500
+         - Per Bathroom (Essentials): $1,000
+         - Living Room (Sofa/TV/Tables): $4,500
+         - Kitchen & Dining: $2,500
+         - Tech/Cleaning/Decor: $1,500
+         Sum these for the total suggestedFurnishingsCost.
+      7. COMPS: 3 real nearby property sale prices and estimated annual revenues.
+      
+      DESCRIPTIVE SECTIONS (snapshot, regulations, break-even, recommendation):
+      Provide AT LEAST 5 detailed facts for each section.
+      CRITICAL FORMAT RULE: Every point must start with a descriptive, topic-specific header (e.g., "Registration Requirements", "Septic Limitations", "HVAC Efficiency") followed by a colon and the explanation. 
+      NEVER use generic placeholders like "Category Name", "Header", or "Bullet Point".
+      The header should be the specific subject of that fact.
+
+      Return ONLY JSON.`,
+      config: {
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json",
+        temperature: 0.1,
+        seed: 42,
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            snapshot: { type: Type.STRING },
+            regulations: { type: Type.STRING },
+            marketPerformance: { type: Type.STRING },
+            beds: { type: Type.STRING },
+            baths: { type: Type.STRING },
+            sqft: { type: Type.STRING },
+            lotSize: { type: Type.STRING },
+            yearBuilt: { type: Type.STRING },
+            comps: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  address: { type: Type.STRING },
+                  price: { type: Type.STRING },
+                  distance: { type: Type.STRING },
+                  annualRevenue: { type: Type.STRING },
+                  adr: { type: Type.STRING },
+                  occ: { type: Type.STRING },
+                  grossYield: { type: Type.STRING }
+                },
+                required: ["address", "price", "distance", "annualRevenue", "adr", "occ", "grossYield"]
+              }
+            },
+            proFormaScenarios: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  label: { type: Type.STRING },
+                  adr: { type: Type.NUMBER },
+                  occ: { type: Type.NUMBER },
+                  gross: { type: Type.NUMBER },
+                  platformFee: { type: Type.NUMBER },
+                  mgmtFee: { type: Type.NUMBER },
+                  opex: { type: Type.NUMBER },
+                  noi: { type: Type.NUMBER },
+                  debtService: { type: Type.NUMBER },
+                  cashFlow: { type: Type.NUMBER }
+                },
+                required: ["label", "adr", "occ", "gross", "platformFee", "mgmtFee", "opex", "noi", "debtService", "cashFlow"]
+              }
+            },
+            breakEvenAnalysis: { type: Type.STRING },
+            recommendation: { type: Type.STRING },
+            suggestedListingPrice: { type: Type.NUMBER },
+            suggestedMonthlyRevenue: { type: Type.NUMBER },
+            suggestedOccupancy: { type: Type.NUMBER },
+            suggestedPropertyTax: { type: Type.NUMBER },
+            suggestedCleaningFee: { type: Type.NUMBER },
+            suggestedFurnishingsCost: { type: Type.NUMBER },
+            suggestedHOA: { type: Type.NUMBER },
+            suggestedMTRRent: { type: Type.NUMBER },
+            suggestedLTRRent: { type: Type.NUMBER },
+            marketRiskLevel: { type: Type.STRING, enum: ['Low', 'Medium', 'High'] },
+            verdict: { type: Type.STRING }
+          },
+          required: ["snapshot", "regulations", "marketPerformance", "comps", "proFormaScenarios", "suggestedListingPrice", "suggestedOccupancy", "suggestedPropertyTax", "suggestedCleaningFee", "suggestedFurnishingsCost", "suggestedHOA", "suggestedMTRRent", "suggestedLTRRent", "marketRiskLevel", "verdict", "beds", "baths", "sqft", "lotSize", "yearBuilt"]
+        }
+      },
+    });
+
+    const rawData = JSON.parse(response.text || "{}");
+    if (rawData.suggestedOccupancy !== undefined) {
+      if (rawData.suggestedOccupancy > 0 && rawData.suggestedOccupancy <= 1) {
+        rawData.suggestedOccupancy = Math.round(rawData.suggestedOccupancy * 100);
+      } else {
+        rawData.suggestedOccupancy = Math.round(rawData.suggestedOccupancy);
+      }
+    }
+
+    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => ({
+      title: chunk.web?.title || 'Source',
+      uri: chunk.web?.uri || '#'
+    })) || [];
+
+    return {
+      ...rawData,
+      summary: rawData.recommendation,
+      sources
+    };
+  } catch (e) {
+    console.error("Underwriting failed", e);
+    throw e;
+  }
+};

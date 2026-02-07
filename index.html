@@ -1,0 +1,44 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AirROI Pro Underwriter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+      }
+      @media print {
+        .print\:hidden { display: none !important; }
+        .print\:block { display: block !important; }
+        body { background: white !important; }
+        main { margin-left: 0 !important; padding: 0 !important; width: 100% !important; }
+        .rounded-\[3rem\] { border-radius: 1rem !important; }
+        .shadow-2xl { shadow: none !important; }
+      }
+      /* Custom Range Slider */
+      input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 18px;
+        width: 18px;
+        border-radius: 50%;
+        background: #f43f5e;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
+      }
+      /* Markdown basic styles for Chat */
+      .prose-chat ul { list-style-type: disc; margin-left: 1.25rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+      .prose-chat ol { list-style-type: decimal; margin-left: 1.25rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+      .prose-chat strong { color: #f43f5e; font-weight: 800; }
+      .prose-chat p { margin-bottom: 0.75rem; }
+      .prose-chat p:last-child { margin-bottom: 0; }
+    </style>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
