@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { MarketInsight, Amenity, PropertyConfig } from "../types";
 import { RentCastProperty } from "./rentcastService";
+import { cacheService } from "./cacheService";
 import {
   PropertyFacts,
   PropertyAudit,
@@ -307,6 +308,16 @@ export const searchWebForSTRData = async (address: string, bedrooms?: number, ba
   try {
     console.log(`[Claude] Searching web for STR data: ${address}`);
 
+    // 🔧 Check cache first
+    const cached = cacheService.get<{ adr: number; occupancy: number } | null>('searchWebForSTRData', { address, bedrooms, bathrooms });
+    if (cached !== undefined) {
+      if (cached === null) {
+        console.log('[Cache] HIT: searchWebForSTRData returned null (no data available)');
+        return null;
+      }
+      return cached;
+    }
+
     const response = await getClient().messages.create({
       model: getModel('complex_analysis'),
       max_tokens: 2048,
@@ -346,6 +357,7 @@ If absolutely no data exists for this entire region, return: null`
 
     if (!resultText) {
       console.log('[Claude] No text content in response');
+      cacheService.set('searchWebForSTRData', { address, bedrooms, bathrooms }, null);
       return null;
     }
 
@@ -355,6 +367,7 @@ If absolutely no data exists for this entire region, return: null`
     // Handle "null" response
     if (rawText === 'null' || rawText.toLowerCase() === 'null') {
       console.log('[Claude] No STR data available');
+      cacheService.set('searchWebForSTRData', { address, bedrooms, bathrooms }, null);
       return null;
     }
 
@@ -369,10 +382,13 @@ If absolutely no data exists for this entire region, return: null`
 
     if (result && typeof result.adr === 'number' && typeof result.occupancy === 'number') {
       console.log(`[Claude] ✅ Found STR data - ADR: $${result.adr}, Occ: ${result.occupancy}%, Source: ${result.source || 'web'}`);
+      // 🔧 Cache the result
+      cacheService.set('searchWebForSTRData', { address, bedrooms, bathrooms }, { adr: result.adr, occupancy: result.occupancy });
       return { adr: result.adr, occupancy: result.occupancy };
     }
 
     console.log('[Claude] ❌ Invalid or missing STR data in response');
+    cacheService.set('searchWebForSTRData', { address, bedrooms, bathrooms }, null);
     return null;
   } catch (e: any) {
     console.error("❌ Web search for STR data failed:", e.message || e);
@@ -450,6 +466,14 @@ export const startPropertyChat = (insight: MarketInsight, config: PropertyConfig
 
 export const analyzeProperty = async (query: string, factualData?: RentCastProperty | null, marketStats?: any, rentEstimate?: any, strData?: any, strComps?: any): Promise<MarketInsight> => {
   try {
+    // 🔧 Check cache first - use address as cache key
+    const cacheAddress = factualData?.formattedAddress || query;
+    const cached = cacheService.get<MarketInsight>('analyzeProperty', { address: cacheAddress });
+    if (cached) {
+      console.log(`[Cache] ✅ Using cached analysis for ${cacheAddress}`);
+      return cached;
+    }
+
     let groundTruth = factualData ? `
 GROUND TRUTH SPECS (USE THESE EXACTLY):
 - Address: ${factualData.formattedAddress}
@@ -637,12 +661,17 @@ Return ONLY a JSON object with this EXACT structure:
       hasRentCastData: dataSource.hasRentCastData
     });
 
-    return {
+    const result: MarketInsight = {
       ...rawData,
       summary: rawData.recommendation,
       sources: rawData.sources || [],
       dataSource
     };
+
+    // 🔧 Cache the analysis result
+    cacheService.set('analyzeProperty', { address: cacheAddress }, result);
+    
+    return result;
   } catch (e) {
     console.error("Underwriting failed", e);
     throw e;

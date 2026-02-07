@@ -1,8 +1,8 @@
 /**
- * Cache Service for RentCast API Results
+ * Cache Service for RentCast API Results & Claude AI Analysis
  * 
- * Implements a 24-hour cache to reduce API calls and improve performance
- * while maintaining data freshness for property analysis.
+ * Implements a 24-hour cache to reduce API calls, improve performance,
+ * and ensure consistent results when analyzing the same property.
  */
 
 interface CacheEntry<T> {
@@ -68,9 +68,17 @@ class RentCastCache {
 
   /**
    * Generate a cache key from function name and parameters
+   * Normalize address strings for consistency
    */
   private generateKey(functionName: string, params: Record<string, any>): string {
-    const paramStr = JSON.stringify(params);
+    const normalizedParams = { ...params };
+    
+    // Normalize address strings (trim, lowercase, remove extra spaces)
+    if (normalizedParams.address) {
+      normalizedParams.address = normalizedParams.address.trim().toLowerCase();
+    }
+    
+    const paramStr = JSON.stringify(normalizedParams);
     return `${functionName}:${paramStr}`;
   }
 
