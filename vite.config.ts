@@ -12,5 +12,20 @@ export default defineConfig({
   server: {
     port: 3000,
     host: '0.0.0.0',
-  }
+    // Optimize HMR for faster refreshes
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 3000,
+    },
+  },
+  // Cache optimization
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      '@tanstack/react-query',
+      'react-hook-form',
+    ],
+  },
 });
