@@ -295,23 +295,18 @@ export const searchWebForSTRData = async (address: string, bedrooms?: number, ba
 
     const content = await claudeProxy({
       model: getModel('complex_analysis'),
-      max_tokens: 1024,
+      max_tokens: 2048,
       tools: [{ type: "web_search_20250305", name: "web_search" }],
       messages: [{
         role: 'user',
         content: `Search the web for short-term rental (Airbnb/Vrbo) market data for: ${address}${bedrooms ? `, ${bedrooms} bed` : ''}${bathrooms ? `, ${bathrooms} bath` : ''}
 
-Find:
-- Average Daily Rate (ADR) - typical nightly rate
-- Annual Occupancy % - percentage of days rented
+Find the average daily rate (ADR) in USD and annual occupancy percentage.
 
-Return ONLY JSON (no text before or after):
-{"adr": <number>, "occupancy": <number>}
-
+IMPORTANT: Respond with ONLY valid JSON, no explanation or other text.
+Format: {"adr": <number>, "occupancy": <number>}
 Example: {"adr": 185, "occupancy": 68}
-
-If no data found, return:
-{"adr": 120, "occupancy": 50}`
+Default if no data: {"adr": 120, "occupancy": 50}`
       }]
     });
 
@@ -319,12 +314,16 @@ If no data found, return:
     const rawText = resultText.trim();
     console.log('[Claude] Raw response:', rawText.substring(0, 200));
 
+    // Extract JSON from the response - try multiple patterns
     let jsonText = rawText;
-    const jsonMatch = rawText.match(/\{[^{}]*"adr"[^{}]*"occupancy"[^{}]*\}/);
+    
+    // Pattern 1: Direct JSON object with adr and occupancy
+    const jsonMatch = rawText.match(/\{[^{}]*"adr"[^{}]*"occupancy"[^{}]*\}|\{[^{}]*"occupancy"[^{}]*"adr"[^{}]*\}/);
     if (jsonMatch) {
       jsonText = jsonMatch[0];
     } else {
-      const broadMatch = rawText.match(/\{[\s\S]*\}/);
+      // Pattern 2: Any JSON object with curly braces
+      const broadMatch = rawText.match(/\{[\s\S]*?\}/);
       if (broadMatch) {
         jsonText = broadMatch[0];
       }
@@ -333,7 +332,7 @@ If no data found, return:
     const result = parseJSON(jsonText);
 
     if (result && typeof result.adr === 'number' && typeof result.occupancy === 'number') {
-      if (result.adr > 0 && result.occupancy > 0) {
+      if (result.adr > 0 && result.occupancy > 0 && result.occupancy <= 100) {
         console.log(`[Claude] ✅ Found STR data - ADR: $${result.adr}, Occ: ${result.occupancy}%`);
         return { adr: result.adr, occupancy: result.occupancy };
       }

@@ -190,6 +190,8 @@ const App: React.FC = () => {
         source: 'web_search'
       };
     }
+    // Reset badge when web search has no data (demo mode)
+    setIsUsingWebData(false);
     return null;
   }, [webSTRQuery.data]);
 

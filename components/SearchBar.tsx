@@ -32,7 +32,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             ) : import.meta.env.VITE_RENTCAST_API_KEY ? (
               <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100 animate-pulse"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /><span className="text-[10px] font-black uppercase tracking-tight">RentCast Live</span></div>
             ) : (
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 rounded-full border border-amber-100"><div className="w-1.5 h-1.5 rounded-full bg-amber-500" /><span className="text-[10px] font-black uppercase tracking-tight">AI Guessing Mode</span></div>
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 rounded-full border border-amber-100"><div className="w-1.5 h-1.5 rounded-full bg-amber-500" /><span className="text-[10px] font-black uppercase tracking-tight">Demo Mode</span></div>
             )}
           </div>
         </div>
