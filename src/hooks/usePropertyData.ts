@@ -25,6 +25,7 @@ export const usePropertyData = (address: string, enabled: boolean = true) => {
     queryFn: () => fetchPropertyData(address),
     enabled: enabled && !!address,
     staleTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnMount: false, // Use cache on repeat searches
   });
 };
 
@@ -37,6 +38,7 @@ export const useMarketStats = (zipCode: string | undefined, enabled: boolean = t
     queryFn: () => fetchMarketStats(zipCode!),
     enabled: enabled && !!zipCode,
     staleTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnMount: false, // Use cache on repeat searches
   });
 };
 
@@ -49,6 +51,7 @@ export const useRentEstimate = (address: string, enabled: boolean = true) => {
     queryFn: () => fetchRentEstimate(address),
     enabled: enabled && !!address,
     staleTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnMount: false, // Use cache on repeat searches
   });
 };
 
@@ -67,6 +70,7 @@ export const useSTRData = (
     queryFn: () => fetchSTRData(address, propertyType, bedrooms, bathrooms),
     enabled: enabled && !!address,
     staleTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnMount: false, // Use cache on repeat searches
   });
 };
 
@@ -85,13 +89,14 @@ export const useWebSTRData = (
     enabled: enabled && !!address,
     staleTime: 30 * 60 * 1000, // 30 minutes
     retry: 1, // Only retry once for Claude calls
+    refetchOnMount: false, // Use cache on repeat searches
   });
 };
 
 /**
  * Hook to analyze property with Claude
- * Note: Query key uses only address to ensure cache hits on repeat searches
- * The data is passed to queryFn but not used in cache key
+ * Note: Query key uses only address - enabled flag ensures we wait for strData
+ * before running analysis to avoid duplicate API calls
  */
 export const usePropertyAnalysis = (
   address: string,
@@ -107,7 +112,12 @@ export const usePropertyAnalysis = (
     queryFn: () => analyzeProperty(address, factual, marketStats, rentEstimate, strData, strComps),
     enabled: enabled && !!address,
     staleTime: 30 * 60 * 1000, // 30 minutes
-    retry: 1, // Only retry once for Claude calls
+    retry: (failureCount, error: any) => {
+      // Don't retry on 429 - backoff won't help, user should wait
+      if (error?.status === 429) return false;
+      return failureCount < 1;
+    },
+    refetchOnMount: false, // Use cache on repeat searches
   });
 };
 
@@ -127,6 +137,7 @@ export const useSensitivityAnalysis = (
     enabled: enabled && !!address,
     staleTime: 30 * 60 * 1000, // 30 minutes
     retry: 1,
+    refetchOnMount: false, // Use cache on repeat searches
   });
 };
 
@@ -146,6 +157,7 @@ export const useAmenityROI = (
     enabled: enabled && !!address,
     staleTime: 30 * 60 * 1000, // 30 minutes
     retry: 1,
+    refetchOnMount: false, // Use cache on repeat searches
   });
 };
 
@@ -166,6 +178,7 @@ export const usePathToYes = (
     enabled: enabled && !!address,
     staleTime: 30 * 60 * 1000, // 30 minutes
     retry: 1,
+    refetchOnMount: false, // Use cache on repeat searches
   });
 };
 
@@ -185,6 +198,7 @@ export const useLenderPacket = (
     enabled: enabled && !!address,
     staleTime: 30 * 60 * 1000, // 30 minutes
     retry: 1,
+    refetchOnMount: false, // Use cache on repeat searches
   });
 };
 

@@ -24,6 +24,9 @@ export const queryClient = new QueryClient({
       
       // Don't refetch on reconnect
       refetchOnReconnect: false,
+      
+      // CRITICAL: Don't refetch on mount - use cached data
+      refetchOnMount: false,
     },
     mutations: {
       // Retry mutations once

@@ -188,17 +188,14 @@ const App: React.FC = () => {
     return null;
   }, [rentEstimateQuery.data]);
 
-  // Fetch web STR data only on FIRST search for a new address
-  // On repeat searches (cache hit), skip web search entirely
-  // This prevents unnecessary Claude calls on cached repeat searches
-  const isNewSearch = propertyQuery.fetchStatus === 'fetching'; // Only true when actively fetching (not cached)
-  const needsWebData = propertyQuery.isSuccess && !!targetAddress && isNewSearch;
-  
+  // Fetch web STR data - React Query handles caching automatically
+  // Enable whenever we have an address - staleTime controls freshness
+  // CRITICAL: Only enable after property data is loaded to ensure stable query key
   const webSTRQuery = useWebSTRData(
     targetAddress,
     propertyQuery.data?.bedrooms,
     propertyQuery.data?.bathrooms,
-    needsWebData
+    !!targetAddress && propertyQuery.isSuccess // Wait for property data before enabling
   );
 
   // Prepare STR data (from web search only - RentCast doesn't provide STR data)
@@ -215,30 +212,16 @@ const App: React.FC = () => {
     return null;
   }, [webSTRQuery.data]);
 
-  // Add delay after web search completes to ensure rate limit resets
-  // This only matters if web search ran (not cached)
-  const [webSearchDelayComplete, setWebSearchDelayComplete] = useState(true);
-  useEffect(() => {
-    if (webSTRQuery.isSuccess && webSTRQuery.fetchStatus === 'idle') {
-      // Web search just completed (not from cache)
-      if (!webSearchDelayComplete) {
-        // Already delayed, don't delay again
-        return;
-      }
-      // First time - add a 3 second delay before main analysis
-      setWebSearchDelayComplete(false);
-      const timer = setTimeout(() => {
-        setWebSearchDelayComplete(true);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [webSTRQuery.isSuccess, webSTRQuery.fetchStatus]);
-
   // Main property analysis (runs after all data is fetched)
-  // Wait for web STR query if needed, otherwise proceed when RentCast data is ready
-  // Also wait for post-web-search delay to complete (prevents rate limiting)
-  const webDataReady = !needsWebData || webSTRQuery.isSuccess || webSTRQuery.isError;
-  const canAnalyze = propertyQuery.isSuccess && marketStatsQuery.isSuccess && rentEstimateQuery.isSuccess && webDataReady && webSearchDelayComplete;
+  // CRITICAL: Must wait for strData to be populated before analysis
+  // The web search includes built-in delays (5s pre-analysis in claudeService)
+  const canAnalyze = 
+    !!targetAddress &&
+    propertyQuery.isSuccess && 
+    marketStatsQuery.isSuccess && 
+    rentEstimateQuery.isSuccess && 
+    webSTRQuery.isSuccess &&
+    !!strData;  // Ensure web search completed
   
   const analysisQuery = usePropertyAnalysis(
     targetAddress,
@@ -250,19 +233,23 @@ const App: React.FC = () => {
     canAnalyze
   );
 
-  // Update state when analysis completes
+  // Update state when analysis completes OR when cached data is available
+  // This handles both fresh API calls and repeat searches with cached data
   useEffect(() => {
-    if (analysisQuery.isSuccess && analysisQuery.data) {
-      const result = analysisQuery.data;
-      const factual = propertyQuery.data;
-      
-      // Set property image from RentCast if available
-      if (factual?.mainImage) {
-        result.mainImage = factual.mainImage;
-      }
+    // Wait for analysis to be triggered and data to be available
+    if (!isAnalyzing) return;
+    if (!analysisQuery.isSuccess || !analysisQuery.data) return;
+    
+    const result = analysisQuery.data;
+    const factual = propertyQuery.data;
+    
+    // Set property image from RentCast if available
+    if (factual?.mainImage) {
+      result.mainImage = factual.mainImage;
+    }
 
-      setInsight(result);
-      setDisplayedAddress(targetAddress);
+    setInsight(result);
+    setDisplayedAddress(targetAddress);
       const factualPrice = factual?.lastSalePrice || 0;
       const aiPrice = result.suggestedListingPrice || 0;
       const useAiPrice = aiPrice > (factualPrice * 1.05) && aiPrice > 0;
@@ -293,8 +280,7 @@ const App: React.FC = () => {
       setAmenityROIData(null);
       setPathToYesData(null);
       setLenderPacket(null);
-    }
-  }, [analysisQuery.isSuccess, analysisQuery.data, propertyQuery.data, targetAddress]);
+  }, [isAnalyzing, analysisQuery.isSuccess, analysisQuery.data, analysisQuery.fetchStatus, propertyQuery.data, targetAddress]);
 
   // Handle errors
   useEffect(() => {
@@ -306,12 +292,10 @@ const App: React.FC = () => {
     }
   }, [analysisQuery.isError, analysisQuery.error]);
 
-  // Track loading state
+  // Track factual data loading state only
   useEffect(() => {
-    const isLoading = rentCastQueries.isLoading || webSTRQuery.isFetching || analysisQuery.isFetching;
-    setIsAnalyzing(isLoading);
     setIsFetchingFactual(rentCastQueries.isLoading);
-  }, [rentCastQueries.isLoading, webSTRQuery.isFetching, analysisQuery.isFetching]);
+  }, [rentCastQueries.isLoading]);
 
   const saveAssessment = () => {
     if (!insight) return;
@@ -711,8 +695,15 @@ const App: React.FC = () => {
     isSelectingRef.current = true;
     setIsAnalyzing(true);
     
-    // Trigger React Query with normalized address
-    setTargetAddress(normalizedAddress);
+    // For repeat searches, we need to manually trigger a check since
+    // React will skip the state update if targetAddress hasn't changed
+    const isRepeatSearch = normalizedAddress === targetAddress;
+    
+    if (!isRepeatSearch) {
+      setTargetAddress(normalizedAddress);
+    }
+    // If it's a repeat search, don't update targetAddress (it's the same),
+    // but isAnalyzing=true will trigger the effect to check for cached data
   };
 
   const handleAddAmenity = async () => {
