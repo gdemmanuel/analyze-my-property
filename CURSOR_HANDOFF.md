@@ -1,5 +1,5 @@
 # AirROI Cursor Handoff — Phase 3 (Backend Proxy)
-**Date**: Feb 11, 2026 | **Branch**: master | **Ahead**: 12 commits | **Working tree**: Clean
+**Date**: Feb 11, 2026 | **Branch**: master | **Ahead**: 13+ commits | **Working tree**: Pending cleanup commit
 
 ---
 
@@ -136,8 +136,8 @@ app.use('/api/rentcast', async (req, res) => {
 | First search ~90-120s | Expected | RentCast + web search + 5s delay + analysis |
 | Repeat search <1s | Expected | React Query cache + server cache |
 | STR web search returns prose instead of JSON | Partially fixed | Improved regex extraction; Claude sometimes responds with text first |
-| `@anthropic-ai/sdk` still in frontend deps | Cleanup needed | Package still in package.json but no longer imported by frontend code. Can remove from `dependencies` and keep only server-side |
-| `concurrently` not installed | Minor | `dev:full` script references it but not installed. Run both commands separately for now |
+| `@anthropic-ai/sdk` in shared deps | Resolved | Server imports it; Vite tree-shakes from frontend. No action needed. |
+| `concurrently` | ✅ Installed | `npm run dev:full` now works — runs server + vite with colored labels. |
 | Express 5 wildcard routes | Fixed | Used `app.use('/api/rentcast', ...)` instead of `app.get('/api/rentcast/*', ...)` |
 | Server cache is in-memory | Limitation | Clears on server restart. Fine for dev/single-server. Use Redis for multi-server prod. |
 
@@ -184,11 +184,11 @@ e4d3cd3 Enhance Claude and RentCast services
 4. Verify: console shows `[Server] Proxying...` (not direct API calls)
 5. Verify: repeat search uses cache (server logs "Cache HIT")
 
-### Option B: Production Cleanup
-1. Remove `@anthropic-ai/sdk` from frontend `dependencies` (move to server-only)
-2. Install `concurrently` and fix `dev:full` script
-3. Add `.env.example` with placeholder keys for other developers
-4. Delete stale handoff docs: `CURSOR_HANDOFF_PHASE2D.md`, `IMPLEMENTATION_COMPLETE.md`, `HANDOFF_FINAL.md`, `CACHE_TEST_CHECKLIST.md`
+### Option B: Production Cleanup — DONE
+- ~~Remove `@anthropic-ai/sdk`~~ — Kept; server imports it, Vite tree-shakes it from frontend bundle.
+- ✅ Installed `concurrently`, fixed `dev:full` script with colored labels.
+- ✅ Added `.env.example` with placeholder keys.
+- ✅ Deleted 6 stale handoff docs (Phase2D, Refactor, Implementation, Cache Test, Final, Refactor Complete).
 
 ### Option C: Deploy
 1. Build frontend: `npm run build` (outputs to `dist/`)
