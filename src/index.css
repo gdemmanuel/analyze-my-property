@@ -1,12 +1,9 @@
 @import "tailwindcss";
 
 /* Global styles */
-:root {
-  color-scheme: dark;
-}
-
 body {
-  @apply bg-gray-900 text-gray-100;
+  font-family: 'Inter', sans-serif;
+  background-color: #f8fafc;
 }
 
 html, body, #root {

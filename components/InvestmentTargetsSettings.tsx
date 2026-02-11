@@ -38,7 +38,7 @@ const InvestmentTargetsSettings: React.FC<InvestmentTargetsSettingsProps> = ({ t
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-1.5 hover:bg-slate-100 rounded transition-colors text-slate-400 hover:text-slate-600"
+                        className="p-1.5 hover:bg-slate-100 rounded transition-colors text-slate-600 hover:text-slate-600"
                     >
                         <X size={18} />
                     </button>
@@ -63,7 +63,7 @@ const InvestmentTargetsSettings: React.FC<InvestmentTargetsSettingsProps> = ({ t
                             onChange={(e) => setLocalTargets({ ...localTargets, minCapRate: parseFloat(e.target.value) || 0 })}
                             className="w-full px-3 py-2 border border-slate-200 rounded-md font-semibold text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                         />
-                        <p className="text-[10px] text-slate-400 mt-0.5">Standard: 6-8%</p>
+                        <p className="text-[10px] text-slate-600 mt-0.5">Standard: 6-8%</p>
                     </div>
 
                     {/* Cash-on-Cash */}
@@ -78,7 +78,7 @@ const InvestmentTargetsSettings: React.FC<InvestmentTargetsSettingsProps> = ({ t
                             onChange={(e) => setLocalTargets({ ...localTargets, minCoC: parseFloat(e.target.value) || 0 })}
                             className="w-full px-3 py-2 border border-slate-200 rounded-md font-semibold text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                         />
-                        <p className="text-[10px] text-slate-400 mt-0.5">Standard: 8-12%</p>
+                        <p className="text-[10px] text-slate-600 mt-0.5">Standard: 8-12%</p>
                     </div>
 
                     {/* DSCR */}
@@ -93,7 +93,7 @@ const InvestmentTargetsSettings: React.FC<InvestmentTargetsSettingsProps> = ({ t
                             onChange={(e) => setLocalTargets({ ...localTargets, minDSCR: parseFloat(e.target.value) || 0 })}
                             className="w-full px-3 py-2 border border-slate-200 rounded-md font-semibold text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                         />
-                        <p className="text-[10px] text-slate-400 mt-0.5">Lender minimum: 1.20-1.25</p>
+                        <p className="text-[10px] text-slate-600 mt-0.5">Lender minimum: 1.20-1.25</p>
                     </div>
                 </div>
 

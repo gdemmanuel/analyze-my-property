@@ -11,25 +11,26 @@ interface SensitivityTableProps {
 const SensitivityTable: React.FC<SensitivityTableProps> = ({ data, isLoading, onRefresh }) => {
     if (isLoading) {
         return (
-            <div className="bg-white rounded-2xl border border-slate-100 p-8 flex items-center justify-center">
-                <div className="animate-spin w-8 h-8 border-4 border-rose-500 border-t-transparent rounded-full" />
-                <span className="ml-3 text-slate-500 font-black text-sm uppercase tracking-widest">Generating Sensitivity Analysis...</span>
+            <div className="bg-white rounded-2xl border-2 border-slate-200 p-12 flex flex-col items-center justify-center shadow-lg">
+                <div className="animate-spin w-12 h-12 border-4 border-rose-500 border-t-transparent rounded-full mb-4" />
+                <span className="text-slate-700 font-black text-sm uppercase tracking-widest">Generating Sensitivity Analysis...</span>
+                <span className="text-slate-500 text-xs mt-2">This may take 10-15 seconds</span>
             </div>
         );
     }
 
     if (!data) {
         return (
-            <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center">
-                <p className="text-slate-400 font-black text-sm uppercase tracking-widest">
+            <div className="bg-white rounded-2xl border-2 border-slate-200 p-8 text-center shadow-lg">
+                <p className="text-slate-600 font-black text-sm uppercase tracking-widest mb-4">
                     Run sensitivity analysis to see how changes in ADR, Occupancy, and Rate affect your returns
                 </p>
                 {onRefresh && (
                     <button
                         onClick={onRefresh}
-                        className="mt-4 px-6 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-black text-xs uppercase tracking-widest"
+                        className="mt-4 px-8 py-3 bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:shadow-xl transform hover:scale-105 transition-all cursor-pointer"
                     >
-                        Generate Analysis
+                        🎯 Generate Analysis
                     </button>
                 )}
             </div>
@@ -78,14 +79,14 @@ const SensitivityTable: React.FC<SensitivityTableProps> = ({ data, isLoading, on
 
             {/* ADR vs Occupancy Matrix */}
             <div className="mb-6">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3">
                     ADR vs Occupancy Impact on Owner Surplus
                 </p>
                 <div className="overflow-x-auto">
                     <table className="w-full text-center">
                         <thead>
                             <tr>
-                                <th className="p-2 text-[9px] font-black text-slate-400 uppercase">ADR ↓ / OCC →</th>
+                                <th className="p-2 text-[9px] font-black text-slate-600 uppercase">ADR ↓ / OCC →</th>
                                 {data.occVariations.map((occ) => (
                                     <th key={occ} className="p-2 text-[9px] font-black text-slate-500 uppercase">
                                         {occ >= 0 ? '+' : ''}{occ}%
@@ -120,7 +121,7 @@ const SensitivityTable: React.FC<SensitivityTableProps> = ({ data, isLoading, on
 
             {/* Rate Sensitivity */}
             <div className="mb-6">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3">
                     Interest Rate Sensitivity (bps)
                 </p>
                 <div className="flex gap-2 flex-wrap">
@@ -129,7 +130,7 @@ const SensitivityTable: React.FC<SensitivityTableProps> = ({ data, isLoading, on
                             key={rate}
                             className="px-4 py-2 bg-slate-50 rounded-xl text-center"
                         >
-                            <p className="text-[9px] font-black text-slate-400 uppercase">
+                            <p className="text-[9px] font-black text-slate-600 uppercase">
                                 {rate >= 0 ? '+' : ''}{rate} bps
                             </p>
                             <p className="text-sm font-black text-slate-700">
@@ -144,7 +145,7 @@ const SensitivityTable: React.FC<SensitivityTableProps> = ({ data, isLoading, on
             {/* Breakpoints */}
             {data.breakpoints.length > 0 && (
                 <div className="mb-4">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3">
                         Critical Breakpoints
                     </p>
                     <div className="space-y-2">

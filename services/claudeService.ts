@@ -1,7 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { MarketInsight, Amenity, PropertyConfig } from "../types";
 import { RentCastProperty } from "./rentcastService";
-import { cacheService, NOT_IN_CACHE } from "./cacheService";
 import {
   PropertyFacts,
   PropertyAudit,
@@ -317,13 +316,6 @@ export const searchWebForSTRData = async (address: string, bedrooms?: number, ba
   try {
     console.log(`[Claude] Searching web for STR data: ${address}`);
 
-    // 🔧 Check cache first
-    const cached = cacheService.get<{ adr: number; occupancy: number } | null>('searchWebForSTRData', { address, bedrooms, bathrooms });
-    if (cached !== NOT_IN_CACHE) {
-      console.log(`[Cache] ✅ HIT: searchWebForSTRData (${cached === null ? 'null' : 'found data'})`);
-      return cached;
-    }
-
     const response = await getClient().messages.create({
       model: getModel('complex_analysis'),
       max_tokens: 2048,
@@ -363,7 +355,6 @@ If absolutely no data exists for this entire region, return: null`
 
     if (!resultText) {
       console.log('[Claude] No text content in response');
-      cacheService.set('searchWebForSTRData', { address, bedrooms, bathrooms }, null);
       return null;
     }
 
@@ -373,7 +364,6 @@ If absolutely no data exists for this entire region, return: null`
     // Handle "null" response
     if (rawText === 'null' || rawText.toLowerCase() === 'null') {
       console.log('[Claude] No STR data available');
-      cacheService.set('searchWebForSTRData', { address, bedrooms, bathrooms }, null);
       return null;
     }
 
@@ -388,13 +378,11 @@ If absolutely no data exists for this entire region, return: null`
 
     if (result && typeof result.adr === 'number' && typeof result.occupancy === 'number') {
       console.log(`[Claude] ✅ Found STR data - ADR: $${result.adr}, Occ: ${result.occupancy}%, Source: ${result.source || 'web'}`);
-      // 🔧 Cache the result
-      cacheService.set('searchWebForSTRData', { address, bedrooms, bathrooms }, { adr: result.adr, occupancy: result.occupancy });
-      return { adr: result.adr, occupancy: result.occupancy };
+      const finalResult = { adr: result.adr, occupancy: result.occupancy };
+      return finalResult;
     }
 
     console.log('[Claude] ❌ Invalid or missing STR data in response');
-    cacheService.set('searchWebForSTRData', { address, bedrooms, bathrooms }, null);
     return null;
   } catch (e: any) {
     console.error("❌ Web search for STR data failed:", e.message || e);
@@ -472,14 +460,6 @@ export const startPropertyChat = (insight: MarketInsight, config: PropertyConfig
 
 export const analyzeProperty = async (query: string, factualData?: RentCastProperty | null, marketStats?: any, rentEstimate?: any, strData?: any, strComps?: any): Promise<MarketInsight> => {
   try {
-    // 🔧 Check cache first - use address as cache key
-    const cacheAddress = factualData?.formattedAddress || query;
-    const cached = cacheService.get<MarketInsight>('analyzeProperty', { address: cacheAddress });
-    if (cached !== NOT_IN_CACHE) {
-      console.log(`[Cache] ✅ Using cached analysis for ${cacheAddress}`);
-      return cached;
-    }
-
     let groundTruth = factualData ? `
 GROUND TRUTH SPECS (USE THESE EXACTLY):
 - Address: ${factualData.formattedAddress}
@@ -531,20 +511,8 @@ GROUND TRUTH SPECS (USE THESE EXACTLY):
       });
       console.log('[Claude] ✅ Using RentCast sales comps for market valuation - this will calibrate pricing estimates');
     } else {
-      console.warn('[Claude] No RentCast STR comps available - searching web for market comparables...');
-      // Add delay before web search to avoid rate limiting
-      await sleep(2000);
-      // Try web search for STR comps if RentCast doesn't have them
-      const webComps = await searchWebForSTRComps(factualData?.formattedAddress || query, factualData?.bedrooms, factualData?.bathrooms);
-      if (webComps && webComps.length > 0) {
-        groundTruth += `\nRECENT STR COMPARABLES (WEB SEARCH DATA):\n`;
-        webComps.slice(0, 3).forEach((comp: any, i: number) => {
-          groundTruth += `${i + 1}. ${comp.address}: ADR $${comp.adr}, Occ ${Math.round(comp.occupancy)}%, Market Data\n`;
-        });
-        console.log(`[Claude] ✅ Found ${webComps.length} STR comps via web search - USING for accurate occupancy calibration`);
-      } else {
-        console.warn('[Claude] ⚠️ No RentCast or web comps available - using general market knowledge (less accurate)');
-      }
+      console.warn('[Claude] ⚠️ No RentCast STR comps available - using general market knowledge (less accurate)');
+      // Web search for STR comps doesn't return proper JSON, so we skip it to avoid rate limiting
     }
 
     if (marketStats) {
@@ -555,7 +523,9 @@ GROUND TRUTH SPECS (USE THESE EXACTLY):
     }
 
     // Add delay before making API call to avoid rate limiting
-    await sleep(1500);
+    // Increased to 5 seconds to ensure web search completes and rate limit resets
+    // On cache hits, React Query will skip this entire function, so repeat searches stay instant
+    await sleep(5000);
 
     const response = await withRetry(() => getClient().messages.create({
       model: getModel('complex_analysis'),
@@ -679,9 +649,6 @@ Return ONLY a JSON object with this EXACT structure:
       sources: rawData.sources || [],
       dataSource
     };
-
-    // 🔧 Cache the analysis result
-    cacheService.set('analyzeProperty', { address: cacheAddress }, result);
     
     return result;
   } catch (e) {

@@ -11,25 +11,26 @@ interface AmenityROIPanelProps {
 const AmenityROIPanel: React.FC<AmenityROIPanelProps> = ({ data, isLoading, onRefresh }) => {
     if (isLoading) {
         return (
-            <div className="bg-white rounded-2xl border border-slate-100 p-8 flex items-center justify-center">
-                <div className="animate-spin w-8 h-8 border-4 border-rose-500 border-t-transparent rounded-full" />
-                <span className="ml-3 text-slate-500 font-black text-sm uppercase tracking-widest">Analyzing Amenity ROI...</span>
+            <div className="bg-white rounded-2xl border-2 border-slate-200 p-12 flex flex-col items-center justify-center shadow-lg">
+                <div className="animate-spin w-12 h-12 border-4 border-rose-500 border-t-transparent rounded-full mb-4" />
+                <span className="text-slate-700 font-black text-sm uppercase tracking-widest">Analyzing Amenity ROI...</span>
+                <span className="text-slate-500 text-xs mt-2">This may take 10-15 seconds</span>
             </div>
         );
     }
 
     if (!data) {
         return (
-            <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center">
-                <p className="text-slate-400 font-black text-sm uppercase tracking-widest">
+            <div className="bg-white rounded-2xl border-2 border-slate-200 p-8 text-center shadow-lg">
+                <p className="text-slate-600 font-black text-sm uppercase tracking-widest mb-4">
                     Calculate ROI for potential amenity upgrades with diminishing returns analysis
                 </p>
                 {onRefresh && (
                     <button
                         onClick={onRefresh}
-                        className="mt-4 px-6 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-black text-xs uppercase tracking-widest"
+                        className="mt-4 px-8 py-3 bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:shadow-xl transform hover:scale-105 transition-all cursor-pointer"
                     >
-                        Analyze Amenities
+                        💎 Analyze Amenities
                     </button>
                 )}
             </div>
@@ -85,7 +86,7 @@ const AmenityROIPanel: React.FC<AmenityROIPanelProps> = ({ data, isLoading, onRe
                                 </div>
                                 <div>
                                     <p className="font-black text-slate-800 uppercase text-sm">{amenity.name}</p>
-                                    <p className="text-[10px] font-bold text-slate-400">Setup: {formatCurrency(amenity.setupCost)}</p>
+                                    <p className="text-[10px] font-bold text-slate-600">Setup: {formatCurrency(amenity.setupCost)}</p>
                                 </div>
                             </div>
                             <div className="text-right">
@@ -99,7 +100,7 @@ const AmenityROIPanel: React.FC<AmenityROIPanelProps> = ({ data, isLoading, onRe
 
                         {/* Confidence Range Bar */}
                         <div className="mt-2">
-                            <div className="flex justify-between text-[9px] font-bold text-slate-400 mb-1">
+                            <div className="flex justify-between text-[9px] font-bold text-slate-600 mb-1">
                                 <span>{amenity.confidenceRange.low} mo</span>
                                 <span className="text-slate-600">90% Confidence Range</span>
                                 <span>{amenity.confidenceRange.high} mo</span>

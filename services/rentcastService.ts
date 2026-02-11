@@ -1,6 +1,4 @@
 
-import { cacheService } from './cacheService';
-
 const RENTCAST_API_KEY = import.meta.env.VITE_RENTCAST_API_KEY;
 
 export interface RentCastProperty {
@@ -32,13 +30,6 @@ export const fetchPropertyData = async (address: string): Promise<RentCastProper
 
     try {
         const cleanAddress = address.trim();
-        
-        // 🔧 Check cache first
-        const cached = cacheService.get<RentCastProperty>('fetchPropertyData', { address: cleanAddress });
-        if (cached) {
-            return cached;
-        }
-
         const encodedAddress = encodeURIComponent(cleanAddress);
 
         console.log(`[RentCast] Fetching data for: ${cleanAddress}`);
@@ -96,8 +87,6 @@ export const fetchPropertyData = async (address: string): Promise<RentCastProper
                     propertyType: listingData.propertyType || '',
                     lastSalePrice: listingData.price
                 };
-                // 🔧 Cache the result
-                cacheService.set('fetchPropertyData', { address: cleanAddress }, result);
                 return result;
             }
             return null;
@@ -148,8 +137,6 @@ export const fetchPropertyData = async (address: string): Promise<RentCastProper
                 mainImage: finalMainImage
             } as RentCastProperty;
 
-            // 🔧 Cache the result
-            cacheService.set('fetchPropertyData', { address: cleanAddress }, result);
             return result;
         }
 
@@ -164,12 +151,6 @@ export const fetchMarketStats = async (zipCode: string): Promise<any | null> => 
     if (!RENTCAST_API_KEY) return null;
 
     try {
-        // 🔧 Check cache first
-        const cached = cacheService.get<any>('fetchMarketStats', { zipCode });
-        if (cached) {
-            return cached;
-        }
-
         const response = await fetch(`https://api.rentcast.io/v1/markets?zipCode=${zipCode}`, {
             headers: { 'X-Api-Key': RENTCAST_API_KEY, 'Accept': 'application/json' }
         });
@@ -180,9 +161,6 @@ export const fetchMarketStats = async (zipCode: string): Promise<any | null> => 
         }
 
         const data = await response.json();
-        
-        // 🔧 Cache the result
-        cacheService.set('fetchMarketStats', { zipCode }, data);
         return data;
     } catch (error) {
         console.error("Failed to fetch market stats from RentCast", error);
@@ -194,12 +172,6 @@ export const fetchRentEstimate = async (address: string): Promise<any | null> =>
     if (!RENTCAST_API_KEY) return null;
 
     try {
-        // 🔧 Check cache first
-        const cached = cacheService.get<any>('fetchRentEstimate', { address });
-        if (cached) {
-            return cached;
-        }
-
         const encodedAddress = encodeURIComponent(address);
         const response = await fetch(`https://api.rentcast.io/v1/avm/rent/long-term?address=${encodedAddress}`, {
             headers: { 'X-Api-Key': RENTCAST_API_KEY, 'Accept': 'application/json' }
@@ -218,8 +190,6 @@ export const fetchRentEstimate = async (address: string): Promise<any | null> =>
             hasComps: data.comparableProperties ? data.comparableProperties.length : 0
         });
         
-        // 🔧 Cache the result
-        cacheService.set('fetchRentEstimate', { address }, data);
         return data;
     } catch (error) {
         console.error("Failed to fetch rent estimate from RentCast", error);
@@ -227,79 +197,31 @@ export const fetchRentEstimate = async (address: string): Promise<any | null> =>
     }
 };
 
+/**
+ * RentCast does not provide STR (short-term rental) data.
+ * Use searchWebForSTRData() from claudeService.ts instead.
+ * 
+ * RentCast provides:
+ * - Property details (beds, baths, sqft, tax, HOA)
+ * - Long-term rental estimates (monthly rent)
+ * - Sale comparables
+ * 
+ * RentCast does NOT provide:
+ * - STR Average Daily Rate (ADR)
+ * - STR Occupancy Rate
+ * - STR comparables
+ */
 export const fetchSTRData = async (address: string, propertyType?: string, bedrooms?: number, bathrooms?: number): Promise<any | null> => {
-    // RentCast does NOT have short-term rental data
-    // We'll use Claude web search instead, which is called in App.tsx
     console.log('[RentCast] Note: RentCast does not support short-term rental data. Using Claude web search instead.');
     return null;
 }
 
+// ⚠️ DEPRECATED: RentCast does not provide reliable STR comps via API
+// - /v1/comps/sale endpoint returns 404
+// - No other endpoint provides STR-specific comparable data
+// - Web search for comps doesn't return proper JSON
+// Solution: Use Claude's general market knowledge instead
 export const fetchSTRComps = async (address: string, propertyType?: string, bedrooms?: number, bathrooms?: number): Promise<any | null> => {
-    // UPDATED: Fetch RentCast SALES comparables (actual sold properties)
-    // These are more valuable for STR analysis than LTR rentals
-    // RentCast does NOT have STR/Airbnb comp data, so sales comps are the best alternative
-    if (!RENTCAST_API_KEY) return null;
-
-    try {
-        // 🔧 Check cache first
-        const cached = cacheService.get<any>('fetchSTRComps', { address, propertyType, bedrooms, bathrooms });
-        if (cached) {
-            return cached;
-        }
-
-        const encodedAddress = encodeURIComponent(address);
-        // Use the Comparables API to get sold properties in the area
-        let url = `https://api.rentcast.io/v1/comps/sale?address=${encodedAddress}&radius=1&limit=5`;
-        if (propertyType) url += `&propertyType=${encodeURIComponent(propertyType)}`;
-        if (bedrooms) url += `&bedrooms=${bedrooms}`;
-
-        console.log(`[RentCast] Fetching SALES comps from: ${url}`);
-
-        const response = await fetch(url, {
-            headers: { 'X-Api-Key': RENTCAST_API_KEY, 'Accept': 'application/json' }
-        });
-
-        if (!response.ok) {
-            console.error(`RentCast Sales Comps Error: ${response.status}`);
-            return null;
-        }
-
-        const data = await response.json();
-        console.log(`[RentCast] Sales Comps Response:`, data);
-        
-        if (data && Array.isArray(data) && data.length > 0) {
-            console.log(`[RentCast] ✅ Found ${data.length} sales comparables`);
-            data.forEach((comp: any, i: number) => {
-                const addr = comp.formattedAddress || comp.address || 'N/A';
-                const price = comp.price || comp.salePrice || 'N/A';
-                const saleDate = comp.saleDate || 'N/A';
-                console.log(`  ${i + 1}. ${addr}: Sale Price $${price} (${saleDate})`);
-            });
-            // Transform the data to match expected format for STR analysis
-            const transformedData = data.map((comp: any) => ({
-                formattedAddress: comp.formattedAddress || comp.address,
-                address: comp.formattedAddress || comp.address,
-                price: comp.price || comp.salePrice,
-                salePrice: comp.price || comp.salePrice,
-                saleDate: comp.saleDate,
-                bedrooms: comp.bedrooms,
-                bathrooms: comp.bathrooms,
-                squareFootage: comp.squareFootage,
-                distance: comp.distance || 0,
-                annualRevenue: comp.estimatedAnnualRevenue || 'N/A' // RentCast may estimate this
-            }));
-            // 🔧 Cache the result
-            cacheService.set('fetchSTRComps', { address, propertyType, bedrooms, bathrooms }, transformedData);
-            return transformedData;
-        } else {
-            console.warn(`[RentCast] No sales comps returned (empty array or null)`);
-        }
-        
-        // 🔧 Cache the empty result
-        cacheService.set('fetchSTRComps', { address, propertyType, bedrooms, bathrooms }, null);
-        return null;
-    } catch (error) {
-        console.error("Failed to fetch sales comps from RentCast", error);
-        return null;
-    }
+    console.log('[RentCast] STR comps not available via API - Claude will use general market knowledge');
+    return null;
 }

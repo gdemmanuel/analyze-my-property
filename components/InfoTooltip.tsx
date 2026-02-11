@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Info } from 'lucide-react';
 
@@ -16,13 +15,12 @@ const InfoTooltip: React.FC<InfoTooltipProps> = ({ content, direction = 'up' }) 
                 onMouseEnter={() => setIsVisible(true)}
                 onMouseLeave={() => setIsVisible(false)}
                 onTouchStart={() => setIsVisible(!isVisible)}
-                className="cursor-pointer text-slate-400 hover:text-slate-200 transition-colors"
+                className="cursor-pointer text-slate-600 hover:text-slate-200 transition-colors duration-200"
             >
                 <Info size={12} strokeWidth={2.5} />
             </div>
             {isVisible && (
-                <div className={`absolute z-[200] left-1/2 -translate-x-1/2 px-4 py-3 bg-slate-800 shadow-lg transition-all animate-in fade-in w-64 border border-slate-600 rounded-lg pointer-events-none ${direction === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'
-                    }`}>
+                <div className={`absolute z-[200] left-1/2 -translate-x-1/2 px-4 py-3 bg-slate-800 shadow-lg transition-all duration-200 w-64 border border-slate-600 rounded-lg pointer-events-none ${direction === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'}`}>
                     <p className="text-[11px] font-semibold text-slate-200 leading-relaxed whitespace-normal break-words">
                         {content}
                     </p>

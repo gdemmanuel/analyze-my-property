@@ -22,6 +22,7 @@ import ComparisonReport from './components/ComparisonReport';
 import PropertyChat from './components/PropertyChat';
 import InfoTooltip from './components/InfoTooltip';
 import { fetchPropertyData, fetchMarketStats, fetchRentEstimate, fetchSTRData, fetchSTRComps, RentCastProperty } from './services/rentcastService';
+import { useRentCastData, useWebSTRData, usePropertyAnalysis } from './src/hooks/usePropertyData';
 
 
 const App: React.FC = () => {
@@ -32,6 +33,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics' | 'monthly' | 'yearly' | 'portfolio' | 'assumptions'>('dashboard');
   const [propertyInput, setPropertyInput] = useState('');
   const [displayedAddress, setDisplayedAddress] = useState('');
+  const [targetAddress, setTargetAddress] = useState(''); // Address to analyze (triggers React Query)
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [insight, setInsight] = useState<MarketInsight | null>(null);
@@ -159,6 +161,157 @@ const App: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // ============================================================================
+  // REACT QUERY HOOKS - Automatic caching and data fetching
+  // ============================================================================
+  
+  // Fetch RentCast data (property, market stats, rent estimate) in parallel
+  const rentCastQueries = useRentCastData(targetAddress, !!targetAddress);
+  const { property: propertyQuery, marketStats: marketStatsQuery, rentEstimate: rentEstimateQuery } = rentCastQueries;
+  
+  // Extract comps from rent estimate
+  const strComps = useMemo(() => {
+    const rentRes = rentEstimateQuery.data;
+    if (rentRes?.comparableProperties && Array.isArray(rentRes.comparableProperties) && rentRes.comparableProperties.length > 0) {
+      return rentRes.comparableProperties.slice(0, 5).map((comp: any) => ({
+        address: comp.formattedAddress || comp.address,
+        formattedAddress: comp.formattedAddress || comp.address,
+        price: comp.rent || comp.listedPrice || comp.price,
+        bedrooms: comp.bedrooms,
+        bathrooms: comp.bathrooms,
+        squareFootage: comp.squareFootage,
+        distance: comp.distance || 0,
+        annualRevenue: (comp.rent || comp.listedPrice || comp.price || 0) * 12
+      }));
+    }
+    return null;
+  }, [rentEstimateQuery.data]);
+
+  // Fetch web STR data only on FIRST search for a new address
+  // On repeat searches (cache hit), skip web search entirely
+  // This prevents unnecessary Claude calls on cached repeat searches
+  const isNewSearch = propertyQuery.fetchStatus === 'fetching'; // Only true when actively fetching (not cached)
+  const needsWebData = propertyQuery.isSuccess && !!targetAddress && isNewSearch;
+  
+  const webSTRQuery = useWebSTRData(
+    targetAddress,
+    propertyQuery.data?.bedrooms,
+    propertyQuery.data?.bathrooms,
+    needsWebData
+  );
+
+  // Prepare STR data (from web search only - RentCast doesn't provide STR data)
+  const strData = useMemo(() => {
+    // RentCast doesn't provide STR data - always use web search
+    if (webSTRQuery.data) {
+      setIsUsingWebData(true);
+      return {
+        rent: webSTRQuery.data.adr,
+        occupancy: webSTRQuery.data.occupancy / 100,
+        source: 'web_search'
+      };
+    }
+    return null;
+  }, [webSTRQuery.data]);
+
+  // Add delay after web search completes to ensure rate limit resets
+  // This only matters if web search ran (not cached)
+  const [webSearchDelayComplete, setWebSearchDelayComplete] = useState(true);
+  useEffect(() => {
+    if (webSTRQuery.isSuccess && webSTRQuery.fetchStatus === 'idle') {
+      // Web search just completed (not from cache)
+      if (!webSearchDelayComplete) {
+        // Already delayed, don't delay again
+        return;
+      }
+      // First time - add a 3 second delay before main analysis
+      setWebSearchDelayComplete(false);
+      const timer = setTimeout(() => {
+        setWebSearchDelayComplete(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [webSTRQuery.isSuccess, webSTRQuery.fetchStatus]);
+
+  // Main property analysis (runs after all data is fetched)
+  // Wait for web STR query if needed, otherwise proceed when RentCast data is ready
+  // Also wait for post-web-search delay to complete (prevents rate limiting)
+  const webDataReady = !needsWebData || webSTRQuery.isSuccess || webSTRQuery.isError;
+  const canAnalyze = propertyQuery.isSuccess && marketStatsQuery.isSuccess && rentEstimateQuery.isSuccess && webDataReady && webSearchDelayComplete;
+  
+  const analysisQuery = usePropertyAnalysis(
+    targetAddress,
+    propertyQuery.data || null,
+    marketStatsQuery.data,
+    rentEstimateQuery.data,
+    strData,
+    strComps,
+    canAnalyze
+  );
+
+  // Update state when analysis completes
+  useEffect(() => {
+    if (analysisQuery.isSuccess && analysisQuery.data) {
+      const result = analysisQuery.data;
+      const factual = propertyQuery.data;
+      
+      // Set property image from RentCast if available
+      if (factual?.mainImage) {
+        result.mainImage = factual.mainImage;
+      }
+
+      setInsight(result);
+      setDisplayedAddress(targetAddress);
+      const factualPrice = factual?.lastSalePrice || 0;
+      const aiPrice = result.suggestedListingPrice || 0;
+      const useAiPrice = aiPrice > (factualPrice * 1.05) && aiPrice > 0;
+      const parsedPrice = useAiPrice ? aiPrice : (factualPrice || aiPrice);
+      const parsedBeds = Math.max(factual?.bedrooms || 0, parseInt(result.beds) || 0) || 3;
+      const parsedBaths = Math.max(factual?.bathrooms || 0, parseFloat(result.baths) || 0) || 2;
+      let monthlyTax = result.suggestedPropertyTax;
+      if (parsedPrice > 0 && monthlyTax > (parsedPrice * 0.02)) monthlyTax = Math.round(monthlyTax / 12);
+      setFurnishingBreakdown(prev => ({ ...prev, beds: parsedBeds, baths: parsedBaths }));
+      setBaseConfig(prev => ({
+        ...prev,
+        price: parsedPrice || prev.price,
+        occupancyPercent: result.suggestedOccupancy || prev.occupancyPercent,
+        propertyTaxMonthly: factual?.taxMonthly || monthlyTax || prev.propertyTaxMonthly,
+        hoaMonthly: factual?.hoaMonthly || result.suggestedHOA || prev.hoaMonthly,
+        cleaningFeeIncome: (result.suggestedCleaningFee * 8) || prev.cleaningFeeIncome,
+        cleaningExpense: (result.suggestedCleaningFee * 7.5) || prev.cleaningExpense,
+        adr: result.proFormaScenarios?.[1]?.adr || result.suggestedADR || prev.adr,
+        mtrMonthlyRent: result.suggestedMTRRent || prev.mtrMonthlyRent,
+        ltrMonthlyRent: result.suggestedLTRRent || prev.ltrMonthlyRent
+      }));
+      setActiveTab('dashboard');
+      setIsAnalyzing(false);
+      setAnalysisError(null);
+      
+      // Clear advanced analysis when new property is analyzed
+      setSensitivityData(null);
+      setAmenityROIData(null);
+      setPathToYesData(null);
+      setLenderPacket(null);
+    }
+  }, [analysisQuery.isSuccess, analysisQuery.data, propertyQuery.data, targetAddress]);
+
+  // Handle errors
+  useEffect(() => {
+    if (analysisQuery.isError) {
+      const error = analysisQuery.error as any;
+      console.error("Full analysis error:", error);
+      setAnalysisError(error.message?.includes("429") ? "AI capacity exceeded. Please retry in 60 seconds." : `Underwriting failed: ${error.message || "Please check the address."}`);
+      setIsAnalyzing(false);
+    }
+  }, [analysisQuery.isError, analysisQuery.error]);
+
+  // Track loading state
+  useEffect(() => {
+    const isLoading = rentCastQueries.isLoading || webSTRQuery.isFetching || analysisQuery.isFetching;
+    setIsAnalyzing(isLoading);
+    setIsFetchingFactual(rentCastQueries.isLoading);
+  }, [rentCastQueries.isLoading, webSTRQuery.isFetching, analysisQuery.isFetching]);
 
   const saveAssessment = () => {
     if (!insight) return;
@@ -534,119 +687,32 @@ const App: React.FC = () => {
     return 2;
   };
 
-  const runAnalysis = async (selectedAddr?: string) => {
-    const target = selectedAddr || propertyInput;
-    if (!target) return;
-    setAnalysisError(null);
-    setShowSuggestions(false);
-    isSelectingRef.current = true;
-    setIsFetchingFactual(true);
-    let factual: RentCastProperty | null = null;
-    let mktStats: any = null;
-    let rentEst: any = null;
-    let strData: any = null;
-    let strComps: any = null;
-    try {
-      factual = await fetchPropertyData(target);
-      const [statsRes, rentRes, strRes, compsRes] = await Promise.all([
-        factual?.zipCode ? fetchMarketStats(factual.zipCode) : null,
-        fetchRentEstimate(target),
-        fetchSTRData(target, factual?.propertyType, factual?.bedrooms, factual?.bathrooms),
-        fetchSTRComps(target, factual?.propertyType, factual?.bedrooms, factual?.bathrooms)
-      ]);
-      mktStats = statsRes;
-      rentEst = rentRes;
-      strData = strRes;
-      strComps = compsRes;
-      
-      console.log('[App] RentCast STR Comps:', strComps);
-
-      // If RentCast has no STR data, automatically search the web
-      if (!strData || !strData.rent || !strData.occupancy) {
-        console.log('[App] RentCast has no STR data, searching web for market data...');
-        const webData = await searchWebForSTRData(target, factual?.bedrooms, factual?.bathrooms);
-        if (webData) {
-          strData = {
-            rent: webData.adr,
-            occupancy: webData.occupancy / 100, // Convert percentage to decimal
-            source: 'web_search'
-          };
-          setIsUsingWebData(true);
-          console.log('[App] ✅ Using web-sourced STR data:', strData);
-        }
-      } else {
-        setIsUsingWebData(false);
-      }
-      
-      // BONUS: If strComps are missing/empty, also try web search for comps
-      if (!strComps || strComps.length === 0) {
-        console.log('[App] No RentCast comps found, will search web in Claude for market comparables...');
-      }
-    } catch (e) {
-      console.warn("Factual fetch failed, falling back to AI intuition", e);
-    }
-    setIsFetchingFactual(false);
-    executeAnalysis(target, factual, mktStats, rentEst, strData, strComps);
+  // Normalize address for consistent caching
+  const normalizeAddress = (address: string): string => {
+    return address
+      .trim()                          // Remove leading/trailing spaces
+      .toLowerCase()                   // Consistent casing
+      .replace(/\s+/g, ' ')           // Multiple spaces → single space
+      .replace(/,\s*/g, ', ');        // Consistent comma spacing
   };
 
-  const executeAnalysis = async (target: string, factual: RentCastProperty | null, marketStats?: any, rentEstimate?: any, strData?: any, strComps?: any) => {
-    setIsAnalyzing(true);
+  // Simplified runAnalysis - just triggers React Query by setting targetAddress
+  const runAnalysis = (selectedAddr?: string) => {
+    const target = selectedAddr || propertyInput;
+    if (!target) return;
+    
+    // Normalize address for consistent caching
+    const normalizedAddress = normalizeAddress(target);
+    
+    setAnalysisError(null);
+    setShowSuggestions(false);
     setShowVerificationModal(false);
-    setShowSuggestions(false); // 🔧 FIX: Hide address suggestions after selecting one
-    setPropertyInput(''); // 🔧 FIX: Clear input to prevent suggestions from re-appearing
-
-    // Clear previous advanced analysis data when starting new analysis
-    setSensitivityData(null);
-    setAmenityROIData(null);
-    setPathToYesData(null);
-    setLenderPacket(null);
-
-    try {
-      console.log('[App] STR Data from RentCast:', strData);
-      console.log('[App] Factual Photo:', factual?.mainImage ? 'Found' : 'Missing');
-
-      const result = await analyzeProperty(target, factual, marketStats, rentEstimate, strData, strComps);
-
-      // Set property image from RentCast if available
-      if (factual?.mainImage) {
-        result.mainImage = factual.mainImage;
-        console.log('[App] Using RentCast property photo');
-      }
-
-      console.log('[App] AI Result - Occupancy:', result.suggestedOccupancy, 'ADR:', result.suggestedADR);
-      console.log('[App] Final mainImage:', result.mainImage ? 'Set' : 'Missing');
-
-      setInsight(result);
-      setDisplayedAddress(target);
-      const factualPrice = factual?.lastSalePrice || 0;
-      const aiPrice = result.suggestedListingPrice || 0;
-      const useAiPrice = aiPrice > (factualPrice * 1.05) && aiPrice > 0;
-      const parsedPrice = useAiPrice ? aiPrice : (factualPrice || aiPrice);
-      const parsedBeds = Math.max(factual?.bedrooms || 0, parseInt(result.beds) || 0) || 3;
-      const parsedBaths = Math.max(factual?.bathrooms || 0, parseFloat(result.baths) || 0) || 2;
-      let monthlyTax = result.suggestedPropertyTax;
-      if (parsedPrice > 0 && monthlyTax > (parsedPrice * 0.02)) monthlyTax = Math.round(monthlyTax / 12);
-      setFurnishingBreakdown(prev => ({ ...prev, beds: parsedBeds, baths: parsedBaths }));
-      setBaseConfig(prev => ({
-        ...prev,
-        price: parsedPrice || prev.price,
-        occupancyPercent: result.suggestedOccupancy || prev.occupancyPercent,
-        propertyTaxMonthly: factual?.taxMonthly || monthlyTax || prev.propertyTaxMonthly,
-        hoaMonthly: factual?.hoaMonthly || result.suggestedHOA || prev.hoaMonthly,
-        cleaningFeeIncome: (result.suggestedCleaningFee * 8) || prev.cleaningFeeIncome,
-        cleaningExpense: (result.suggestedCleaningFee * 7.5) || prev.cleaningExpense,
-        adr: result.proFormaScenarios?.[1]?.adr || result.suggestedADR || prev.adr,
-        mtrMonthlyRent: result.suggestedMTRRent || prev.mtrMonthlyRent,
-        ltrMonthlyRent: result.suggestedLTRRent || prev.ltrMonthlyRent
-      }));
-      setActiveTab('dashboard');
-    } catch (e: any) {
-      console.error("Full analysis error:", e);
-      setAnalysisError(e.message?.includes("429") ? "AI capacity exceeded. Please retry in 60 seconds." : `Underwriting failed: ${e.message || "Please check the address."}`);
-    } finally {
-      setIsAnalyzing(false);
-      isSelectingRef.current = false;
-    }
+    setPropertyInput(''); // Clear input to prevent suggestions from re-appearing
+    isSelectingRef.current = true;
+    setIsAnalyzing(true);
+    
+    // Trigger React Query with normalized address
+    setTargetAddress(normalizedAddress);
   };
 
   const handleAddAmenity = async () => {

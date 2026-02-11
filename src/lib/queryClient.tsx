@@ -19,8 +19,8 @@ export const queryClient = new QueryClient({
       retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       
-      // Refetch data when window regains focus
-      refetchOnWindowFocus: true,
+      // Don't refetch on window focus (property data doesn't change frequently)
+      refetchOnWindowFocus: false,
       
       // Don't refetch on reconnect
       refetchOnReconnect: false,

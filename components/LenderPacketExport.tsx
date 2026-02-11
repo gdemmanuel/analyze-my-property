@@ -351,37 +351,32 @@ const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoadi
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-100 p-6">
-        <div className="flex items-center gap-3">
-          <Loader2 size={20} className="animate-spin text-indigo-500" />
-          <span className="text-slate-500 font-black text-sm uppercase tracking-widest">
-            Generating Professional Lender Packet...
-          </span>
-        </div>
+      <div className="bg-white rounded-2xl border-2 border-slate-200 p-12 flex flex-col items-center justify-center shadow-lg">
+        <Loader2 size={48} className="animate-spin text-indigo-500 mb-4" />
+        <span className="text-slate-700 font-black text-sm uppercase tracking-widest">
+          Generating Professional Lender Packet...
+        </span>
+        <span className="text-slate-500 text-xs mt-2">This may take 10-15 seconds</span>
       </div>
     );
   }
 
   if (!packet) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-100 p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-slate-100 rounded-xl text-slate-400">
-              <FileText size={18} />
-            </div>
-            <div>
-              <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">Professional Lender Packet</h3>
-              <p className="text-[10px] font-bold text-slate-400">MLS-style investment analysis report</p>
-            </div>
+      <div className="bg-white rounded-2xl border-2 border-slate-200 p-8 shadow-lg">
+        <div className="flex flex-col items-center justify-center text-center">
+          <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-500 mb-4">
+            <FileText size={32} />
           </div>
+          <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-2">Professional Lender Packet</h3>
+          <p className="text-[10px] font-bold text-slate-600 mb-6">MLS-style investment analysis report</p>
           {onGenerate && (
             <button
               onClick={onGenerate}
-              className="px-6 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-colors"
+              className="px-8 py-3 bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all cursor-pointer"
             >
               <FileText size={14} />
-              Generate Report
+              📄 Generate Report
             </button>
           )}
         </div>
@@ -399,7 +394,7 @@ const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoadi
           </div>
           <div>
             <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">Professional Lender Packet</h3>
-            <p className="text-[10px] font-bold text-slate-400">Generated {packet.generatedDate}</p>
+            <p className="text-[10px] font-bold text-slate-600">Generated {packet.generatedDate}</p>
           </div>
         </div>
         <button
@@ -440,7 +435,7 @@ const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoadi
             onClick={() => setActiveTab(tab.id as any)}
             className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id
                 ? 'text-indigo-600 border-b-2 border-indigo-600'
-                : 'text-slate-400 hover:text-slate-600'
+                : 'text-slate-600 hover:text-slate-600'
               }`}
           >
             {tab.label}
@@ -454,7 +449,7 @@ const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoadi
           <>
             {/* Highlights */}
             <div>
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Investment Highlights</h4>
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-3">Investment Highlights</h4>
               <ul className="space-y-2">
                 {packet.executiveSummary.highlights.map((highlight, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm">
@@ -467,14 +462,14 @@ const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoadi
 
             {/* Deal Snapshot */}
             <div>
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Deal Snapshot</h4>
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-3">Deal Snapshot</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="p-3 bg-slate-50 rounded-xl">
-                  <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Acquisition Price</p>
+                  <p className="text-[8px] font-black text-slate-600 uppercase mb-1">Acquisition Price</p>
                   <p className="text-lg font-black text-slate-800">{formatCurrency(packet.executiveSummary.dealSnapshot.acquisitionPrice)}</p>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl">
-                  <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Cash Required</p>
+                  <p className="text-[8px] font-black text-slate-600 uppercase mb-1">Cash Required</p>
                   <p className="text-lg font-black text-slate-800">{formatCurrency(packet.executiveSummary.dealSnapshot.totalCashRequired)}</p>
                 </div>
                 <div className="p-3 bg-emerald-50 rounded-xl">
@@ -490,7 +485,7 @@ const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoadi
 
             {/* Property Overview */}
             <div>
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Property Details</h4>
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-3">Property Details</h4>
               <div className="p-4 bg-slate-50 rounded-xl space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500 font-semibold">Address</span>
@@ -521,7 +516,7 @@ const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoadi
           <>
             {/* Investment Metrics */}
             <div>
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Key Investment Metrics</h4>
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-3">Key Investment Metrics</h4>
               <div className="grid grid-cols-3 gap-3">
                 <div className="p-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl border border-emerald-100">
                   <p className="text-[8px] font-black text-emerald-600 uppercase mb-1">Cap Rate</p>
@@ -540,7 +535,7 @@ const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoadi
 
             {/* 5-Year Projections */}
             <div>
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">5-Year Financial Projections</h4>
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-3">5-Year Financial Projections</h4>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -573,14 +568,14 @@ const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoadi
           <>
             {/* Market Trends */}
             <div>
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Market Trends</h4>
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-3">Market Trends</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-slate-50 rounded-xl">
-                  <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Avg ADR</p>
+                  <p className="text-[8px] font-black text-slate-600 uppercase mb-1">Avg ADR</p>
                   <p className="text-lg font-black">{formatCurrency(packet.marketAnalysis.marketTrends.avgADR)}</p>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl">
-                  <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Avg Occupancy</p>
+                  <p className="text-[8px] font-black text-slate-600 uppercase mb-1">Avg Occupancy</p>
                   <p className="text-lg font-black">{packet.marketAnalysis.marketTrends.avgOccupancy}%</p>
                 </div>
               </div>
@@ -591,14 +586,14 @@ const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoadi
 
             {/* Revenue Strategy */}
             <div>
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Pricing Strategy</h4>
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-3">Pricing Strategy</h4>
               <div className="grid grid-cols-3 gap-3">
                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
                   <p className="text-[8px] font-black text-amber-600 uppercase mb-1">Peak Season</p>
                   <p className="text-lg font-black text-amber-600">{formatCurrency(packet.revenueStrategy.pricingStrategy.peakSeasonADR)}</p>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl">
-                  <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Average</p>
+                  <p className="text-[8px] font-black text-slate-600 uppercase mb-1">Average</p>
                   <p className="text-lg font-black">{formatCurrency(packet.revenueStrategy.pricingStrategy.avgADR)}</p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
@@ -611,7 +606,7 @@ const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoadi
             {/* Amenity Impact */}
             {packet.revenueStrategy.amenityImpact.length > 0 && (
               <div>
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Top Amenity Investments</h4>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-3">Top Amenity Investments</h4>
                 <div className="space-y-2">
                   {packet.revenueStrategy.amenityImpact.slice(0, 5).map((amenity, idx) => (
                     <div key={idx} className="p-3 bg-slate-50 rounded-xl flex justify-between items-center">
@@ -640,7 +635,7 @@ const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoadi
               'Financial Risks': packet.riskAssessment.financialRisks
             }).map(([category, risks]) => (
               <div key={category}>
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">{category}</h4>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-3">{category}</h4>
                 <div className="space-y-3">
                   {risks.map((risk, idx) => (
                     <div key={idx} className="p-4 bg-slate-50 rounded-xl border-l-4 border-rose-500">

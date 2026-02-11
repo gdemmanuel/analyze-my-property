@@ -60,7 +60,7 @@ const PropertyChat: React.FC<Props> = ({ insight, config }) => {
         </div>
         <div>
           <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">AI Deal Analyst</h3>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Context-Aware Support</p>
+          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Context-Aware Support</p>
         </div>
       </div>
 
@@ -81,7 +81,7 @@ const PropertyChat: React.FC<Props> = ({ insight, config }) => {
           <div className="flex justify-start">
             <div className="bg-slate-50 p-4 rounded-2xl flex items-center gap-2">
               <Loader2 className="animate-spin text-rose-500" size={16} />
-              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Analyzing Data...</span>
+              <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Analyzing Data...</span>
             </div>
           </div>
         )}

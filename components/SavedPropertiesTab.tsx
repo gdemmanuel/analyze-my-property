@@ -82,7 +82,7 @@
                                         )}
                                     </button>
                                     {selectedForComparison.length >= 4 && !selectedForComparison.includes(assessment.id) && (
-                                        <span className="text-[8px] font-bold text-slate-400 uppercase">Max 4</span>
+                                        <span className="text-[8px] font-bold text-slate-600 uppercase">Max 4</span>
                                     )}
                                 </div>
                             )}
@@ -93,7 +93,7 @@
                                         <h3 className="text-sm font-black text-slate-900 mb-1 leading-tight">
                                             {assessment.address}
                                         </h3>
-                                        <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                        <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-600">
                                             <span>{assessment.strategy}</span>
                                             <span>•</span>
                                             <span>{new Date(assessment.timestamp).toLocaleDateString()}</span>
@@ -104,7 +104,7 @@
                                             onClick={() => deleteSaved(assessment.id)}
                                             className="p-2 hover:bg-rose-50 rounded-lg transition-colors"
                                         >
-                                            <Trash size={14} className="text-slate-400 hover:text-rose-500" />
+                                            <Trash size={14} className="text-slate-600 hover:text-rose-500" />
                                         </button>
                                     )}
                                 </div>

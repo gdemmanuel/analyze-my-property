@@ -18,7 +18,7 @@ const ComparisonReport: React.FC<Props> = ({ saved, onDelete, onLoad }) => {
       <div className="flex flex-col items-center justify-center py-40 bg-white rounded-[4rem] border-4 border-dashed border-slate-200">
         <BarChart4 size={60} className="text-slate-200 mb-6" />
         <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-2">No Comparisons Found</h3>
-        <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Underwrite and save some deals to generate comparative reports.</p>
+        <p className="text-slate-600 text-[10px] font-black uppercase tracking-widest">Underwrite and save some deals to generate comparative reports.</p>
       </div>
     );
   }
@@ -28,7 +28,7 @@ const ComparisonReport: React.FC<Props> = ({ saved, onDelete, onLoad }) => {
       <div className="flex justify-between items-center mb-8 px-4">
         <div>
            <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">Portfolio Matchup</h2>
-           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Side-by-side analysis of your saved underwriting assessments.</p>
+           <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mt-2">Side-by-side analysis of your saved underwriting assessments.</p>
         </div>
         <span className="px-5 py-2.5 bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-xl">
            {saved.length} Deals in Tracker
@@ -49,19 +49,19 @@ const ComparisonReport: React.FC<Props> = ({ saved, onDelete, onLoad }) => {
                 </div>
                 
                 <h3 className="text-xl font-black text-slate-800 tracking-tighter mb-1 truncate">{item.address.split(',')[0]}</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">{new Date(item.timestamp).toLocaleDateString()}</p>
+                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-6">{new Date(item.timestamp).toLocaleDateString()}</p>
                 
                 <div className="space-y-4 mb-8">
                   <div className="flex justify-between items-center py-3 border-b border-slate-50">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Acquisition</span>
+                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Acquisition</span>
                     <span className="font-bold text-slate-800">{formatCurrency(item.config.price)}</span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-slate-50">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Revenue</span>
+                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Target Revenue</span>
                     <span className="font-bold text-emerald-600">{formatCurrency(item.insight.suggestedMonthlyRevenue || 0)}/mo</span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-slate-50">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Est. CashFlow</span>
+                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Est. CashFlow</span>
                     <span className="font-bold text-indigo-500">{formatCurrency(item.insight.proFormaScenarios?.[1]?.cashFlow || 0)}</span>
                   </div>
                 </div>
