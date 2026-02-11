@@ -411,7 +411,63 @@ GROUND TRUTH SPECS (USE THESE EXACTLY):
 - Last Sale Price: ${factualData.lastSalePrice ? `$${factualData.lastSalePrice}` : 'Unknown'}
 - ACTUAL Property Tax: $${factualData.taxMonthly || 'Unknown'}/mo
 - ACTUAL HOA Fee: $${factualData.hoaMonthly || 'Unknown'}/mo
+${factualData.avmValueRange ? `- AVM Value Range: $${factualData.avmValueRange.low} - $${factualData.avmValueRange.high} (85% confidence)` : ''}
+${factualData.county ? `- County: ${factualData.county}` : ''}
+${factualData.zoning ? `- Zoning: ${factualData.zoning}` : ''}
+${factualData.ownerOccupied !== undefined ? `- Owner Occupied: ${factualData.ownerOccupied ? 'Yes' : 'No'}` : ''}
 ` : '';
+
+    // Add property features to ground truth (Tier 1C)
+    if (factualData?.features) {
+      const f = factualData.features;
+      const featureList: string[] = [];
+      if (f.pool) featureList.push(`Pool (${f.poolType || 'Yes'})`);
+      if (f.garage) featureList.push(`Garage (${f.garageSpaces || '?'} spaces, ${f.garageType || 'Unknown type'})`);
+      if (f.fireplace) featureList.push(`Fireplace (${f.fireplaceType || 'Yes'})`);
+      if (f.coolingType) featureList.push(`Cooling: ${f.coolingType}`);
+      if (f.heatingType) featureList.push(`Heating: ${f.heatingType}`);
+      if (f.architectureType) featureList.push(`Architecture: ${f.architectureType}`);
+      if (f.floorCount) featureList.push(`${f.floorCount} Floors`);
+      if (f.viewType) featureList.push(`View: ${f.viewType}`);
+      if (featureList.length > 0) {
+        groundTruth += `\nPROPERTY FEATURES: ${featureList.join(', ')}\n`;
+      }
+    }
+
+    // Add sale history to ground truth (Tier 1D)
+    if (factualData?.saleHistory && factualData.saleHistory.length > 0) {
+      groundTruth += `\nSALE TRANSACTION HISTORY:\n`;
+      factualData.saleHistory.slice(0, 5).forEach((sale, i) => {
+        const saleDate = new Date(sale.date).toLocaleDateString();
+        groundTruth += `${i + 1}. ${saleDate}: $${sale.price.toLocaleString()}\n`;
+      });
+    }
+
+    // Add listing details to ground truth (Tier 1E)
+    if (factualData?.listingDetails) {
+      const ld = factualData.listingDetails;
+      if (ld.daysOnMarket || ld.listingType) {
+        groundTruth += `\nLISTING DETAILS:\n`;
+        if (ld.listingType) groundTruth += `- Listing Type: ${ld.listingType}\n`;
+        if (ld.daysOnMarket) groundTruth += `- Days on Market: ${ld.daysOnMarket}\n`;
+        if (ld.listedDate) groundTruth += `- Listed: ${new Date(ld.listedDate).toLocaleDateString()}\n`;
+        if (ld.priceHistory && ld.priceHistory.length > 1) {
+          groundTruth += `- Price Changes: ${ld.priceHistory.length} price points recorded\n`;
+        }
+      }
+    }
+
+    // Add AVM sale comparables to ground truth (Tier 1B)
+    if (factualData?.avmComparables && factualData.avmComparables.length > 0) {
+      groundTruth += `\nAVM SALE COMPARABLES (with correlation scores):\n`;
+      factualData.avmComparables.slice(0, 5).forEach((comp, i) => {
+        groundTruth += `${i + 1}. ${comp.formattedAddress} (${comp.bedrooms || '?'}bd/${comp.bathrooms || '?'}ba, ${comp.squareFootage || '?'}sqft): $${comp.price?.toLocaleString() || 'N/A'}`;
+        if (comp.correlation) groundTruth += ` [${(comp.correlation * 100).toFixed(0)}% match]`;
+        if (comp.daysOnMarket) groundTruth += ` [${comp.daysOnMarket} DOM]`;
+        if (comp.listingType && comp.listingType !== 'Standard') groundTruth += ` [${comp.listingType}]`;
+        groundTruth += `\n`;
+      });
+    }
 
     if (rentEstimate) {
       const re = rentEstimate;
@@ -428,7 +484,8 @@ GROUND TRUTH SPECS (USE THESE EXACTLY):
           const rent = comp.rent || comp.listedPrice || 'N/A';
           const beds = comp.bedrooms || 'N/A';
           const baths = comp.bathrooms || 'N/A';
-          groundTruth += `${i + 1}. ${addr} (${beds}bd/${baths}ba): $${rent}/mo\n`;
+          const corr = comp.correlation ? ` [${(comp.correlation * 100).toFixed(0)}% match]` : '';
+          groundTruth += `${i + 1}. ${addr} (${beds}bd/${baths}ba): $${rent}/mo${corr}\n`;
         });
       }
     }
@@ -450,9 +507,25 @@ GROUND TRUTH SPECS (USE THESE EXACTLY):
     }
 
     if (marketStats) {
-      const rm = marketStats.rentalMarket || (marketStats.averageRent ? marketStats : null);
+      // Support both old and new field names
+      const rd = marketStats.rentalData;
+      const sd = marketStats.saleData;
+      const rm = rd || marketStats.rentalMarket || (marketStats.averageRent ? marketStats : null);
       if (rm) {
-        groundTruth += `\nLOCAL MARKET STATISTICS (ZIP ${factualData?.zipCode || 'N/A'}):\n- Avg Rent: $${rm.averageRent || 'N/A'}\n- Rent Range: $${rm.minRent || 'N/A'} - $${rm.maxRent || 'N/A'}\n- Total Listings: ${rm.totalListings || 'N/A'}\n`;
+        groundTruth += `\nLOCAL RENTAL MARKET STATISTICS (ZIP ${factualData?.zipCode || 'N/A'}):\n`;
+        groundTruth += `- Avg Rent: $${rm.averageRent || 'N/A'}\n`;
+        if (rm.medianRent) groundTruth += `- Median Rent: $${rm.medianRent}\n`;
+        groundTruth += `- Rent Range: $${rm.minRent || 'N/A'} - $${rm.maxRent || 'N/A'}\n`;
+        groundTruth += `- Total Rental Listings: ${rm.totalListings || 'N/A'}\n`;
+        if (rm.averageDaysOnMarket) groundTruth += `- Avg Days on Market (Rental): ${rm.averageDaysOnMarket}\n`;
+      }
+      if (sd) {
+        groundTruth += `\nLOCAL SALE MARKET STATISTICS (ZIP ${factualData?.zipCode || 'N/A'}):\n`;
+        if (sd.medianPrice) groundTruth += `- Median Sale Price: $${sd.medianPrice.toLocaleString()}\n`;
+        if (sd.averagePrice) groundTruth += `- Avg Sale Price: $${sd.averagePrice.toLocaleString()}\n`;
+        if (sd.averageDaysOnMarket) groundTruth += `- Avg Days on Market (Sale): ${sd.averageDaysOnMarket}\n`;
+        if (sd.totalListings) groundTruth += `- Total Sale Listings: ${sd.totalListings}\n`;
+        if (sd.medianPricePerSquareFoot) groundTruth += `- Median Price/SqFt: $${sd.medianPricePerSquareFoot}\n`;
       }
     }
 
@@ -557,10 +630,13 @@ Return ONLY a JSON object with this EXACT structure:
     }
 
     // Track data sources
+    const adrSrc: 'RentCast' | 'Web Search' | 'AI Estimate' = (strData && strData.rent) ? (strData.source === 'web_search' ? 'Web Search' : 'RentCast') : 'AI Estimate';
+    const occSrc: 'RentCast' | 'Web Search' | 'AI Estimate' = (strData && strData.occupancy) ? (strData.source === 'web_search' ? 'Web Search' : 'RentCast') : 'AI Estimate';
+    const compsSrc: 'RentCast' | 'AI Generated' = (strComps && strComps.length > 0) ? 'RentCast' : 'AI Generated';
     const dataSource = {
-      adrSource: (strData && strData.rent) ? (strData.source === 'web_search' ? 'Web Search' : 'RentCast') as const : 'AI Estimate' as const,
-      occupancySource: (strData && strData.occupancy) ? (strData.source === 'web_search' ? 'Web Search' : 'RentCast') as const : 'AI Estimate' as const,
-      compsSource: (strComps && strComps.length > 0) ? 'RentCast' as const : 'AI Generated' as const,
+      adrSource: adrSrc,
+      occupancySource: occSrc,
+      compsSource: compsSrc,
       hasRentCastData: !!(strData && strData.source !== 'web_search') || !!(strComps)
     };
 
@@ -673,6 +749,9 @@ export const generateLenderPacket = async (analysis: {
   ownerSurplus: number;
   assumptions: Record<string, any>;
   amenities: { name: string; cost: number; paybackMonths: number }[];
+  propertyDetails?: any;
+  marketData?: any;
+  compsData?: any[];
   risks: string[];
   sources: { title: string; url: string }[];
 }): Promise<LenderPacket> => {

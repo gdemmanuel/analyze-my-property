@@ -492,6 +492,9 @@ export const PACKET_SUMMARY_PROMPT = (analysis: {
   ownerSurplus: number;
   assumptions: Record<string, any>;
   amenities: { name: string; cost: number; paybackMonths: number }[];
+  propertyDetails?: any;
+  marketData?: any;
+  compsData?: any[];
   risks: string[];
   sources: { title: string; url: string }[];
 }): string => `
@@ -508,14 +511,17 @@ REQUIREMENTS:
    - Deal snapshot with all key numbers
 
 2. PROPERTY OVERVIEW
-   - Extract property details from address and assumptions
-   - Property type (e.g., "Single-Family Residence")
-   - Beds, baths, sqft (from assumptions or estimate based on typical ${analysis.strategy} properties)
-   - Year built (estimate if not provided)
-   - Lot size (estimate, e.g., "0.25 acres")
-   - Zoning (estimate based on location, e.g., "R-1 Residential")
-   - Condition (infer from data, typically "Good" or "Excellent")
-   - Notable features (based on amenities and strategy)
+   - Use actual property details from analysis.propertyDetails if available
+   - Property type: ${analysis.propertyDetails?.propertyType || analysis.strategy}
+   - Beds: ${analysis.propertyDetails?.bedrooms || 3}, Baths: ${analysis.propertyDetails?.bathrooms || 2}, Sqft: ${analysis.propertyDetails?.squareFootage || 'estimate from typical property'}
+   - Year built: ${analysis.propertyDetails?.yearBuilt || 'estimate if not provided'}
+   - Lot size: ${analysis.propertyDetails?.lotSize || 'estimate, e.g., 0.25 acres'}
+   - Zoning: ${analysis.propertyDetails?.zoning || 'infer from location'}
+   - Listing type: ${analysis.propertyDetails?.listingType || 'Standard'}
+   - Days on market: ${analysis.propertyDetails?.daysOnMarket || 'N/A'}
+   - Condition: Infer from property features and age
+   - Notable features: ${analysis.propertyDetails?.features ? Object.entries(analysis.propertyDetails.features).filter(([,v]) => v != null).map(([k]) => k).join(', ') : 'based on amenities'}
+   - Tax assessments: Include historical assessment values if available
 
 3. FINANCIAL ANALYSIS
    a) Purchase Analysis:
@@ -529,7 +535,7 @@ REQUIREMENTS:
    
    b) Operating Performance:
       - Projected gross revenue: calculate from ADR × occupancy × 365
-      - Operating expenses: calculate from assumptions
+      - Operating expenses: include property tax ${analysis.assumptions.propertyTax}, HOA ${analysis.assumptions.hoaFee}, management ${analysis.assumptions.managementMode}
       - NOI: ${analysis.kpis.noi}
       - Annual debt service: calculate from loan
       - Cash flow after debt: NOI - debt service
@@ -546,20 +552,22 @@ REQUIREMENTS:
       - For each year: revenue, expenses, cash flow, equity, cumulative return
 
 4. MARKET ANALYSIS
-   - Comparables: Create 3-5 realistic comparable STR properties based on ${analysis.address}
-   - Market trends: Estimate avg ADR, occupancy, seasonality, growth trend for the area
+   - Use actual market comps from analysis.compsData if available (${analysis.compsData?.length || 0} comparables provided)
+   - Market data: Median price ${analysis.marketData?.medianPrice || 'estimate'}, Median rent ${analysis.marketData?.medianRent || 'estimate'}, Avg DOM ${analysis.marketData?.averageDaysOnMarket || 'estimate'}
+   - Market trends: Estimate avg ADR, occupancy, seasonality, growth trend for ${analysis.marketData?.zipCode || 'the area'}
    - Competitive position: How this property compares (above/below/at market)
    - Demand indicators: Tourism, events, accessibility for the location
 
 5. REVENUE STRATEGY
    - Strategy: ${analysis.strategy}
-   - Pricing strategy: Peak season ADR (+20% from avg), off-season ADR (-15% from avg), avg ADR
-   - Occupancy projections: Year 1, Year 2, Year 3 (ramp-up)
-   - Amenity impact: List each amenity with ADR increase, cost, payback
-   - Management plan: Describe self-managed vs. property manager approach
+   - Pricing strategy: Peak season ADR (+20% from ${analysis.assumptions.adr}), off-season ADR (-15% from ${analysis.assumptions.adr}), avg ADR
+   - Occupancy projections: Year 1 ${analysis.assumptions.occupancy}%, Year 2, Year 3 (ramp-up)
+   - Amenity impact: ${JSON.stringify(analysis.amenities)}
+   - Management plan: ${analysis.assumptions.managementMode}
 
 6. RISK ASSESSMENT
-   For each risk category, provide 2-3 specific risks with severity and mitigation:
+   - Include provided risks: ${analysis.risks.join('; ')}
+   - For each risk category, provide 2-3 specific risks with severity and mitigation:
    - Regulatory Risks: STR regulations, permits, zoning
    - Market Risks: Competition, seasonality, economic downturn
    - Property Risks: Maintenance, vacancy, guest damage

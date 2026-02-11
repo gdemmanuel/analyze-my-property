@@ -4,6 +4,7 @@ import {
   fetchMarketStats, 
   fetchRentEstimate, 
   fetchSTRData,
+  fetchRentalListings,
   RentCastProperty 
 } from '../../services/rentcastService';
 import { 
@@ -117,20 +118,42 @@ export const usePropertyAnalysis = (
 };
 
 /**
+ * Hook to fetch rental listings in a zip code (Tier 2J)
+ */
+export const useRentalListings = (
+  zipCode: string | undefined,
+  bedrooms: number | undefined,
+  propertyType: string | undefined,
+  enabled: boolean = true
+) => {
+  return useQuery({
+    queryKey: ['rentalListings', zipCode, bedrooms, propertyType],
+    queryFn: () => fetchRentalListings(zipCode!, bedrooms, propertyType),
+    enabled: enabled && !!zipCode,
+    staleTime: 30 * 60 * 1000,
+    refetchOnMount: false,
+  });
+};
+
+/**
  * Composite hook to fetch all RentCast data in parallel
  * This replaces the manual Promise.all pattern in runAnalysis
  */
 export const useRentCastData = (address: string, enabled: boolean = true) => {
   const propertyQuery = usePropertyData(address, enabled);
   const zipCode = propertyQuery.data?.zipCode;
+  const bedrooms = propertyQuery.data?.bedrooms;
+  const propertyType = propertyQuery.data?.propertyType;
   
   const marketStatsQuery = useMarketStats(zipCode, enabled && !!zipCode);
   const rentEstimateQuery = useRentEstimate(address, enabled);
+  const rentalListingsQuery = useRentalListings(zipCode, bedrooms, propertyType, enabled && !!zipCode);
 
   return {
     property: propertyQuery,
     marketStats: marketStatsQuery,
     rentEstimate: rentEstimateQuery,
+    rentalListings: rentalListingsQuery,
     isLoading: propertyQuery.isLoading || marketStatsQuery.isLoading || rentEstimateQuery.isLoading,
     isError: propertyQuery.isError || marketStatsQuery.isError || rentEstimateQuery.isError,
     error: propertyQuery.error || marketStatsQuery.error || rentEstimateQuery.error,

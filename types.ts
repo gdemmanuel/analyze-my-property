@@ -88,10 +88,10 @@ export interface MarketInsight {
   verdict: string;
   sources: { title: string; uri: string }[];
   
-  // 🔧 NEW: Track data sources for transparency
+  // Track data sources for transparency
   dataSource?: {
-    adrSource: 'RentCast' | 'AI Estimate';
-    occupancySource: 'RentCast' | 'AI Estimate';
+    adrSource: 'RentCast' | 'Web Search' | 'AI Estimate';
+    occupancySource: 'RentCast' | 'Web Search' | 'AI Estimate';
     compsSource: 'RentCast' | 'AI Generated';
     hasRentCastData: boolean;
   };

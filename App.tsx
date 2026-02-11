@@ -15,7 +15,7 @@ import { SensitivityMatrix, AmenityROIResult, PathToYes, LenderPacket } from './
 import { Save } from 'lucide-react';
 import Charts from './components/Charts';
 import FinancialTables from './components/FinancialTables';
-import { fetchPropertyData, fetchMarketStats, fetchRentEstimate, fetchSTRData, fetchSTRComps, RentCastProperty } from './services/rentcastService';
+import { fetchPropertyData, fetchMarketStats, fetchRentEstimate, fetchSTRData, fetchSTRComps, RentCastProperty, extractMarketTrends, getBedroomMatchedStats, MarketStats } from './services/rentcastService';
 import { useRentCastData, useWebSTRData, usePropertyAnalysis } from './src/hooks/usePropertyData';
 
 // Extracted components
@@ -149,9 +149,9 @@ const App: React.FC = () => {
   // REACT QUERY HOOKS - Automatic caching and data fetching
   // ============================================================================
   
-  // Fetch RentCast data (property, market stats, rent estimate) in parallel
+  // Fetch RentCast data (property, market stats, rent estimate, rental listings) in parallel
   const rentCastQueries = useRentCastData(targetAddress, !!targetAddress);
-  const { property: propertyQuery, marketStats: marketStatsQuery, rentEstimate: rentEstimateQuery } = rentCastQueries;
+  const { property: propertyQuery, marketStats: marketStatsQuery, rentEstimate: rentEstimateQuery, rentalListings: rentalListingsQuery } = rentCastQueries;
   
   // Extract comps from rent estimate
   const strComps = useMemo(() => {
@@ -170,6 +170,18 @@ const App: React.FC = () => {
     }
     return null;
   }, [rentEstimateQuery.data]);
+
+  // Extract market trends for charts (Tier 2G)
+  const marketTrends = useMemo(() => {
+    if (!marketStatsQuery.data) return { saleTrends: [], rentalTrends: [] };
+    return extractMarketTrends(marketStatsQuery.data as MarketStats);
+  }, [marketStatsQuery.data]);
+
+  // Get bedroom-matched stats (Tier 2I)
+  const bedroomStats = useMemo(() => {
+    if (!marketStatsQuery.data || !propertyQuery.data?.bedrooms) return { sale: undefined, rental: undefined };
+    return getBedroomMatchedStats(marketStatsQuery.data as MarketStats, propertyQuery.data.bedrooms);
+  }, [marketStatsQuery.data, propertyQuery.data?.bedrooms]);
 
   // Fetch web STR data - React Query handles caching automatically
   // CRITICAL: Only enable after property data is loaded to ensure stable query key
@@ -627,13 +639,40 @@ const App: React.FC = () => {
           downPayment: `${finalConfig.downPaymentPercent}%`,
           mortgageRate: `${finalConfig.mortgageRate}%`,
           adr: finalConfig.adr,
-          occupancy: `${finalConfig.occupancyPercent}%`
+          occupancy: `${finalConfig.occupancyPercent}%`,
+          managementMode: getManagementLabel(baseConfig.mgmtFeePercent),
+          propertyTax: finalConfig.propertyTaxMonthly,
+          hoaFee: finalConfig.hoaMonthly
         },
         amenities: selectedAmenities.filter(a => a.id !== 'furnishings').map(a => ({
           name: a.name,
           cost: a.cost,
           paybackMonths: a.cost / ((a.adrBoost * 30 * (finalConfig.occupancyPercent / 100)) || 1)
         })),
+        // Property data valuable to lenders
+        propertyDetails: propertyQuery.data ? {
+          bedrooms: propertyQuery.data.bedrooms,
+          bathrooms: propertyQuery.data.bathrooms,
+          squareFootage: propertyQuery.data.squareFootage,
+          lotSize: propertyQuery.data.lotSize,
+          yearBuilt: propertyQuery.data.yearBuilt,
+          propertyType: propertyQuery.data.propertyType,
+          avmValueRange: propertyQuery.data.avmValueRange,
+          listingType: propertyQuery.data.listingDetails?.listingType,
+          daysOnMarket: propertyQuery.data.listingDetails?.daysOnMarket,
+          features: propertyQuery.data.features,
+          zoning: propertyQuery.data.zoning,
+          taxAssessments: propertyQuery.data.taxAssessments?.slice(0, 3)
+        } : undefined,
+        // Market data valuable to lenders
+        marketData: marketStatsQuery.data ? {
+          medianPrice: marketStatsQuery.data.saleData?.medianPrice,
+          medianRent: marketStatsQuery.data.rentalData?.medianRent,
+          averageDaysOnMarket: marketStatsQuery.data.saleData?.averageDaysOnMarket,
+          zipCode: propertyQuery.data?.zipCode
+        } : undefined,
+        // Comps data
+        compsData: propertyQuery.data?.avmComparables?.slice(0, 3) || [],
         risks: insight.risksDiligence?.split('\n').filter(Boolean).slice(0, 5) || [],
         sources: insight.sources?.map(s => ({ title: s.title, url: s.uri })) || []
       });
@@ -758,6 +797,13 @@ const App: React.FC = () => {
             handleRunPathToYes={handleRunPathToYes}
             handleGenerateLenderPacket={handleGenerateLenderPacket}
             investmentTargets={investmentTargets}
+            // Enhanced RentCast data
+            propertyData={propertyQuery.data || null}
+            marketStats={(marketStatsQuery.data as MarketStats) || null}
+            marketTrends={marketTrends}
+            bedroomStats={bedroomStats}
+            rentalListings={rentalListingsQuery.data || null}
+            rentEstimateData={rentEstimateQuery.data}
           />
         )}
 
