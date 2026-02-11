@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { MarketInsight, Amenity, PropertyConfig } from "../types";
 import { RentCastProperty } from "./rentcastService";
 import {
@@ -26,45 +25,6 @@ import {
   COMPS_STRENGTH_PROMPT
 } from "../prompts/underwriting";
 
-// ---------------------------------------------------------------------------
-// API key must be set in .env as VITE_ANTHROPIC_API_KEY (get key from console.anthropic.com)
-// ---------------------------------------------------------------------------
-const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
-
-function getApiKey(): string {
-  const key = ANTHROPIC_API_KEY?.trim();
-  
-  // Debug logging - NEVER log the actual key (security)
-  if (import.meta.env.DEV) {
-    console.log('[Claude Service] API Key Status:', {
-      hasKey: !!key,
-      keyLength: key?.length || 0,
-      keyPrefix: key ? `${key.substring(0, 10)}...` : 'MISSING'
-    });
-  }
-  
-  if (!key || key === "sk-ant-api03-your-key-here" || key === "YOUR_ANTHROPIC_API_KEY_HERE") {
-    throw new Error(
-      "Claude API key is missing or not configured. Add VITE_ANTHROPIC_API_KEY to your .env file (get a key from console.anthropic.com). Restart the dev server after changing .env."
-    );
-  }
-  if (!key.startsWith("sk-ant-")) {
-    throw new Error(
-      `Invalid Claude API key format. Keys should start with sk-ant-, but got: ${key.substring(0, 20)}... Check VITE_ANTHROPIC_API_KEY in .env and get a valid key from console.anthropic.com.`
-    );
-  }
-  return key;
-}
-
-let _anthropic: Anthropic | null = null;
-function getClient(): Anthropic {
-  if (!_anthropic) {
-    const key = getApiKey();
-    _anthropic = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
-  }
-  return _anthropic;
-}
-
 // ============================================================================
 // MODEL SELECTION - HYBRID APPROACH
 // ============================================================================
@@ -74,9 +34,9 @@ type ModelType = 'complex_analysis' | 'simple_task';
 
 function getModel(taskType: ModelType): string {
   if (taskType === 'complex_analysis') {
-    return 'claude-sonnet-4-20250514'; // Complex underwriting, financial reasoning
+    return 'claude-sonnet-4-20250514';
   } else {
-    return 'claude-3-5-haiku-20241022'; // Fast & cheap for chat, suggestions
+    return 'claude-3-5-haiku-20241022';
   }
 }
 
@@ -119,15 +79,14 @@ const withRetry = async <T>(
       // Check if it's a rate limit error (429 or overloaded)
       const isRateLimit =
         error?.status === 429 ||
-        error?.error?.type === 'rate_limit_error' ||
+        error?.type === 'rate_limit_error' ||
         error?.message?.toLowerCase().includes('rate limit') ||
         error?.message?.toLowerCase().includes('overloaded') ||
         error?.message?.toLowerCase().includes('capacity');
 
       if (isRateLimit && attempt < maxRetries - 1) {
-        // Calculate wait time (60 seconds default, or from retry-after header)
-        const waitSeconds = error?.headers?.['retry-after']
-          ? parseInt(error.headers['retry-after'])
+        const waitSeconds = error?.retryAfter
+          ? parseInt(error.retryAfter)
           : baseDelay;
 
         console.log(`[Rate Limit] Retrying in ${waitSeconds}s (attempt ${attempt + 1}/${maxRetries})`);
@@ -152,10 +111,52 @@ const withRetry = async <T>(
   throw lastError;
 };
 
+// ============================================================================
+// PROXY HELPERS — all Claude calls go through /api/claude/*
+// ============================================================================
+
+/**
+ * Send a message to Claude via the backend proxy server.
+ * Replaces direct Anthropic SDK calls — API key is never in the browser.
+ */
+async function claudeProxy(params: {
+  model: string;
+  max_tokens: number;
+  messages: { role: string; content: string }[];
+  tools?: any[];
+  system?: string;
+}, endpoint: string = '/api/claude/messages'): Promise<{ type: string; text: string }[]> {
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+    const error: any = new Error(err.error || `Server error ${res.status}`);
+    error.status = res.status;
+    error.type = err.type;
+    error.retryAfter = err.retryAfter;
+    throw error;
+  }
+
+  const data = await res.json();
+  return data.content;
+}
+
+/** Extract first text block from Claude response content array */
+function extractText(content: { type: string; text: string }[]): string {
+  const block = content.find((c: any) => c.type === 'text');
+  if (!block || block.type !== 'text') {
+    throw new Error('No text response from Claude');
+  }
+  return block.text;
+}
+
 // Helper to parse JSON from Claude responses
 const parseJSON = (text: string): any => {
   try {
-    // Clean string from potential JSON-breaking characters
     const cleanText = text.trim();
     if (cleanText.startsWith('{')) return JSON.parse(cleanText);
 
@@ -173,10 +174,14 @@ const parseJSON = (text: string): any => {
   }
 };
 
+// ============================================================================
+// PUBLIC API FUNCTIONS (unchanged signatures, now use proxy internally)
+// ============================================================================
+
 export const getAddressSuggestions = async (input: string): Promise<string[]> => {
   if (input.length < 5) return [];
   try {
-    const response = await getClient().messages.create({
+    const content = await claudeProxy({
       model: getModel('simple_task'),
       max_tokens: 1024,
       messages: [{
@@ -185,11 +190,7 @@ export const getAddressSuggestions = async (input: string): Promise<string[]> =>
 Return ONLY a JSON array of strings. No other text. Example format: ["123 Main St, City, State", "456 Oak Ave, City, State"]`
       }]
     });
-
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') return [];
-
-    return parseJSON(textContent.text);
+    return parseJSON(extractText(content));
   } catch (e) {
     console.error("Suggestion error:", e);
     throw e;
@@ -198,7 +199,7 @@ Return ONLY a JSON array of strings. No other text. Example format: ["123 Main S
 
 export const suggestAmenityImpact = async (amenityName: string, location: string): Promise<Partial<Amenity>> => {
   try {
-    const response = await getClient().messages.create({
+    const content = await claudeProxy({
       model: getModel('simple_task'),
       max_tokens: 1024,
       messages: [{
@@ -213,13 +214,7 @@ Return ONLY a JSON object with these exact keys: cost, adrBoost, occBoost
 Example: {"cost": 5000, "adrBoost": 20, "occBoost": 2}`
       }]
     });
-
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      return { cost: 5000, adrBoost: 20, occBoost: 2 };
-    }
-
-    return parseJSON(textContent.text);
+    return parseJSON(extractText(content));
   } catch (e) {
     console.error("Amenity suggestion error:", e);
     return { cost: 5000, adrBoost: 20, occBoost: 2 };
@@ -231,15 +226,10 @@ export const searchWebForSTRComps = async (address: string, bedrooms?: number, b
   try {
     console.log(`[Claude] Searching web for STR market comps: ${address}`);
 
-    const response = await getClient().messages.create({
+    const content = await claudeProxy({
       model: getModel('complex_analysis'),
       max_tokens: 2048,
-      tools: [
-        {
-          type: "web_search_20250305",
-          name: "web_search"
-        }
-      ],
+      tools: [{ type: "web_search_20250305", name: "web_search" }],
       messages: [{
         role: 'user',
         content: `Search the web for short-term rental comparable properties and market data for:
@@ -268,29 +258,15 @@ If you can find at least 3 comps, return the array. If you cannot find sufficien
       }]
     });
 
-    let resultText = '';
-    for (const block of response.content) {
-      if (block.type === 'text') {
-        resultText = block.text;
-        break;
-      }
-    }
-
-    if (!resultText) {
-      console.log('[Claude] No text content in web search response');
-      return null;
-    }
-
+    const resultText = extractText(content);
     const rawText = resultText.trim();
     console.log('[Claude] Web comp search response:', rawText.substring(0, 200));
 
-    // Handle "null" response
     if (rawText === 'null' || rawText.toLowerCase() === 'null') {
       console.log('[Claude] No STR comps found via web search');
       return null;
     }
 
-    // Try to extract JSON
     let jsonText = rawText;
     const jsonMatch = rawText.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
@@ -317,16 +293,10 @@ export const searchWebForSTRData = async (address: string, bedrooms?: number, ba
   try {
     console.log(`[Claude] Searching web for STR data: ${address}`);
 
-    const response = await getClient().messages.create({
+    const content = await claudeProxy({
       model: getModel('complex_analysis'),
       max_tokens: 1024,
-      // ⭐ Enable web search with explicit tool use
-      tools: [
-        {
-          type: "web_search_20250305",
-          name: "web_search"
-        }
-      ],
+      tools: [{ type: "web_search_20250305", name: "web_search" }],
       messages: [{
         role: 'user',
         content: `Search the web for short-term rental (Airbnb/Vrbo) market data for: ${address}${bedrooms ? `, ${bedrooms} bed` : ''}${bathrooms ? `, ${bathrooms} bath` : ''}
@@ -345,31 +315,15 @@ If no data found, return:
       }]
     });
 
-    // Process the response - Claude may use web_search tool first, then provide text
-    let resultText = '';
-
-    for (const block of response.content) {
-      if (block.type === 'text') {
-        resultText = block.text;
-        break;
-      }
-    }
-
-    if (!resultText) {
-      console.log('[Claude] No text content in response');
-      return null;
-    }
-
+    const resultText = extractText(content);
     const rawText = resultText.trim();
     console.log('[Claude] Raw response:', rawText.substring(0, 200));
 
-    // Try to extract JSON even if there's extra text
     let jsonText = rawText;
     const jsonMatch = rawText.match(/\{[^{}]*"adr"[^{}]*"occupancy"[^{}]*\}/);
     if (jsonMatch) {
       jsonText = jsonMatch[0];
     } else {
-      // Try broader JSON match
       const broadMatch = rawText.match(/\{[\s\S]*\}/);
       if (broadMatch) {
         jsonText = broadMatch[0];
@@ -395,7 +349,7 @@ If no data found, return:
 
 // Chat interface for property questions
 export class PropertyChat {
-  private conversationHistory: Anthropic.MessageParam[] = [];
+  private conversationHistory: { role: string; content: string }[] = [];
   private systemPrompt: string;
 
   constructor(insight: MarketInsight, config: PropertyConfig) {
@@ -422,33 +376,18 @@ Always reference the data provided if relevant.`;
   }
 
   async sendMessage(userMessage: string): Promise<string> {
-    // Add user message to history
-    this.conversationHistory.push({
-      role: 'user',
-      content: userMessage
-    });
+    this.conversationHistory.push({ role: 'user', content: userMessage });
 
     try {
-      const response = await getClient().messages.create({
+      const content = await claudeProxy({
         model: getModel('simple_task'),
         max_tokens: 4096,
         system: this.systemPrompt,
-        messages: this.conversationHistory
+        messages: this.conversationHistory,
       });
 
-      const textContent = response.content.find(c => c.type === 'text');
-      if (!textContent || textContent.type !== 'text') {
-        throw new Error('No text response from Claude');
-      }
-
-      const assistantMessage = textContent.text;
-
-      // Add assistant response to history
-      this.conversationHistory.push({
-        role: 'assistant',
-        content: assistantMessage
-      });
-
+      const assistantMessage = extractText(content);
+      this.conversationHistory.push({ role: 'assistant', content: assistantMessage });
       return assistantMessage;
     } catch (e) {
       console.error("Chat error:", e);
@@ -483,7 +422,6 @@ GROUND TRUTH SPECS (USE THESE EXACTLY):
         if (re.rentRangeLow) groundTruth += `- Rent Range: $${re.rentRangeLow} - $${re.rentRangeHigh}\n`;
       }
       
-      // Also extract comparable properties from rent estimate if available
       if (re.comparableProperties && Array.isArray(re.comparableProperties) && re.comparableProperties.length > 0) {
         groundTruth += `\nLONG-TERM RENTAL COMPARABLES (FROM RENT ESTIMATE):\n`;
         re.comparableProperties.slice(0, 3).forEach((comp: any, i: number) => {
@@ -493,7 +431,6 @@ GROUND TRUTH SPECS (USE THESE EXACTLY):
           const baths = comp.bathrooms || 'N/A';
           groundTruth += `${i + 1}. ${addr} (${beds}bd/${baths}ba): $${rent}/mo\n`;
         });
-        console.log(`[Claude] ✅ Found ${re.comparableProperties.length} rental comps from Rent Estimate endpoint`);
       }
     }
 
@@ -504,7 +441,6 @@ GROUND TRUTH SPECS (USE THESE EXACTLY):
     if (strComps && strComps.length > 0) {
       groundTruth += `\nSALES COMPARABLES (MARKET VALUATION):\n`;
       strComps.slice(0, 3).forEach((comp: any, i: number) => {
-        // Handle different field name variations from RentCast API
         const address = comp.formattedAddress || comp.address || 'N/A';
         const price = comp.price || comp.salePrice || 'N/A';
         const beds = comp.bedrooms || 'N/A';
@@ -512,10 +448,6 @@ GROUND TRUTH SPECS (USE THESE EXACTLY):
         const sqft = comp.squareFootage || 'N/A';
         groundTruth += `${i + 1}. ${address} (${beds}bd/${baths}ba, ${sqft}sqft): Sale Price $${price}\n`;
       });
-      console.log('[Claude] ✅ Using RentCast sales comps for market valuation - this will calibrate pricing estimates');
-    } else {
-      console.warn('[Claude] ⚠️ No RentCast STR comps available - using general market knowledge (less accurate)');
-      // Web search for STR comps doesn't return proper JSON, so we skip it to avoid rate limiting
     }
 
     if (marketStats) {
@@ -526,11 +458,10 @@ GROUND TRUTH SPECS (USE THESE EXACTLY):
     }
 
     // Add delay before making API call to avoid rate limiting
-    // Increased to 5 seconds to ensure web search completes and rate limit resets
     // On cache hits, React Query will skip this entire function, so repeat searches stay instant
     await sleep(5000);
 
-    const response = await withRetry(() => getClient().messages.create({
+    const content = await withRetry(() => claudeProxy({
       model: getModel('complex_analysis'),
       max_tokens: 4096,
       messages: [{
@@ -613,14 +544,9 @@ Return ONLY a JSON object with this EXACT structure:
   ]
 }`
       }]
-    }));
+    }, '/api/claude/analysis'));
 
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from Claude');
-    }
-
-    const rawData = parseJSON(textContent.text);
+    const rawData = parseJSON(extractText(content));
 
     // Normalize occupancy to percentage if needed
     if (rawData.suggestedOccupancy !== undefined) {
@@ -631,20 +557,13 @@ Return ONLY a JSON object with this EXACT structure:
       }
     }
 
-    // 🔧 NEW: Add data source tracking
+    // Track data sources
     const dataSource = {
       adrSource: (strData && strData.rent) ? (strData.source === 'web_search' ? 'Web Search' : 'RentCast') as const : 'AI Estimate' as const,
       occupancySource: (strData && strData.occupancy) ? (strData.source === 'web_search' ? 'Web Search' : 'RentCast') as const : 'AI Estimate' as const,
       compsSource: (strComps && strComps.length > 0) ? 'RentCast' as const : 'AI Generated' as const,
       hasRentCastData: !!(strData && strData.source !== 'web_search') || !!(strComps)
     };
-    
-    console.log('[Claude] Data Source Summary:', {
-      adr: dataSource.adrSource,
-      occupancy: dataSource.occupancySource,
-      comps: dataSource.compsSource,
-      hasRentCastData: dataSource.hasRentCastData
-    });
 
     const result: MarketInsight = {
       ...rawData,
@@ -664,60 +583,37 @@ Return ONLY a JSON object with this EXACT structure:
 // ADVANCED UNDERWRITING FUNCTIONS
 // ============================================================================
 
-/**
- * Run a comprehensive property & market audit
- */
 export const runPropertyAudit = async (address: string, knownFacts?: PropertyFacts): Promise<PropertyAudit> => {
   try {
     console.log('[Claude] Running property audit for:', address);
-
-    const response = await getClient().messages.create({
+    const content = await claudeProxy({
       model: getModel('complex_analysis'),
       max_tokens: 4096,
       tools: [{ type: "web_search_20250305", name: "web_search" }],
       messages: [{ role: 'user', content: AUDIT_PROMPT(address, knownFacts) }]
     });
-
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from Claude');
-    }
-
-    return parseJSON(textContent.text);
+    return parseJSON(extractText(content));
   } catch (e) {
     console.error("Property audit failed:", e);
     throw e;
   }
 };
 
-/**
- * Run full underwriting analysis with HELOC-first capital strategy
- */
 export const runUnderwriteAnalysis = async (input: UnderwriteInput): Promise<UnderwriteResult> => {
   try {
     console.log('[Claude] Running underwrite analysis:', input.strategy);
-
-    const response = await getClient().messages.create({
+    const content = await claudeProxy({
       model: getModel('complex_analysis'),
       max_tokens: 8192,
       messages: [{ role: 'user', content: UNDERWRITE_PROMPT(input) }]
     });
-
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from Claude');
-    }
-
-    return parseJSON(textContent.text);
+    return parseJSON(extractText(content));
   } catch (e) {
     console.error("Underwrite analysis failed:", e);
     throw e;
   }
 };
 
-/**
- * Run sensitivity analysis for ADR, Occupancy, and Rate variations
- */
 export const runSensitivityAnalysis = async (baseKPIs: {
   adr: number;
   occupancy: number;
@@ -728,79 +624,49 @@ export const runSensitivityAnalysis = async (baseKPIs: {
 }): Promise<SensitivityMatrix> => {
   try {
     console.log('[Claude] Running sensitivity analysis');
-
-    const response = await getClient().messages.create({
+    const content = await claudeProxy({
       model: getModel('complex_analysis'),
       max_tokens: 4096,
       messages: [{ role: 'user', content: SENSITIVITY_PROMPT(baseKPIs) }]
     });
-
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from Claude');
-    }
-
-    return parseJSON(textContent.text);
+    return parseJSON(extractText(content));
   } catch (e) {
     console.error("Sensitivity analysis failed:", e);
     throw e;
   }
 };
 
-/**
- * Calculate amenity ROI with diminishing returns
- */
 export const runAmenityROI = async (input: AmenityROIInput): Promise<AmenityROIResult> => {
   try {
     console.log('[Claude] Running amenity ROI analysis');
-
-    const response = await getClient().messages.create({
+    const content = await claudeProxy({
       model: getModel('complex_analysis'),
       max_tokens: 4096,
       messages: [{ role: 'user', content: AMENITY_ROI_PROMPT(input) }]
     });
-
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from Claude');
-    }
-
-    return parseJSON(textContent.text);
+    return parseJSON(extractText(content));
   } catch (e) {
     console.error("Amenity ROI analysis failed:", e);
     throw e;
   }
 };
 
-/**
- * Scan web for STR regulations in a city
- */
 export const scanRegulations = async (city: string): Promise<RegulationReport> => {
   try {
     console.log('[Claude] Scanning regulations for:', city);
-
-    const response = await getClient().messages.create({
+    const content = await claudeProxy({
       model: getModel('complex_analysis'),
       max_tokens: 4096,
       tools: [{ type: "web_search_20250305", name: "web_search" }],
       messages: [{ role: 'user', content: REGULATION_SCANNER_PROMPT(city) }]
     });
-
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from Claude');
-    }
-
-    return parseJSON(textContent.text);
+    return parseJSON(extractText(content));
   } catch (e) {
     console.error("Regulation scan failed:", e);
     throw e;
   }
 };
 
-/**
- * Generate a professional lender packet summary
- */
 export const generateLenderPacket = async (analysis: {
   address: string;
   strategy: string;
@@ -813,28 +679,18 @@ export const generateLenderPacket = async (analysis: {
 }): Promise<LenderPacket> => {
   try {
     console.log('[Claude] Generating lender packet for:', analysis.address);
-
-    const response = await getClient().messages.create({
+    const content = await claudeProxy({
       model: getModel('complex_analysis'),
       max_tokens: 4096,
       messages: [{ role: 'user', content: PACKET_SUMMARY_PROMPT(analysis) }]
     });
-
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from Claude');
-    }
-
-    return parseJSON(textContent.text);
+    return parseJSON(extractText(content));
   } catch (e) {
     console.error("Lender packet generation failed:", e);
     throw e;
   }
 };
 
-/**
- * Calculate the minimal changes needed to reach Buy decision
- */
 export const calculatePathToYes = async (current: {
   kpis: { capRate: number; cashOnCash: number; dscr: number; ownerSurplus: number };
   targets: { minCapRate: number; minCoC: number; minDSCR: number };
@@ -843,73 +699,46 @@ export const calculatePathToYes = async (current: {
 }): Promise<PathToYes> => {
   try {
     console.log('[Claude] Calculating path to yes');
-
-    const response = await getClient().messages.create({
+    const content = await claudeProxy({
       model: getModel('complex_analysis'),
       max_tokens: 4096,
       messages: [{ role: 'user', content: PATH_TO_YES_PROMPT(current) }]
     });
-
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from Claude');
-    }
-
-    return parseJSON(textContent.text);
+    return parseJSON(extractText(content));
   } catch (e) {
     console.error("Path to yes calculation failed:", e);
     throw e;
   }
 };
 
-/**
- * Discover markets based on budget and target CoC
- */
 export const discoverMarkets = async (input: MarketDiscoveryInput): Promise<MarketList> => {
   try {
     console.log('[Claude] Discovering markets for budget:', input.budget);
-
-    const response = await getClient().messages.create({
+    const content = await claudeProxy({
       model: getModel('complex_analysis'),
       max_tokens: 4096,
       tools: [{ type: "web_search_20250305", name: "web_search" }],
       messages: [{ role: 'user', content: MARKET_DISCOVERY_PROMPT(input) }]
     });
-
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from Claude');
-    }
-
-    return parseJSON(textContent.text);
+    return parseJSON(extractText(content));
   } catch (e) {
     console.error("Market discovery failed:", e);
     throw e;
   }
 };
 
-/**
- * Score the strength of a comp set
- */
 export const scoreCompStrength = async (
   comps: { address: string; beds: number; baths: number; sqft: number; adr: number; occupancy: number; distance: number; daysOnMarket?: number }[],
   subject: { beds: number; baths: number; sqft: number; amenities: string[] }
 ): Promise<CompScore> => {
   try {
     console.log('[Claude] Scoring comp strength');
-
-    const response = await getClient().messages.create({
+    const content = await claudeProxy({
       model: getModel('complex_analysis'),
       max_tokens: 2048,
       messages: [{ role: 'user', content: COMPS_STRENGTH_PROMPT(comps, subject) }]
     });
-
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from Claude');
-    }
-
-    return parseJSON(textContent.text);
+    return parseJSON(extractText(content));
   } catch (e) {
     console.error("Comp strength scoring failed:", e);
     throw e;

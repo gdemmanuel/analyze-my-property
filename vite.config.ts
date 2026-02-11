@@ -12,6 +12,13 @@ export default defineConfig({
   server: {
     port: 3000,
     host: '0.0.0.0',
+    // Proxy API requests to the Express server
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+      },
+    },
     // Optimize HMR for faster refreshes
     hmr: {
       protocol: 'ws',

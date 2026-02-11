@@ -1,5 +1,5 @@
 
-const RENTCAST_API_KEY = import.meta.env.VITE_RENTCAST_API_KEY;
+// All RentCast API calls go through /api/rentcast/* — API key is never in the browser
 
 export interface RentCastProperty {
     id: string;
@@ -23,11 +23,6 @@ export interface RentCastProperty {
 }
 
 export const fetchPropertyData = async (address: string): Promise<RentCastProperty | null> => {
-    if (!RENTCAST_API_KEY) {
-        console.warn("RentCast API Key missing. Please add VITE_RENTCAST_API_KEY to your .env file.");
-        return null;
-    }
-
     try {
         const cleanAddress = address.trim();
         const encodedAddress = encodeURIComponent(cleanAddress);
@@ -35,9 +30,7 @@ export const fetchPropertyData = async (address: string): Promise<RentCastProper
         console.log(`[RentCast] Fetching data for: ${cleanAddress}`);
 
         // 1. Try to get Active Listings (the most accurate for current Price)
-        const listingRes = await fetch(`https://api.rentcast.io/v1/listings/sale?address=${encodedAddress}&status=Active`, {
-            headers: { 'X-Api-Key': RENTCAST_API_KEY, 'Accept': 'application/json' }
-        });
+        const listingRes = await fetch(`/api/rentcast/listings/sale?address=${encodedAddress}&status=Active`);
 
         let listingData: any;
         if (listingRes.ok) {
@@ -51,9 +44,7 @@ export const fetchPropertyData = async (address: string): Promise<RentCastProper
         // 2. Try Valuation (AVM) endpoint - often has more recent prices
         let avmPrice: number | undefined;
         try {
-            const avmRes = await fetch(`https://api.rentcast.io/v1/avm/value?address=${encodedAddress}`, {
-                headers: { 'X-Api-Key': RENTCAST_API_KEY, 'Accept': 'application/json' }
-            });
+            const avmRes = await fetch(`/api/rentcast/avm/value?address=${encodedAddress}`);
             if (avmRes.ok) {
                 const avm = await avmRes.json();
                 avmPrice = avm.price;
@@ -64,9 +55,7 @@ export const fetchPropertyData = async (address: string): Promise<RentCastProper
         }
 
         // 3. Get Property Record (for structural details and TAX/HOA)
-        const propRes = await fetch(`https://api.rentcast.io/v1/properties?address=${encodedAddress}`, {
-            headers: { 'X-Api-Key': RENTCAST_API_KEY, 'Accept': 'application/json' }
-        });
+        const propRes = await fetch(`/api/rentcast/properties?address=${encodedAddress}`);
 
         if (!propRes.ok) {
             const errorText = await propRes.text();
@@ -148,12 +137,8 @@ export const fetchPropertyData = async (address: string): Promise<RentCastProper
 };
 
 export const fetchMarketStats = async (zipCode: string): Promise<any | null> => {
-    if (!RENTCAST_API_KEY) return null;
-
     try {
-        const response = await fetch(`https://api.rentcast.io/v1/markets?zipCode=${zipCode}`, {
-            headers: { 'X-Api-Key': RENTCAST_API_KEY, 'Accept': 'application/json' }
-        });
+        const response = await fetch(`/api/rentcast/markets?zipCode=${zipCode}`);
 
         if (!response.ok) {
             console.error(`RentCast Market Stats Error: ${response.status}`);
@@ -169,13 +154,9 @@ export const fetchMarketStats = async (zipCode: string): Promise<any | null> => 
 };
 
 export const fetchRentEstimate = async (address: string): Promise<any | null> => {
-    if (!RENTCAST_API_KEY) return null;
-
     try {
         const encodedAddress = encodeURIComponent(address);
-        const response = await fetch(`https://api.rentcast.io/v1/avm/rent/long-term?address=${encodedAddress}`, {
-            headers: { 'X-Api-Key': RENTCAST_API_KEY, 'Accept': 'application/json' }
-        });
+        const response = await fetch(`/api/rentcast/avm/rent/long-term?address=${encodedAddress}`);
 
         if (!response.ok) {
             console.error(`RentCast Rent Estimate Error: ${response.status}`);
@@ -184,7 +165,6 @@ export const fetchRentEstimate = async (address: string): Promise<any | null> =>
 
         const data = await response.json();
         
-        // Log what we got back
         console.log(`[RentCast] Rent Estimate Response:`, {
             rent: data.rent,
             hasComps: data.comparableProperties ? data.comparableProperties.length : 0
@@ -200,27 +180,12 @@ export const fetchRentEstimate = async (address: string): Promise<any | null> =>
 /**
  * RentCast does not provide STR (short-term rental) data.
  * Use searchWebForSTRData() from claudeService.ts instead.
- * 
- * RentCast provides:
- * - Property details (beds, baths, sqft, tax, HOA)
- * - Long-term rental estimates (monthly rent)
- * - Sale comparables
- * 
- * RentCast does NOT provide:
- * - STR Average Daily Rate (ADR)
- * - STR Occupancy Rate
- * - STR comparables
  */
 export const fetchSTRData = async (address: string, propertyType?: string, bedrooms?: number, bathrooms?: number): Promise<any | null> => {
     console.log('[RentCast] Note: RentCast does not support short-term rental data. Using Claude web search instead.');
     return null;
 }
 
-// ⚠️ DEPRECATED: RentCast does not provide reliable STR comps via API
-// - /v1/comps/sale endpoint returns 404
-// - No other endpoint provides STR-specific comparable data
-// - Web search for comps doesn't return proper JSON
-// Solution: Use Claude's general market knowledge instead
 export const fetchSTRComps = async (address: string, propertyType?: string, bedrooms?: number, bathrooms?: number): Promise<any | null> => {
     console.log('[RentCast] STR comps not available via API - Claude will use general market knowledge');
     return null;
