@@ -34,13 +34,14 @@ const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 function getApiKey(): string {
   const key = ANTHROPIC_API_KEY?.trim();
   
-  // Debug logging
-  console.log('[Claude Service] API Key Status:', {
-    hasKey: !!key,
-    keyLength: key?.length || 0,
-    keyPrefix: key?.substring(0, 10) || 'MISSING',
-    fullKey: key // Log full key for debugging
-  });
+  // Debug logging - NEVER log the actual key (security)
+  if (import.meta.env.DEV) {
+    console.log('[Claude Service] API Key Status:', {
+      hasKey: !!key,
+      keyLength: key?.length || 0,
+      keyPrefix: key ? `${key.substring(0, 10)}...` : 'MISSING'
+    });
+  }
   
   if (!key || key === "sk-ant-api03-your-key-here" || key === "YOUR_ANTHROPIC_API_KEY_HERE") {
     throw new Error(
