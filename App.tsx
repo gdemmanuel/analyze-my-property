@@ -984,7 +984,7 @@ const App: React.FC = () => {
       )}
 
       {/* Horizontal Top Navigation */}
-      <nav className="w-full bg-[#0f172a] text-white px-4 lg:px-8 py-3 fixed top-0 left-0 right-0 z-50 border-b border-slate-800 print:hidden">
+      <nav className="w-full h-auto bg-[#0f172a] text-white px-4 lg:px-8 py-4 fixed top-0 left-0 right-0 z-50 border-b border-slate-800 print:hidden">
         <div className="max-w-[1800px] mx-auto flex items-center justify-between gap-4">
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0">
@@ -1036,7 +1036,7 @@ const App: React.FC = () => {
       </nav>
 
       {/* Main Content - with top padding to account for fixed nav */}
-      <main className="flex-1 pt-16 p-4 lg:p-8 print:pt-0 print:p-0">
+      <main className="flex-1 pt-20 p-4 lg:p-8 print:pt-0 print:p-0">
         <div className="max-w-[1600px] mx-auto mb-8 print:hidden relative" ref={suggestionRef}>
           <div className="bg-white p-1 rounded-3xl shadow-xl flex flex-col md:flex-row gap-1 border border-slate-100">
             <div className="relative flex-1">
