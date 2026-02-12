@@ -142,7 +142,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             
             const costKey = costKeyMap[am.id];
             const suggestedCost = costKey && amenityCosts?.[costKey]?.minCost;
-            const hasSuggestion = !!suggestedCost && suggestedCost !== am.cost;
+            const hasSuggestion = !!suggestedCost && suggestedCost !== am.cost && suggestedCost > 0;
             
             return (
               <div key={am.id} className={`p-6 border-2 rounded-2xl shadow-lg transition-colors ${hasSuggestion ? 'border-blue-200 bg-blue-50' : 'border-slate-200 bg-white'}`}>
@@ -176,7 +176,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                     <label className="text-[10px] font-black text-slate-600">ADR BOOST ($)</label>
                     <div className="flex gap-1">
                       <input type="number" value={am.adrBoost} onChange={(e) => handleEditAmenity(am.id, { adrBoost: parseFloat(e.target.value) || 0 })} className="flex-1 bg-white border-2 border-slate-300 rounded-xl px-4 py-2 font-black text-slate-900 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" />
-                      {amenityCosts?.[costKey]?.adrBoost && am.adrBoost !== amenityCosts[costKey].adrBoost && (
+                      {costKey && amenityCosts?.[costKey]?.adrBoost && am.adrBoost !== amenityCosts[costKey].adrBoost && (
                         <button
                           onClick={() => handleEditAmenity(am.id, { adrBoost: amenityCosts[costKey].adrBoost })}
                           className="px-2 py-2 bg-blue-100 text-blue-700 rounded text-[10px] font-black hover:bg-blue-200 transition-colors whitespace-nowrap"
