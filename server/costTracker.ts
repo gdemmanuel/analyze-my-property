@@ -90,9 +90,17 @@ export class CostTracker {
     endpoint: string,
     userId: string
   ): number {
-    const pricing = CLAUDE_PRICING[model as keyof typeof CLAUDE_PRICING];
+    // Normalize model name (strip date suffix like -20250514)
+    let normalizedModel = model;
+    if (model.includes('claude-sonnet-4')) {
+      normalizedModel = 'claude-sonnet-4';
+    } else if (model.includes('claude-3-5-haiku')) {
+      normalizedModel = 'claude-3-5-haiku';
+    }
+
+    const pricing = CLAUDE_PRICING[normalizedModel as keyof typeof CLAUDE_PRICING];
     if (!pricing) {
-      console.warn(`[CostTracker] Unknown model: ${model}`);
+      console.warn(`[CostTracker] Unknown model: ${model} (normalized: ${normalizedModel})`);
       return 0;
     }
 
@@ -101,7 +109,7 @@ export class CostTracker {
     const totalCost = inputCost + outputCost;
 
     this.claudeUsageLog.push({
-      model,
+      model: normalizedModel, // Store normalized name for consistent grouping
       inputTokens,
       outputTokens,
       cost: totalCost,
