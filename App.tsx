@@ -10,7 +10,7 @@ import { DEFAULT_CONFIG, AMENITIES } from './constants';
 import { calculateMonthlyProjections, aggregateToYearly } from './utils/financialLogic';
 import { formatCurrency } from './utils/formatCurrency';
 import { exportUnderwritingReport } from './utils/exportReport';
-import { analyzeProperty, suggestAmenityImpact, searchWebForSTRData, runSensitivityAnalysis, runAmenityROI, calculatePathToYes, generateLenderPacket, onRateLimitCountdown, estimateAmenityCosts } from './services/claudeService';
+import { analyzeProperty, suggestAmenityImpact, searchWebForSTRData, runSensitivityAnalysis, runAmenityROI, calculatePathToYes, generateLenderPacket, onRateLimitCountdown, estimateAmenityCosts, estimateCustomAmenityCost } from './services/claudeService';
 import { SensitivityMatrix, AmenityROIResult, PathToYes, LenderPacket } from './prompts/underwriting';
 import { Save } from 'lucide-react';
 import Charts from './components/Charts';
@@ -557,11 +557,30 @@ const App: React.FC = () => {
     if (!newAmenityName) return;
     setIsSuggestingAmenity(true);
     try {
-      const suggestion = await suggestAmenityImpact(newAmenityName, displayedAddress);
-      const newAm: Amenity = { id: Date.now().toString(), name: newAmenityName, cost: suggestion.cost || 5000, adrBoost: suggestion.adrBoost || 20, occBoost: suggestion.occBoost || 3, icon: 'Sparkles', active: true };
+      // Use the new AI-driven custom amenity cost estimation
+      const aiEstimate = await estimateCustomAmenityCost(
+        newAmenityName,
+        displayedAddress || targetAddress,
+        propertyData?.propertyType || 'Unknown',
+        marketStatsQuery.data || {}
+      );
+      
+      const cost = aiEstimate?.minCost || (aiEstimate?.maxCost && aiEstimate.minCost) ? (aiEstimate.minCost + aiEstimate.maxCost) / 2 : 5000;
+      const adrBoost = aiEstimate?.adrBoost || 20;
+      const occBoost = aiEstimate?.occBoost || 3;
+      
+      const newAm: Amenity = { 
+        id: Date.now().toString(), 
+        name: newAmenityName, 
+        cost: Math.round(cost),
+        adrBoost: adrBoost,
+        occBoost: occBoost,
+        icon: 'Sparkles', 
+        active: true 
+      };
       setAmenities(prev => [...prev, newAm]);
       setNewAmenityName('');
-      toast.success(`Added ${newAmenityName} to amenities`);
+      toast.success(`Added ${newAmenityName} with AI-estimated costs`);
     } catch (e: any) {
       console.error('Failed to add amenity:', e);
       toast.error('Failed to analyze amenity. Please try again.');
@@ -936,6 +955,9 @@ const App: React.FC = () => {
             removeAmenity={removeAmenity}
             amenityCosts={amenityCosts}
             isEstimatingAmenityCosts={isEstimatingAmenityCosts}
+            displayedAddress={displayedAddress}
+            propertyData={propertyData}
+            marketStats={marketStatsQuery.data}
           />
         )}
 

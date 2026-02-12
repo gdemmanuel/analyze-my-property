@@ -23,7 +23,8 @@ import {
   PATH_TO_YES_PROMPT,
   MARKET_DISCOVERY_PROMPT,
   COMPS_STRENGTH_PROMPT,
-  AMENITY_PRICING_PROMPT
+  AMENITY_PRICING_PROMPT,
+  CUSTOM_AMENITY_PRICING_PROMPT
 } from "../prompts/underwriting";
 
 // ============================================================================
@@ -839,5 +840,23 @@ export const estimateAmenityCosts = async (address: string, propertyType: string
   } catch (e) {
     console.error('Amenity cost estimation failed:', e);
     return null; // Fallback to hardcoded values
+  }
+};
+
+export const estimateCustomAmenityCost = async (amenityName: string, address: string, propertyType: string, marketData: any) => {
+  try {
+    if (import.meta.env.DEV) console.log('[Claude] Estimating cost for custom amenity:', amenityName);
+    const content = await claudeProxy({
+      model: getModel('simple_task'), // Fast + cheap (Haiku)
+      max_tokens: 400,
+      messages: [{ role: 'user', content: CUSTOM_AMENITY_PRICING_PROMPT(amenityName, address, propertyType, marketData) }]
+    });
+    const text = extractText(content);
+    const result = parseJSON(text);
+    if (import.meta.env.DEV) console.log('[Claude] Custom amenity cost estimated:', result);
+    return result;
+  } catch (e) {
+    console.error('Custom amenity cost estimation failed:', e);
+    return null;
   }
 };

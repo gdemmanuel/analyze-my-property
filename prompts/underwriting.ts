@@ -776,9 +776,9 @@ Return ONLY valid JSON, no additional text.
 // ============================================================================
 
 export const AMENITY_PRICING_PROMPT = (address: string, propertyType: string, marketData: any): string => {
-  return `You are a real estate development cost estimator specializing in short-term rental amenities.
+  return `You are a real estate development cost estimator and market analyst specializing in short-term rental amenities.
 
-Given a property location and market context, estimate reasonable installation costs for common amenities. Base estimates on regional factors like labor costs, material availability, and local market demand.
+Given a property location and market context, estimate BOTH installation costs AND revenue impact for amenities.
 
 Property Details:
 - Address: ${address}
@@ -797,7 +797,9 @@ AMENITIES TO ESTIMATE:
 For each amenity, provide:
 - minCost: Most budget-friendly installation
 - maxCost: Mid-to-high quality installation
-- reasoning: Why costs vary in this region
+- adrBoost: Suggested daily rate increase ($) this amenity can command in this market
+- occBoost: Suggested occupancy increase (%) this amenity drives in this market
+- reasoning: Why costs and impacts vary in this region
 
 Return ONLY valid JSON, no markdown or additional text:
 
@@ -805,32 +807,78 @@ Return ONLY valid JSON, no markdown or additional text:
   "pool": {
     "minCost": 20000,
     "maxCost": 35000,
+    "adrBoost": 50,
+    "occBoost": 8,
     "reasoning": "string"
   },
   "hottub": {
     "minCost": 6000,
     "maxCost": 10000,
+    "adrBoost": 45,
+    "occBoost": 6,
     "reasoning": "string"
   },
   "sauna": {
     "minCost": 5000,
     "maxCost": 8000,
+    "adrBoost": 25,
+    "occBoost": 4,
     "reasoning": "string"
   },
   "gameroom": {
     "minCost": 3000,
     "maxCost": 6000,
+    "adrBoost": 20,
+    "occBoost": 3,
     "reasoning": "string"
   },
   "deck": {
     "minCost": 10000,
     "maxCost": 18000,
+    "adrBoost": 35,
+    "occBoost": 5,
     "reasoning": "string"
   },
   "evcharger": {
     "minCost": 1000,
     "maxCost": 2000,
+    "adrBoost": 5,
+    "occBoost": 2,
     "reasoning": "string"
   }
+}`;
+};
+
+// ============================================================================
+// CUSTOM AMENITY PRICING PROMPT
+// ============================================================================
+
+export const CUSTOM_AMENITY_PRICING_PROMPT = (amenityName: string, address: string, propertyType: string, marketData: any): string => {
+  return `You are a real estate amenity valuation expert.
+
+Estimate installation cost and revenue impact for a custom short-term rental amenity in a specific market.
+
+Property Details:
+- Amenity Name: ${amenityName}
+- Property Type: ${propertyType}
+- Address: ${address}
+- Market: ${marketData?.marketName || 'Not specified'}
+- Region/State: ${address.split(',').slice(-1)[0]?.trim() || 'Unknown'}
+
+Provide realistic estimates for this specific amenity in this market:
+- minCost: Budget-friendly installation cost
+- maxCost: Premium/high-quality installation cost
+- adrBoost: Daily rate increase ($) this amenity can command
+- occBoost: Occupancy increase (%) this amenity drives
+- reasoning: Why these values are realistic for this market
+
+Return ONLY valid JSON, no markdown:
+
+{
+  "minCost": 0,
+  "maxCost": 0,
+  "adrBoost": 0,
+  "occBoost": 0,
+  "reasoning": "string"
 }`;
 };
