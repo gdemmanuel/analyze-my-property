@@ -150,13 +150,18 @@ const AdminTab: React.FC = () => {
 
   const fetchCosts = useCallback(async () => {
     try {
+      console.log('[AdminTab] Fetching costs from /api/admin/costs...');
       const res = await fetch('/api/admin/costs');
+      console.log('[AdminTab] Costs response:', res.status, res.ok);
       if (res.ok) {
         const data = await res.json();
+        console.log('[AdminTab] Costs data received:', data);
         setCostData(data);
+      } else {
+        console.error('[AdminTab] Costs fetch failed with status:', res.status);
       }
     } catch (e) {
-      console.error('Failed to fetch cost data:', e);
+      console.error('[AdminTab] Failed to fetch cost data:', e);
     }
   }, []);
 
@@ -669,6 +674,15 @@ const AdminTab: React.FC = () => {
                 <div className="text-[10px] text-slate-500 mt-1">of budget</div>
               </div>
             </div>
+
+            {/* Zero State Message */}
+            {costData.today.totalCost === 0 && (
+              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <p className="text-sm text-slate-600 text-center">
+                  <strong>No API costs yet today.</strong> Costs will appear here after you run property analyses.
+                </p>
+              </div>
+            )}
 
             {/* Budget Progress Bar */}
             <div>
