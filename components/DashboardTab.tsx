@@ -510,8 +510,8 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
 
       {/* Tax Assessment Breakdown (Tier 3L) */}
       {propertyData?.taxAssessments && propertyData.taxAssessments.length > 0 && (
-        <div className="p-5 bg-white rounded-xl border border-slate-100 mb-6">
-          <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">TAX ASSESSMENTS</h4>
+        <div className="p-4 bg-white rounded-xl border border-slate-100 mb-3">
+          <h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2">TAX ASSESSMENTS</h4>
           <div className="space-y-2">
             {propertyData.taxAssessments.map((ta, i) => (
               <div key={i} className="flex justify-between text-[10px] font-bold text-slate-600 p-2 bg-slate-50 rounded-lg">
@@ -525,21 +525,21 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
       )}
 
       {/* Amenities */}
-      <div className="p-5 bg-white rounded-xl border border-slate-100 mb-6">
-        <div className="flex justify-between items-center mb-4"><h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest">REVENUE AMENITIES</h4><div className="flex gap-6 text-[13px] font-black uppercase items-center">
-          <div className="flex items-center gap-1.5">
+      <div className="p-4 bg-white rounded-xl border border-slate-100 mb-3">
+        <div className="flex justify-between items-center mb-2"><h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest">REVENUE AMENITIES</h4><div className="flex gap-3 text-[12px] font-black uppercase items-center">
+          <div className="flex items-center gap-1">
             <span className="text-[#f43f5e]">ADR: {formatCurrency(currentRateValue)}</span>
             {insight?.dataSource?.adrSource && (
-              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${insight.dataSource.adrSource === 'RentCast' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
-                {insight.dataSource.adrSource === 'RentCast' ? '✓ RentCast' : 'AI'}
+              <span className={`text-[7px] font-black px-1.5 py-0.5 rounded-full ${insight.dataSource.adrSource === 'RentCast' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                {insight.dataSource.adrSource === 'RentCast' ? '✓ RC' : 'AI'}
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <span className="text-[#10b981]">OCC: {year1Data?.occupancy.toFixed(0)}%</span>
             {insight?.dataSource?.occupancySource && (
-              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${insight.dataSource.occupancySource === 'RentCast' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
-                {insight.dataSource.occupancySource === 'RentCast' ? '✓ RentCast' : 'AI'}
+              <span className={`text-[7px] font-black px-1.5 py-0.5 rounded-full ${insight.dataSource.occupancySource === 'RentCast' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                {insight.dataSource.occupancySource === 'RentCast' ? '✓ RC' : 'AI'}
               </span>
             )}
           </div>
