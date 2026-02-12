@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Calculator, LayoutDashboard, BarChart3, Calendar, TrendingUp,
-  Briefcase, Settings
+  Briefcase, Settings, Shield
 } from 'lucide-react';
 import { RentalStrategy } from '../types';
 
@@ -32,7 +32,8 @@ const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, strategy, setS
             { id: 'monthly', icon: Calendar, label: 'Monthly' },
             { id: 'yearly', icon: TrendingUp, label: 'Yearly' },
             { id: 'portfolio', icon: Briefcase, label: 'Portfolio' },
-            { id: 'assumptions', icon: Settings, label: 'Settings' }
+            { id: 'assumptions', icon: Settings, label: 'Settings' },
+            { id: 'admin', icon: Shield, label: 'Admin' }
           ].map(item => (
             <button
               key={item.id}

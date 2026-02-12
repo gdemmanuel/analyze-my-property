@@ -100,4 +100,20 @@ export function startSessionCleanup() {
   }, 10 * 60 * 1000);
 }
 
+/**
+ * Returns session statistics for the admin dashboard.
+ */
+export function getSessionStats(): { active: number; total: number; byTier: Record<string, number> } {
+  const now = Date.now();
+  let active = 0;
+  const byTier: Record<string, number> = { free: 0, pro: 0 };
+  for (const session of sessions.values()) {
+    if (now <= session.expiresAt) {
+      active++;
+      byTier[session.tier] = (byTier[session.tier] || 0) + 1;
+    }
+  }
+  return { active, total: sessions.size, byTier };
+}
+
 export { TIER_LIMITS };

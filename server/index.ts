@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import Anthropic from '@anthropic-ai/sdk';
 import { claudeCache, rentcastCache } from './cache.js';
 import { authMiddleware, createSession, startSessionCleanup, TIER_LIMITS } from './auth.js';
+import { metricsMiddleware, metricsStore } from './metrics.js';
 
 // Load environment variables from .env
 dotenv.config();
@@ -30,6 +31,7 @@ const allowedOrigins = process.env.CORS_ORIGIN
 app.use(cors({ origin: allowedOrigins }));
 
 app.use(authMiddleware);
+app.use(metricsMiddleware);
 
 // Start session cleanup
 startSessionCleanup();
@@ -114,6 +116,7 @@ app.post('/api/claude/messages', claudeLimiter, async (req, res) => {
     const cached = claudeCache.get(cacheKey);
     if (cached) {
       if (isDev) console.log(`[Server] Cache HIT for Claude request`);
+      (res as any).__cached = true;
       return res.json({ content: cached, cached: true });
     }
 
@@ -164,6 +167,7 @@ app.post('/api/claude/analysis', analysisLimiter, async (req, res) => {
     const cached = claudeCache.get(cacheKey);
     if (cached) {
       if (isDev) console.log(`[Server] Cache HIT for analysis request`);
+      (res as any).__cached = true;
       return res.json({ content: cached, cached: true });
     }
 
@@ -220,6 +224,7 @@ app.use('/api/rentcast', async (req, res) => {
     const cached = rentcastCache.get(cacheKey);
     if (cached) {
       if (isDev) console.log(`[Server] Cache HIT for RentCast: ${req.url}`);
+      (res as any).__cached = true;
       return res.json(cached);
     }
 
@@ -275,6 +280,41 @@ app.post('/api/auth/session', (req, res) => {
 });
 
 // ============================================================================
+// ADMIN ROUTES
+// ============================================================================
+// TODO: Gate these endpoints behind admin auth once auth phase is implemented.
+
+/**
+ * GET /api/admin/metrics
+ * Returns full metrics snapshot for the admin dashboard.
+ */
+app.get('/api/admin/metrics', (req, res) => {
+  res.json(metricsStore.getSnapshot());
+});
+
+/**
+ * POST /api/admin/cache/clear
+ * Clears server-side caches. Body: { target: 'claude' | 'rentcast' | 'all' }
+ */
+app.post('/api/admin/cache/clear', (req, res) => {
+  const { target } = req.body || {};
+  if (target === 'claude' || target === 'all') {
+    claudeCache.clear();
+  }
+  if (target === 'rentcast' || target === 'all') {
+    rentcastCache.clear();
+  }
+  res.json({
+    success: true,
+    cleared: target || 'all',
+    cache: {
+      claude: claudeCache.size,
+      rentcast: rentcastCache.size,
+    },
+  });
+});
+
+// ============================================================================
 // HEALTH & STATUS
 // ============================================================================
 
@@ -321,6 +361,7 @@ app.listen(PORT, () => {
   console.log(`   Claude proxy:   POST http://localhost:${PORT}/api/claude/messages`);
   console.log(`   Analysis proxy: POST http://localhost:${PORT}/api/claude/analysis`);
   console.log(`   RentCast proxy: GET  http://localhost:${PORT}/api/rentcast/*`);
+  console.log(`   Admin metrics:  GET  http://localhost:${PORT}/api/admin/metrics`);
   console.log(`   Health check:   GET  http://localhost:${PORT}/api/health`);
   console.log(`   Rate limits:    30 req/min general, 10 req/min Claude, 3/10min analysis\n`);
 });

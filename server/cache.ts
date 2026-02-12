@@ -12,6 +12,8 @@ export class TTLCache<T = any> {
   private store = new Map<string, CacheEntry<T>>();
   private defaultTTL: number;
   private maxSize: number;
+  private _hits = 0;
+  private _misses = 0;
 
   constructor(defaultTTLMs: number = 30 * 60 * 1000, maxSize: number = 500) {
     this.defaultTTL = defaultTTLMs;
@@ -21,13 +23,21 @@ export class TTLCache<T = any> {
     setInterval(() => this.cleanup(), 5 * 60 * 1000);
   }
 
+  get hits(): number { return this._hits; }
+  get misses(): number { return this._misses; }
+
   get(key: string): T | undefined {
     const entry = this.store.get(key);
-    if (!entry) return undefined;
-    if (Date.now() > entry.expiresAt) {
-      this.store.delete(key);
+    if (!entry) {
+      this._misses++;
       return undefined;
     }
+    if (Date.now() > entry.expiresAt) {
+      this.store.delete(key);
+      this._misses++;
+      return undefined;
+    }
+    this._hits++;
     return entry.data;
   }
 

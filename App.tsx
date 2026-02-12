@@ -23,6 +23,7 @@ import NavBar from './components/NavBar';
 import SearchBar from './components/SearchBar';
 import DashboardTab from './components/DashboardTab';
 import RentCastDataTab from './components/RentCastDataTab';
+import AdminTab from './components/AdminTab';
 import SettingsTab from './components/SettingsTab';
 import PortfolioTab from './components/PortfolioTab';
 import ComparisonModal from './components/ComparisonModal';
@@ -35,7 +36,7 @@ const App: React.FC = () => {
   const [amenities, setAmenities] = useState<Amenity[]>(AMENITIES);
   const [selectedAmenityIds, setSelectedAmenityIds] = useState<string[]>(['furnishings']);
   const [strategy, setStrategy] = useState<RentalStrategy>('STR');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'rentcast' | 'analytics' | 'monthly' | 'yearly' | 'portfolio' | 'assumptions'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'rentcast' | 'analytics' | 'monthly' | 'yearly' | 'portfolio' | 'assumptions' | 'admin'>('dashboard');
   const [propertyInput, setPropertyInput] = useState('');
   const [displayedAddress, setDisplayedAddress] = useState('');
   const [targetAddress, setTargetAddress] = useState(''); // Address to analyze (triggers React Query)
@@ -910,6 +911,11 @@ const App: React.FC = () => {
             setInsight={setInsight}
             setActiveTab={setActiveTab}
           />
+        )}
+
+        {/* ADMIN TAB */}
+        {activeTab === 'admin' && (
+          <AdminTab />
         )}
 
         {/* EMPTY STATE */}
