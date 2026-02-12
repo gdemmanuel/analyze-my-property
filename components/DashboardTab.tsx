@@ -102,9 +102,11 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
 }) => {
   const [expandedRentCast, setExpandedRentCast] = React.useState(false);
   const [expandedRentalListings, setExpandedRentalListings] = React.useState(false);
+  const [expandedOwnerInfo, setExpandedOwnerInfo] = React.useState(false);
+  const [expandedPriceHistory, setExpandedPriceHistory] = React.useState(false);
   
   return (
-    <div className="space-y-4 animate-in fade-in duration-700 max-w-[1600px] mx-auto">
+    <div className="space-y-3 animate-in fade-in duration-700 max-w-[1600px] mx-auto">
       {/* Hero Card */}
       <div className="rounded-3xl bg-[#0f172a] shadow-2xl relative overflow-hidden border border-white/5 min-h-[300px]">
         <div className="p-6 lg:p-8 relative z-10 flex flex-col justify-between h-full">
@@ -173,36 +175,35 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
       </div>
 
       {/* Strategy Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="p-5 bg-white rounded-xl border border-slate-100 flex flex-col justify-between min-h-[120px]">
-          <div><h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">CAPITAL STRATEGY</h4><div className="space-y-2"><div className="flex justify-between text-[11px] font-black"><span className="text-slate-600">DOWN PMT</span><span className="text-slate-900">{formatCurrency(cashPortion)}</span></div><div className="flex justify-between text-[11px] font-black"><span className="text-[#f43f5e]">HELOC</span><span className="text-[#f43f5e]">{formatCurrency(helocPortion)}</span></div></div></div>
-          <input type="range" min="0" max="100" value={baseConfig.helocFundingPercent} onChange={(e) => handleInputChange('helocFundingPercent', e.target.value)} className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#f43f5e] mt-3" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+        <div className="p-3 bg-white rounded-xl border border-slate-100 flex flex-col justify-between min-h-[100px]">
+          <div><h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2">CAPITAL STRATEGY</h4><div className="space-y-1"><div className="flex justify-between text-[10px] font-black"><span className="text-slate-600">DOWN PMT</span><span className="text-slate-900">{formatCurrency(cashPortion)}</span></div><div className="flex justify-between text-[10px] font-black"><span className="text-[#f43f5e]">HELOC</span><span className="text-[#f43f5e]">{formatCurrency(helocPortion)}</span></div></div></div>
+          <input type="range" min="0" max="100" value={baseConfig.helocFundingPercent} onChange={(e) => handleInputChange('helocFundingPercent', e.target.value)} className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#f43f5e] mt-2" />
         </div>
-        <div className="p-5 bg-white rounded-xl border border-slate-100 flex flex-col justify-between min-h-[120px]">
-          <div><div className="flex justify-between items-center mb-3"><h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest">MGMT MODE</h4><div className="p-1 bg-indigo-500/20 rounded-full text-[#818cf8]"><ShieldPlus size={12} /></div></div><div className="space-y-2"><div className="flex justify-between text-[11px] font-black"><span className="text-slate-600">SELECTION</span><span className="text-slate-900">{getManagementLabel(baseConfig.mgmtFeePercent).split(' ')[0]}</span></div><div className="flex justify-between text-[11px] font-black"><span className="text-slate-600">EST. COST</span><span className="text-[#818cf8]">{formatCurrency(year1Data?.mgmtFee || 0)}</span></div></div></div>
-          <input type="range" min="0" max="2" step="1" value={getManagementIndex(baseConfig.mgmtFeePercent)} onChange={handleManagementSliderChange} className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#818cf8] mt-3" />
+        <div className="p-3 bg-white rounded-xl border border-slate-100 flex flex-col justify-between min-h-[100px]">
+          <div><div className="flex justify-between items-center mb-2"><h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest">MGMT MODE</h4><div className="p-0.5 bg-indigo-500/20 rounded-full text-[#818cf8]"><ShieldPlus size={10} /></div></div><div className="space-y-1"><div className="flex justify-between text-[10px] font-black"><span className="text-slate-600">SELECTION</span><span className="text-slate-900">{getManagementLabel(baseConfig.mgmtFeePercent).split(' ')[0]}</span></div><div className="flex justify-between text-[10px] font-black"><span className="text-slate-600">EST. COST</span><span className="text-[#818cf8]">{formatCurrency(year1Data?.mgmtFee || 0)}</span></div></div></div>
+          <input type="range" min="0" max="2" step="1" value={getManagementIndex(baseConfig.mgmtFeePercent)} onChange={handleManagementSliderChange} className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#818cf8] mt-2" />
         </div>
-        <div className="p-4 bg-white rounded-xl border border-slate-100 flex flex-col items-center justify-center text-center"><div className="flex items-center gap-1 mb-1"><p className="text-[9px] font-black text-[#10b981] uppercase tracking-widest">PROFIT (Y1)</p></div><p className={`text-2xl font-black tracking-tighter leading-none ${annualProfit < 0 ? 'text-[#f43f5e]' : 'text-[#10b981]'}`}>{formatCurrency(annualProfit)}</p></div>
-        <div className="p-4 bg-white rounded-xl border border-slate-100 flex flex-col items-center justify-center text-center"><div className="flex items-center gap-1 mb-1"><p className="text-[9px] font-black text-[#818cf8] uppercase tracking-widest">OWNER SURPLUS</p></div><p className={`text-2xl font-black tracking-tighter leading-none ${annualSurplus < 0 ? 'text-[#f43f5e]' : 'text-slate-900'}`}>{formatCurrency(annualSurplus)}</p></div>
+        <div className="p-3 bg-white rounded-xl border border-slate-100 flex flex-col items-center justify-center text-center min-h-[100px]"><div className="flex items-center gap-1 mb-1"><p className="text-[8px] font-black text-[#10b981] uppercase tracking-widest">PROFIT (Y1)</p></div><p className={`text-xl font-black tracking-tighter leading-none ${annualProfit < 0 ? 'text-[#f43f5e]' : 'text-[#10b981]'}`}>{formatCurrency(annualProfit)}</p></div>
+        <div className="p-3 bg-white rounded-xl border border-slate-100 flex flex-col items-center justify-center text-center min-h-[100px]"><div className="flex items-center gap-1 mb-1"><p className="text-[8px] font-black text-[#818cf8] uppercase tracking-widest">OWNER SURPLUS</p></div><p className={`text-xl font-black tracking-tighter leading-none ${annualSurplus < 0 ? 'text-[#f43f5e]' : 'text-slate-900'}`}>{formatCurrency(annualSurplus)}</p></div>
       </div>
 
       {/* Property Details & Market Intelligence */}
       {propertyData && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
           {/* AVM Value Range (Tier 1A) */}
           {propertyData.avmValueRange && (
-            <div className="p-5 bg-white rounded-xl border border-slate-100">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="p-1.5 bg-blue-50 rounded-lg text-blue-500"><TrendingUp size={14} /></div>
-                <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest">AVM VALUE RANGE</h4>
-                <InfoTooltip content="Automated Valuation Model estimate with 85% confidence interval from RentCast" />
+            <div className="p-4 bg-white rounded-xl border border-slate-100">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1 bg-blue-50 rounded-lg text-blue-500"><TrendingUp size={12} /></div>
+                <h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest">AVM VALUE RANGE</h4>
               </div>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-xl font-black text-slate-900 tracking-tight">{formatCurrency(propertyData.lastSalePrice || 0)}</span>
+              <div className="flex items-baseline gap-1 mb-1.5">
+                <span className="text-lg font-black text-slate-900 tracking-tight">{formatCurrency(propertyData.lastSalePrice || 0)}</span>
               </div>
-              <div className="flex items-center gap-2 text-[10px] font-bold">
+              <div className="flex items-center gap-1.5 text-[9px] font-bold">
                 <span className="text-slate-500">{formatCurrency(propertyData.avmValueRange.low)}</span>
-                <div className="flex-1 h-2 bg-slate-100 rounded-full relative overflow-hidden">
+                <div className="flex-1 h-1.5 bg-slate-100 rounded-full relative overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full"
                     style={{
@@ -212,20 +213,20 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                 </div>
                 <span className="text-slate-500">{formatCurrency(propertyData.avmValueRange.high)}</span>
               </div>
-              <p className="text-[8px] text-slate-400 mt-1.5 font-bold">85% confidence interval</p>
+              <p className="text-[7px] text-slate-400 mt-1 font-bold">85% confidence interval</p>
             </div>
           )}
 
           {/* Listing Details (Tier 1E) */}
           {propertyData.listingDetails && (propertyData.listingDetails.daysOnMarket || propertyData.listingDetails.listingType) && (
-            <div className="p-5 bg-white rounded-xl border border-slate-100">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="p-1.5 bg-amber-50 rounded-lg text-amber-500"><Clock size={14} /></div>
-                <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest">LISTING INTEL</h4>
+            <div className="p-4 bg-white rounded-xl border border-slate-100">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1 bg-amber-50 rounded-lg text-amber-500"><Clock size={12} /></div>
+                <h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest">LISTING INTEL</h4>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {propertyData.listingDetails.daysOnMarket != null && (
-                  <div className="flex justify-between text-[11px] font-black">
+                  <div className="flex justify-between text-[9px] font-black">
                     <span className="text-slate-600">DAYS ON MARKET</span>
                     <span className={propertyData.listingDetails.daysOnMarket > 90 ? 'text-emerald-600' : propertyData.listingDetails.daysOnMarket > 30 ? 'text-amber-600' : 'text-slate-900'}>
                       {propertyData.listingDetails.daysOnMarket}
@@ -233,9 +234,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                   </div>
                 )}
                 {propertyData.listingDetails.listingType && (
-                  <div className="flex justify-between text-[11px] font-black">
+                  <div className="flex justify-between text-[9px] font-black">
                     <span className="text-slate-600">TYPE</span>
-                    <span className={`px-2 py-0.5 rounded text-[9px] ${
+                    <span className={`px-1.5 py-0.5 rounded text-[7px] ${
                       propertyData.listingDetails.listingType === 'Foreclosure' ? 'bg-red-100 text-red-700' :
                       propertyData.listingDetails.listingType === 'Short Sale' ? 'bg-orange-100 text-orange-700' :
                       propertyData.listingDetails.listingType === 'New Construction' ? 'bg-emerald-100 text-emerald-700' :
@@ -243,22 +244,10 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                     }`}>{propertyData.listingDetails.listingType}</span>
                   </div>
                 )}
-                {propertyData.listingDetails.listedDate && (
-                  <div className="flex justify-between text-[11px] font-black">
-                    <span className="text-slate-600">LISTED</span>
-                    <span className="text-slate-900">{new Date(propertyData.listingDetails.listedDate).toLocaleDateString()}</span>
-                  </div>
-                )}
                 {propertyData.listingDetails.mlsNumber && (
-                  <div className="flex justify-between text-[11px] font-black">
+                  <div className="flex justify-between text-[9px] font-black">
                     <span className="text-slate-600">MLS #</span>
-                    <span className="text-slate-900">{propertyData.listingDetails.mlsNumber}</span>
-                  </div>
-                )}
-                {propertyData.listingDetails.priceHistory && propertyData.listingDetails.priceHistory.length > 1 && (
-                  <div className="flex justify-between text-[11px] font-black">
-                    <span className="text-slate-600">PRICE CHANGES</span>
-                    <span className="text-[#f43f5e]">{propertyData.listingDetails.priceHistory.length} recorded</span>
+                    <span className="text-slate-900 text-[8px]">{propertyData.listingDetails.mlsNumber}</span>
                   </div>
                 )}
               </div>
@@ -267,52 +256,102 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
 
           {/* Property Features (Tier 1C) */}
           {propertyData.features && Object.values(propertyData.features).some(v => v != null) && (
-            <div className="p-5 bg-white rounded-xl border border-slate-100">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="p-1.5 bg-emerald-50 rounded-lg text-emerald-500"><Zap size={14} /></div>
-                <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest">PROPERTY FEATURES</h4>
+            <div className="p-4 bg-white rounded-xl border border-slate-100">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1 bg-emerald-50 rounded-lg text-emerald-500"><Zap size={12} /></div>
+                <h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest">PROPERTY FEATURES</h4>
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1">
                 {propertyData.features.pool && (
-                  <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-[9px] font-black flex items-center gap-1"><Droplets size={10} /> Pool{propertyData.features.poolType ? ` (${propertyData.features.poolType})` : ''}</span>
+                  <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[7px] font-black flex items-center gap-0.5"><Droplets size={8} /> Pool</span>
                 )}
                 {propertyData.features.garage && (
-                  <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-[9px] font-black flex items-center gap-1"><Car size={10} /> {propertyData.features.garageSpaces || '?'}-Car Garage</span>
+                  <span className="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[7px] font-black flex items-center gap-0.5"><Car size={8} /> {propertyData.features.garageSpaces || '?'}-Car</span>
                 )}
                 {propertyData.features.fireplace && (
-                  <span className="px-2 py-1 bg-orange-50 text-orange-700 rounded-md text-[9px] font-black flex items-center gap-1"><Flame size={10} /> Fireplace</span>
-                )}
-                {propertyData.features.viewType && (
-                  <span className="px-2 py-1 bg-purple-50 text-purple-700 rounded-md text-[9px] font-black flex items-center gap-1"><Eye size={10} /> {propertyData.features.viewType} View</span>
+                  <span className="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-[7px] font-black flex items-center gap-0.5"><Flame size={8} /> Fireplace</span>
                 )}
                 {propertyData.features.coolingType && (
-                  <span className="px-2 py-1 bg-cyan-50 text-cyan-700 rounded-md text-[9px] font-black">AC: {propertyData.features.coolingType}</span>
+                  <span className="px-1.5 py-0.5 bg-cyan-50 text-cyan-700 rounded text-[7px] font-black">AC: {propertyData.features.coolingType}</span>
                 )}
                 {propertyData.features.heatingType && (
-                  <span className="px-2 py-1 bg-red-50 text-red-600 rounded-md text-[9px] font-black">Heat: {propertyData.features.heatingType}</span>
-                )}
-                {propertyData.features.roofType && (
-                  <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-[9px] font-black">Roof: {propertyData.features.roofType}</span>
-                )}
-                {propertyData.features.floorCount && (
-                  <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-[9px] font-black">{propertyData.features.floorCount} Floor{propertyData.features.floorCount > 1 ? 's' : ''}</span>
-                )}
-                {propertyData.features.architectureType && (
-                  <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-md text-[9px] font-black">{propertyData.features.architectureType}</span>
+                  <span className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[7px] font-black">Heat: {propertyData.features.heatingType}</span>
                 )}
                 {propertyData.zoning && (
-                  <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded-md text-[9px] font-black">Zone: {propertyData.zoning}</span>
-                )}
-                {propertyData.ownerOccupied !== undefined && (
-                  <span className={`px-2 py-1 rounded-md text-[9px] font-black ${propertyData.ownerOccupied ? 'bg-green-50 text-green-700' : 'bg-violet-50 text-violet-700'}`}>
-                    {propertyData.ownerOccupied ? 'Owner Occupied' : 'Investor/Vacant'}
-                  </span>
+                  <span className="px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded text-[7px] font-black">Zone: {propertyData.zoning}</span>
                 )}
               </div>
             </div>
           )}
         </div>
       )}
+
+      {/* Additional Property Data Dropdowns */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
+        {/* Owner Information Dropdown */}
+        {propertyData?.owner && (
+          <div className="p-4 bg-white rounded-xl border border-slate-100">
+            <button
+              onClick={() => setExpandedOwnerInfo(!expandedOwnerInfo)}
+              className="w-full flex items-center justify-between hover:bg-slate-50 transition-colors p-1 -m-1 rounded-lg"
+            >
+              <div className="flex items-center gap-2">
+                <div className="p-1 bg-purple-50 rounded-lg text-purple-600"><Users size={12} /></div>
+                <h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest">OWNER INFO</h4>
+              </div>
+              <ChevronDown size={12} className={`transition-transform text-slate-400 ${expandedOwnerInfo ? 'rotate-180' : ''}`} />
+            </button>
+            {expandedOwnerInfo && (
+              <div className="mt-2 pt-2 border-t border-slate-100 space-y-1.5 animate-in slide-in-from-top-2 duration-200">
+                {propertyData.owner.names?.map((name, i) => (
+                  <p key={i} className="text-[9px] font-black text-slate-700">{name}</p>
+                ))}
+                {propertyData.owner.type && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[8px] font-bold text-slate-500">Type:</span>
+                    <span className={`px-2 py-0.5 rounded text-[7px] font-black ${propertyData.owner.type === 'Individual' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{propertyData.owner.type}</span>
+                  </div>
+                )}
+                {propertyData.owner.ownerOccupied !== undefined && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[8px] font-bold text-slate-500">Status:</span>
+                    <span className={`text-[8px] font-black ${propertyData.owner.ownerOccupied ? 'text-green-600' : 'text-blue-600'}`}>{propertyData.owner.ownerOccupied ? 'Owner Occupied' : 'Investor/Vacant'}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Listing Price History Dropdown */}
+        {propertyData?.listingDetails?.priceHistory && propertyData.listingDetails.priceHistory.length > 0 && (
+          <div className="p-4 bg-white rounded-xl border border-slate-100">
+            <button
+              onClick={() => setExpandedPriceHistory(!expandedPriceHistory)}
+              className="w-full flex items-center justify-between hover:bg-slate-50 transition-colors p-1 -m-1 rounded-lg"
+            >
+              <div className="flex items-center gap-2">
+                <div className="p-1 bg-amber-50 rounded-lg text-amber-600"><Tag size={12} /></div>
+                <h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest">PRICE HISTORY ({propertyData.listingDetails.priceHistory.length})</h4>
+              </div>
+              <ChevronDown size={12} className={`transition-transform text-slate-400 ${expandedPriceHistory ? 'rotate-180' : ''}`} />
+            </button>
+            {expandedPriceHistory && (
+              <div className="mt-2 pt-2 border-t border-slate-100 space-y-1 max-h-48 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
+                {propertyData.listingDetails.priceHistory.map((ph, i) => (
+                  <div key={i} className="p-2 bg-slate-50 rounded text-[8px]">
+                    <div className="flex justify-between font-black text-slate-700">
+                      <span>{formatCurrency(ph.price)}</span>
+                      <span className="text-slate-500">{new Date(ph.date).toLocaleDateString()}</span>
+                    </div>
+                    {ph.event && <p className="text-[7px] text-slate-500 mt-0.5">{ph.event}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* RentCast Market Data Dropdown (Tier 2G, 2H, 2I) */}
       {(marketStats || marketTrends.saleTrends.length > 0 || marketTrends.rentalTrends.length > 0) && (
