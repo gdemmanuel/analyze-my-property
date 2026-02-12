@@ -13,9 +13,8 @@ export const calculateMonthlyProjections = (
   const projections: MonthlyProjection[] = [];
   const totalMonths = years * 12;
 
-  // Calculate total amenity boosts
-  const totalAdrBoost = selectedAmenities.reduce((sum, amenity) => sum + amenity.adrBoost, 0);
-  const totalOccBoost = selectedAmenities.reduce((sum, amenity) => sum + amenity.occBoost, 0);
+  // NOTE: Amenity boosts are already applied in finalConfig, so we don't apply them again here
+  // This prevents double-counting of occupancy and ADR boosts
 
   const baseOccupancy = config.occupancyPercent > 1 ? config.occupancyPercent / 100 : config.occupancyPercent;
   const downPayment = (config.price * config.downPaymentPercent) / 100;
@@ -53,12 +52,9 @@ export const calculateMonthlyProjections = (
     let opex = config.fixedOpexMonthly * expenseGrowthFactor;
 
     if (strategy === 'STR') {
-      // Apply amenity boosts to base values before seasonality
-      const boostedOccupancy = Math.min(0.98, baseOccupancy + (totalOccBoost / 100));
-      const boostedAdr = config.adr + totalAdrBoost;
-
-      appliedOccupancyFraction = Math.min(0.98, boostedOccupancy * SEASONALITY_OCC[monthIndex]);
-      appliedRate = boostedAdr * rentGrowthFactor * SEASONALITY_ADR[monthIndex];
+      // Use baseOccupancy and config.adr directly (already include amenity boosts from finalConfig)
+      appliedOccupancyFraction = Math.min(0.98, baseOccupancy * SEASONALITY_OCC[monthIndex]);
+      appliedRate = config.adr * rentGrowthFactor * SEASONALITY_ADR[monthIndex];
       const nights = daysInMonth * appliedOccupancyFraction;
       revenue = appliedRate * nights;
       turns = nights / 3.8;
