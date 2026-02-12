@@ -163,7 +163,27 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
 
       {/* Amenities */}
       <div className="p-4 bg-white rounded-xl border border-slate-100 mb-3">
-        <div className="flex justify-between items-center mb-2"><h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest">REVENUE AMENITIES</h4></div>
+        <div className="flex justify-between items-center mb-3">
+          <h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest">REVENUE AMENITIES</h4>
+          <div className="flex gap-3 text-[12px] font-black uppercase items-center">
+            <div className="flex items-center gap-1">
+              <span className="text-[#f43f5e]">ADR: {formatCurrency(currentRateValue)}</span>
+              {insight?.dataSource?.adrSource && (
+                <span className={`text-[7px] font-black px-1.5 py-0.5 rounded-full ${insight.dataSource.adrSource === 'RentCast' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {insight.dataSource.adrSource === 'RentCast' ? '✓ RC' : 'AI'}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[#10b981]">OCC: {year1Data?.occupancy.toFixed(0)}%</span>
+              {insight?.dataSource?.occupancySource && (
+                <span className={`text-[7px] font-black px-1.5 py-0.5 rounded-full ${insight.dataSource.occupancySource === 'RentCast' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {insight.dataSource.occupancySource === 'RentCast' ? '✓ RC' : 'AI'}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
           {amenities.filter(a => a.active).map(am => (
             <div key={am.id} className="relative">
@@ -171,12 +191,33 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                 <div className="flex items-center gap-1">
                   <span className={selectedAmenityIds.includes(am.id) ? 'text-white' : 'text-rose-400'}>{getAmenityIcon(am.icon)}</span>
                   <span className="font-black uppercase truncate">{am.name}</span>
+                  {am.id === 'furnishings' && (
+                    <span
+                      onClick={(e) => { e.stopPropagation(); setShowFurnishingDropdown(!showFurnishingDropdown); }}
+                      className="ml-auto p-1 hover:bg-white/20 rounded transition-colors cursor-pointer"
+                    >
+                      <ChevronDown size={10} className={`transition-transform ${showFurnishingDropdown ? 'rotate-180' : ''}`} />
+                    </span>
+                  )}
                 </div>
                 <span className={`font-black ${selectedAmenityIds.includes(am.id) ? 'text-white' : 'text-yellow-300'}`}>${am.cost.toLocaleString()}</span>
               </button>
             </div>
           ))}
         </div>
+        {showFurnishingDropdown && (
+          <div className="mt-3 p-4 bg-slate-50 rounded-lg border border-slate-200 animate-in slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              <div><label className="text-[9px] font-bold text-slate-600">Beds</label><input type="number" value={furnishingBreakdown.beds} onChange={(e) => setFurnishingBreakdown((prev: any) => ({ ...prev, beds: parseInt(e.target.value) || 0 }))} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-sm font-semibold text-slate-900" /></div>
+              <div><label className="text-[9px] font-bold text-slate-600">$/Bed</label><input type="number" value={furnishingBreakdown.costPerBed} onChange={(e) => setFurnishingBreakdown((prev: any) => ({ ...prev, costPerBed: parseFloat(e.target.value) || 0 }))} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-sm font-semibold text-slate-900" /></div>
+              <div><label className="text-[9px] font-bold text-slate-600">Baths</label><input type="number" value={furnishingBreakdown.baths} onChange={(e) => setFurnishingBreakdown((prev: any) => ({ ...prev, baths: parseInt(e.target.value) || 0 }))} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-sm font-semibold text-slate-900" /></div>
+              <div><label className="text-[9px] font-bold text-slate-600">$/Bath</label><input type="number" value={furnishingBreakdown.costPerBath} onChange={(e) => setFurnishingBreakdown((prev: any) => ({ ...prev, costPerBath: parseFloat(e.target.value) || 0 }))} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-sm font-semibold text-slate-900" /></div>
+              <div><label className="text-[9px] font-bold text-slate-600">Living</label><input type="number" value={furnishingBreakdown.livingRoom} onChange={(e) => setFurnishingBreakdown((prev: any) => ({ ...prev, livingRoom: parseFloat(e.target.value) || 0 }))} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-sm font-semibold text-slate-900" /></div>
+              <div><label className="text-[9px] font-bold text-slate-600">Kitchen</label><input type="number" value={furnishingBreakdown.kitchenDining} onChange={(e) => setFurnishingBreakdown((prev: any) => ({ ...prev, kitchenDining: parseFloat(e.target.value) || 0 }))} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-sm font-semibold text-slate-900" /></div>
+              <div><label className="text-[9px] font-bold text-slate-600">Tech/Decor</label><input type="number" value={furnishingBreakdown.techDecor} onChange={(e) => setFurnishingBreakdown((prev: any) => ({ ...prev, techDecor: parseFloat(e.target.value) || 0 }))} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-sm font-semibold text-slate-900" /></div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* AI Analysis Cards */}
@@ -287,18 +328,30 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Data Sources & Citations</h3>
           </div>
           <div className="flex flex-wrap gap-3">
-            {insight.sources.map((source, idx) => (
-              <a
-                key={idx}
-                href={source.uri}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-white border border-slate-100 rounded-xl text-[10px] font-black text-slate-600 hover:border-rose-200 hover:text-rose-500 transition-all flex items-center gap-2 shadow-sm"
-              >
-                <ExternalLink size={12} />
-                {source.title}
-              </a>
-            ))}
+            {insight.sources.map((source, idx) => {
+              // Validate URL
+              const isValidUrl = source?.uri && (source.uri.startsWith('http://') || source.uri.startsWith('https://'));
+              return isValidUrl ? (
+                <a
+                  key={idx}
+                  href={source.uri}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-white border border-slate-100 rounded-xl text-[10px] font-black text-slate-600 hover:border-rose-200 hover:text-rose-500 transition-all flex items-center gap-2 shadow-sm"
+                >
+                  <ExternalLink size={12} />
+                  {source.title}
+                </a>
+              ) : (
+                <div
+                  key={idx}
+                  className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black text-slate-500 flex items-center gap-2 shadow-sm"
+                >
+                  <FileText size={12} />
+                  {source.title || 'Source'}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
