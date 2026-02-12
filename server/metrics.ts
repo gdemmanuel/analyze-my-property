@@ -15,6 +15,7 @@ interface RequestLogEntry {
   userId: string;
   cached: boolean;
   error?: string;
+  model?: string; // Track which Claude model was used
 }
 
 interface EndpointStats {
@@ -65,6 +66,12 @@ interface MetricsSnapshot {
       cacheHitRate: number;
     }[];
   };
+  models: {
+    model: string;
+    requestCount: number;
+    avgTimeMs: number;
+    totalTimeMs: number;
+  }[];
   recentRequests: RequestLogEntry[];
   rateLimits: {
     general: { maxRequests: number; windowSeconds: number };
@@ -79,6 +86,7 @@ const MAX_RESPONSE_TIMES_PER_ENDPOINT = 500;
 class MetricsStore {
   private requestLog: RequestLogEntry[] = [];
   private endpointStats: Map<string, EndpointStats> = new Map();
+  private modelUsage: Map<string, { count: number; totalTimeMs: number }> = new Map();
   private totalRequests = 0;
   private totalErrors = 0;
   private serverStartedAt = new Date();
@@ -127,6 +135,17 @@ class MetricsStore {
     if (stats.responseTimes.length > MAX_RESPONSE_TIMES_PER_ENDPOINT) {
       stats.responseTimes.shift();
     }
+
+    // Track model usage if model is specified
+    if (entry.model) {
+      let modelStats = this.modelUsage.get(entry.model);
+      if (!modelStats) {
+        modelStats = { count: 0, totalTimeMs: 0 };
+        this.modelUsage.set(entry.model, modelStats);
+      }
+      modelStats.count++;
+      modelStats.totalTimeMs += entry.responseTimeMs;
+    }
   }
 
   /**
@@ -159,6 +178,15 @@ class MetricsStore {
       }))
       .sort((a, b) => b.callCount - a.callCount);
 
+    const models = Array.from(this.modelUsage.entries())
+      .map(([model, stats]) => ({
+        model,
+        requestCount: stats.count,
+        avgTimeMs: Math.round(stats.totalTimeMs / stats.count),
+        totalTimeMs: stats.totalTimeMs,
+      }))
+      .sort((a, b) => b.requestCount - a.requestCount);
+
     return {
       server: {
         status: 'ok',
@@ -183,6 +211,7 @@ class MetricsStore {
         errorRate: this.totalRequests > 0 ? Number(((this.totalErrors / this.totalRequests) * 100).toFixed(1)) : 0,
         endpoints,
       },
+      models,
       recentRequests: this.requestLog.slice(-50).reverse(),
       rateLimits: {
         general: { maxRequests: 30, windowSeconds: 60 },
@@ -228,6 +257,12 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
       endpoint = parts.join('/');
     }
 
+    // Extract model from request body (for Claude endpoints)
+    let model: string | undefined;
+    if ((req.path === '/api/claude/messages' || req.path === '/api/claude/analysis') && (req.body as any)?.model) {
+      model = (req.body as any).model;
+    }
+
     metricsStore.record({
       timestamp: Date.now(),
       method: req.method,
@@ -237,6 +272,7 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
       userId: (req as any).userId || 'unknown',
       cached: (res as any).__cached === true,
       error: res.statusCode >= 400 ? `HTTP ${res.statusCode}` : undefined,
+      model,
     });
 
     return originalEnd.apply(res, args);

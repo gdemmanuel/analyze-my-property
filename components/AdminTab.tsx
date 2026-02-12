@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Activity, Server, Clock, Database, Users, Zap, RefreshCw, Trash2,
-  AlertTriangle, CheckCircle, XCircle, BarChart3, Shield, Cpu, HardDrive
+  AlertTriangle, CheckCircle, XCircle, BarChart3, Shield, Cpu, HardDrive, HelpCircle
 } from 'lucide-react';
 
 // ============================================================================
@@ -36,6 +36,12 @@ interface MetricsSnapshot {
       cacheHitRate: number;
     }[];
   };
+  models: {
+    model: string;
+    requestCount: number;
+    avgTimeMs: number;
+    totalTimeMs: number;
+  }[];
   recentRequests: {
     timestamp: number;
     method: string;
@@ -92,6 +98,17 @@ function statusBg(code: number): string {
   if (code >= 400 && code < 500) return 'bg-amber-500/10';
   return 'bg-red-500/10';
 }
+
+// Tooltip component
+const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, children }) => (
+  <div className="group relative inline-block">
+    {children}
+    <div className="invisible group-hover:visible absolute z-10 w-48 p-2 bg-slate-900 text-white text-xs rounded-lg shadow-lg bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none">
+      {text}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+    </div>
+  </div>
+);
 
 // ============================================================================
 // COMPONENT
@@ -271,16 +288,21 @@ const AdminTab: React.FC = () => {
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={16} className="text-slate-400" />
             <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Request Status Distribution</h3>
+            <Tooltip text="HTTP status codes: 2xx = Success, 3xx/4xx = Client errors (bad requests), 5xx = Server errors (our fault)">
+              <HelpCircle size={14} className="text-slate-400 cursor-help" />
+            </Tooltip>
           </div>
           <div className="space-y-3">
             {[
-              { label: '2xx Success', value: metrics.api.totalRequests - metrics.api.totalErrors, color: 'bg-emerald-500', textColor: 'text-emerald-600' },
-              { label: '3xx/4xx Client Error', value: Math.ceil((metrics.api.totalErrors * 0.5) || 0), color: 'bg-amber-500', textColor: 'text-amber-600' },
-              { label: '5xx Server Error', value: Math.floor((metrics.api.totalErrors * 0.5) || 0), color: 'bg-red-500', textColor: 'text-red-600' }
-            ].map(({ label, value, color, textColor }) => (
+              { label: 'Success (2xx)', desc: 'Requests completed successfully', value: metrics.api.totalRequests - metrics.api.totalErrors, color: 'bg-emerald-500', textColor: 'text-emerald-600' },
+              { label: 'Client Errors (3xx/4xx)', desc: 'Bad requests or redirects', value: Math.ceil((metrics.api.totalErrors * 0.5) || 0), color: 'bg-amber-500', textColor: 'text-amber-600' },
+              { label: 'Server Errors (5xx)', desc: 'Server-side issues', value: Math.floor((metrics.api.totalErrors * 0.5) || 0), color: 'bg-red-500', textColor: 'text-red-600' }
+            ].map(({ label, desc, value, color, textColor }) => (
               <div key={label}>
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-black text-slate-600">{label}</span>
+                  <Tooltip text={desc}>
+                    <span className="text-xs font-black text-slate-600 cursor-help hover:text-slate-700">{label}</span>
+                  </Tooltip>
                   <span className={`text-sm font-black ${textColor}`}>{value.toLocaleString()}</span>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -360,6 +382,14 @@ const AdminTab: React.FC = () => {
             <Clock size={16} className="text-slate-400" />
             <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Slowest Endpoints</h3>
           </div>
+          <div className="mb-3 p-2 bg-blue-50 border border-blue-100 rounded text-[10px] text-blue-700">
+            <Tooltip text="Claude/Analysis calls are slow because they're waiting for the Claude API to process. This is normal. Green &lt;1s, Amber 1-5s, Red &gt;5s.">
+              <div className="flex items-start gap-2">
+                <HelpCircle size={12} className="mt-0.5 flex-shrink-0" />
+                <span><strong>Note:</strong> Slow endpoints like /claude/analysis are usually waiting on external APIs (Claude, RentCast). This is expected, not an error.</span>
+              </div>
+            </Tooltip>
+          </div>
           {metrics.api.endpoints.length > 0 ? (
             <div className="space-y-2">
               {metrics.api.endpoints
@@ -389,6 +419,42 @@ const AdminTab: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* ================================================================== */}
+      {/* SECTION 2B: Model Usage                                             */}
+      {/* ================================================================== */}
+      {metrics.models && metrics.models.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+          <div className="p-5 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <Cpu size={16} className="text-slate-400" />
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Model Usage</h3>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  <th className="px-5 py-3 text-left text-xs font-black text-slate-600 uppercase tracking-wider">Model</th>
+                  <th className="px-5 py-3 text-right text-xs font-black text-slate-600 uppercase tracking-wider">Requests</th>
+                  <th className="px-5 py-3 text-right text-xs font-black text-slate-600 uppercase tracking-wider">Avg Time</th>
+                  <th className="px-5 py-3 text-right text-xs font-black text-slate-600 uppercase tracking-wider">Total Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {metrics.models.map((m, i) => (
+                  <tr key={m.model} className={`${i !== metrics.models.length - 1 ? 'border-b border-slate-100' : ''}`}>
+                    <td className="px-5 py-3 font-mono text-xs text-slate-700">{m.model.replace('claude-', '').substring(0, 20)}</td>
+                    <td className="px-5 py-3 text-right text-sm font-black text-slate-900">{m.requestCount.toLocaleString()}</td>
+                    <td className="px-5 py-3 text-right text-sm font-black text-slate-700">{formatTime(m.avgTimeMs)}</td>
+                    <td className="px-5 py-3 text-right text-xs text-slate-500">{formatTime(m.totalTimeMs)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* ================================================================== */}
       {/* SECTION 3: API Usage Table                                          */}
