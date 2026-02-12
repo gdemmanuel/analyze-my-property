@@ -91,6 +91,19 @@ const analysisLimiter = rateLimit({
   message: { error: 'Analysis rate limit reached. Please wait before running another full analysis.', retryAfter: 600 },
 });
 
+// Admin routes registered BEFORE rate limiter to avoid any interference
+app.get('/api/admin/metrics', (_req, res) => {
+  console.log('[Server] Admin metrics requested');
+  res.json(metricsStore.getSnapshot());
+});
+
+app.post('/api/admin/cache/clear', (req, res) => {
+  const { target } = req.body || {};
+  if (target === 'claude' || target === 'all') claudeCache.clear();
+  if (target === 'rentcast' || target === 'all') rentcastCache.clear();
+  res.json({ success: true, cleared: target || 'all', cache: { claude: claudeCache.size, rentcast: rentcastCache.size } });
+});
+
 app.use('/api', generalLimiter);
 
 // ============================================================================
@@ -276,41 +289,6 @@ app.post('/api/auth/session', (req, res) => {
     tier: session.tier,
     expiresAt: session.expiresAt,
     limits: TIER_LIMITS[session.tier],
-  });
-});
-
-// ============================================================================
-// ADMIN ROUTES
-// ============================================================================
-// TODO: Gate these endpoints behind admin auth once auth phase is implemented.
-
-/**
- * GET /api/admin/metrics
- * Returns full metrics snapshot for the admin dashboard.
- */
-app.get('/api/admin/metrics', (req, res) => {
-  res.json(metricsStore.getSnapshot());
-});
-
-/**
- * POST /api/admin/cache/clear
- * Clears server-side caches. Body: { target: 'claude' | 'rentcast' | 'all' }
- */
-app.post('/api/admin/cache/clear', (req, res) => {
-  const { target } = req.body || {};
-  if (target === 'claude' || target === 'all') {
-    claudeCache.clear();
-  }
-  if (target === 'rentcast' || target === 'all') {
-    rentcastCache.clear();
-  }
-  res.json({
-    success: true,
-    cleared: target || 'all',
-    cache: {
-      claude: claudeCache.size,
-      rentcast: rentcastCache.size,
-    },
   });
 });
 
