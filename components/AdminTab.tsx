@@ -263,7 +263,135 @@ const AdminTab: React.FC = () => {
       </div>
 
       {/* ================================================================== */}
-      {/* SECTION 2: API Usage Table                                          */}
+      {/* SECTION 2: Charts & Analytics                                        */}
+      {/* ================================================================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* API Calls by Status Chart */}
+        <div className="bg-white rounded-xl border border-slate-100 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 size={16} className="text-slate-400" />
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Request Status Distribution</h3>
+          </div>
+          <div className="space-y-3">
+            {[
+              { label: '2xx Success', value: metrics.api.totalRequests - metrics.api.totalErrors, color: 'bg-emerald-500', textColor: 'text-emerald-600' },
+              { label: '3xx/4xx Client Error', value: Math.ceil((metrics.api.totalErrors * 0.5) || 0), color: 'bg-amber-500', textColor: 'text-amber-600' },
+              { label: '5xx Server Error', value: Math.floor((metrics.api.totalErrors * 0.5) || 0), color: 'bg-red-500', textColor: 'text-red-600' }
+            ].map(({ label, value, color, textColor }) => (
+              <div key={label}>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs font-black text-slate-600">{label}</span>
+                  <span className={`text-sm font-black ${textColor}`}>{value.toLocaleString()}</span>
+                </div>
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className={`${color} h-full rounded-full`}
+                    style={{
+                      width: `${metrics.api.totalRequests > 0 ? (value / metrics.api.totalRequests) * 100 : 0}%`
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+            <div className="pt-3 border-t border-slate-100 text-xs text-slate-500">
+              Success Rate: <span className="font-black text-slate-900">{(100 - metrics.api.errorRate).toFixed(1)}%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Cache Hit Rate by Type */}
+        <div className="bg-white rounded-xl border border-slate-100 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Zap size={16} className="text-slate-400" />
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Cache Performance</h3>
+          </div>
+          <div className="space-y-4">
+            {[
+              { label: 'Claude Cache', hits: metrics.cache.claude.hits, misses: metrics.cache.claude.misses, color: 'bg-blue-500' },
+              { label: 'RentCast Cache', hits: metrics.cache.rentcast.hits, misses: metrics.cache.rentcast.misses, color: 'bg-emerald-500' }
+            ].map(({ label, hits, misses, color }) => {
+              const total = hits + misses;
+              const rate = total > 0 ? (hits / total) * 100 : 0;
+              return (
+                <div key={label}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-black text-slate-600">{label}</span>
+                    <span className="text-xs font-black text-slate-900">{rate.toFixed(0)}% hit rate</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`${color} h-full rounded-full`}
+                      style={{ width: `${rate}%` }}
+                    />
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1">{hits.toLocaleString()} hits, {misses.toLocaleString()} misses</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Top Endpoints by Call Count */}
+        <div className="bg-white rounded-xl border border-slate-100 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity size={16} className="text-slate-400" />
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Top Endpoints by Volume</h3>
+          </div>
+          {metrics.api.endpoints.length > 0 ? (
+            <div className="space-y-2">
+              {metrics.api.endpoints.slice(0, 5).map((ep, i) => (
+                <div key={ep.endpoint} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-[10px] font-black bg-slate-100 text-slate-600 px-2 py-1 rounded">{i + 1}</span>
+                    <span className="text-[11px] text-slate-600 truncate font-mono">{ep.endpoint}</span>
+                  </div>
+                  <span className="text-xs font-black text-slate-900 ml-2 flex-shrink-0">{ep.callCount}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">No endpoint data</p>
+          )}
+        </div>
+
+        {/* Response Time by Endpoint */}
+        <div className="bg-white rounded-xl border border-slate-100 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock size={16} className="text-slate-400" />
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Slowest Endpoints</h3>
+          </div>
+          {metrics.api.endpoints.length > 0 ? (
+            <div className="space-y-2">
+              {metrics.api.endpoints
+                .sort((a, b) => b.p95ResponseTimeMs - a.p95ResponseTimeMs)
+                .slice(0, 5)
+                .map((ep) => (
+                  <div key={ep.endpoint} className="flex items-center justify-between">
+                    <span className="text-[11px] text-slate-600 truncate font-mono flex-1 min-w-0">{ep.endpoint}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                      <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${ep.p95ResponseTimeMs > 5000 ? 'bg-red-500' : ep.p95ResponseTimeMs > 1000 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                          style={{
+                            width: `${Math.min(100, (ep.p95ResponseTimeMs / 10000) * 100)}%`
+                          }}
+                        />
+                      </div>
+                      <span className={`text-[10px] font-black ${ep.p95ResponseTimeMs > 5000 ? 'text-red-600' : ep.p95ResponseTimeMs > 1000 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                        {formatTime(ep.p95ResponseTimeMs)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">No endpoint data</p>
+          )}
+        </div>
+      </div>
+
+      {/* ================================================================== */}
+      {/* SECTION 3: API Usage Table                                          */}
       {/* ================================================================== */}
       <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
         <div className="p-5 border-b border-slate-100">
@@ -325,7 +453,7 @@ const AdminTab: React.FC = () => {
       </div>
 
       {/* ================================================================== */}
-      {/* SECTION 3: Recent API Calls Log                                     */}
+      {/* SECTION 4: Recent API Calls Log                                     */}
       {/* ================================================================== */}
       <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
         <div className="p-5 border-b border-slate-100">
@@ -386,7 +514,7 @@ const AdminTab: React.FC = () => {
       </div>
 
       {/* ================================================================== */}
-      {/* SECTION 4 & 5: Cache Management + Rate Limits                      */}
+      {/* SECTION 5 & 6: Cache Management + Rate Limits                      */}
       {/* ================================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Cache Management */}

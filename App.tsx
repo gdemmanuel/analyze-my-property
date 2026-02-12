@@ -727,16 +727,18 @@ const App: React.FC = () => {
 
       {/* Main Content - pt-24 preserves nav spacing (CRITICAL: do not change to p-8) */}
       <main className="flex-1 pt-24 px-4 pb-4 lg:px-8 lg:pb-8 print:pt-0 print:p-0">
-        <SearchBar
-          propertyInput={propertyInput}
-          onInputChange={setPropertyInput}
-          onSearch={() => runAnalysis()}
-          isAnalyzing={isAnalyzing}
-          isFetchingFactual={isFetchingFactual}
-          isUsingWebData={isUsingWebData}
-          analysisError={analysisError}
-          suggestionRef={suggestionRef as React.RefObject<HTMLDivElement>}
-        />
+        {activeTab !== 'admin' && (
+          <SearchBar
+            propertyInput={propertyInput}
+            onInputChange={setPropertyInput}
+            onSearch={() => runAnalysis()}
+            isAnalyzing={isAnalyzing}
+            isFetchingFactual={isFetchingFactual}
+            isUsingWebData={isUsingWebData}
+            analysisError={analysisError}
+            suggestionRef={suggestionRef as React.RefObject<HTMLDivElement>}
+          />
+        )}
 
         {/* Progress Indicator - shown during long-running analysis */}
         {progress.isVisible && (
