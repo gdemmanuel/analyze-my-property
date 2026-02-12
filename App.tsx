@@ -377,9 +377,10 @@ const App: React.FC = () => {
         if (strategy === 'STR') {
           config.adr += am.adrBoost;
           const currentOcc = config.occupancyPercent;
-          const remainingRoom = 75 - currentOcc;
-          const effectiveBoost = am.occBoost * (remainingRoom / 40);
-          config.occupancyPercent = Math.min(75, currentOcc + Math.max(0, effectiveBoost));
+          // Amenity occupancy boost is a modest increment (typically 2-6%)
+          // Cap total occupancy at 95% (realistic market maximum)
+          const boostAmount = am.occBoost; // Use the boost value directly (already in percentage points)
+          config.occupancyPercent = Math.min(95, currentOcc + Math.max(0, boostAmount));
         } else if (strategy === 'MTR') {
           config.mtrMonthlyRent += am.adrBoost * 10;
         } else {
