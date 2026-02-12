@@ -278,12 +278,12 @@ const App: React.FC = () => {
       setBaseConfig(prev => ({
         ...prev,
         price: parsedPrice || prev.price,
-        occupancyPercent: result.suggestedOccupancy || prev.occupancyPercent,
+        occupancyPercent: strData?.occupancy ? Math.round(strData.occupancy * 100) : (result.suggestedOccupancy || prev.occupancyPercent),
         propertyTaxMonthly: factual?.taxMonthly || monthlyTax || prev.propertyTaxMonthly,
         hoaMonthly: factual?.hoaMonthly || result.suggestedHOA || prev.hoaMonthly,
         cleaningFeeIncome: (result.suggestedCleaningFee * 8) || prev.cleaningFeeIncome,
         cleaningExpense: (result.suggestedCleaningFee * 7.5) || prev.cleaningExpense,
-        adr: result.proFormaScenarios?.[1]?.adr || result.suggestedADR || prev.adr,
+        adr: strData?.rent || result.proFormaScenarios?.[1]?.adr || result.suggestedADR || prev.adr,
         mtrMonthlyRent: result.suggestedMTRRent || prev.mtrMonthlyRent,
         ltrMonthlyRent: result.suggestedLTRRent || prev.ltrMonthlyRent
       }));
