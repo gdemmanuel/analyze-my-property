@@ -1,7 +1,7 @@
 # AirROI PRO Launch Handbook
 **Real Estate Investment Intelligence Platform**
 
-**Version:** 2.0
+**Version:** 2.1
 **Date:** February 2026  
 **Document Type:** Product Launch Guide
 
@@ -108,7 +108,11 @@ As an administrator, I want to monitor API usage, costs, and system health.
 - Per-endpoint API metrics with response times — DONE
 - Claude model usage tracking (Sonnet vs Haiku) — DONE
 - Cache hit rates and management controls — DONE
-- Rate limit configuration display — DONE
+- Rate limit configuration display and editing — DONE
+- Real-time API cost tracking (Claude + RentCast) with daily budget — DONE
+- Cost history chart with 7-day trends — DONE
+- Queue status monitoring (queued, processing, completed, failed) — DONE
+- Configurable daily budget and RentCast pricing — DONE
 
 ---
 
@@ -227,10 +231,13 @@ Dashboard renders all data
 
 ### Server (`server/`)
 
-- **index.ts** (346 lines) — Express app, API proxies, rate limiting, admin endpoints, static serving
+- **index.ts** (514 lines) — Express app, API proxies, rate limiting, admin endpoints (queue, costs, budget), test routes, static serving
 - **cache.ts** (84 lines) — TTL in-memory cache with hit/miss tracking
-- **auth.ts** (119 lines) — Session-based auth scaffold, tier limits (not enforced)
+- **auth.ts** (246 lines) — Session-based auth with per-user tier enforcement (free/pro), IP fallback, usage tracking, daily/hourly resets
 - **metrics.ts** (254 lines) — Request logging, endpoint stats, model usage tracking, middleware
+- **claudeQueue.ts** (216 lines) — Token bucket rate limiter (3 concurrent, 1/sec refill, 5 max), priority queue (pro > free), job stats
+- **costTracker.ts** (339 lines) — Real-time per-model cost tracking (Sonnet-4, Haiku, RentCast), daily budget alerts, 7-day history
+- **test-routes.ts** (265 lines) — Multi-user test endpoints: create users, view sessions, check limits, trigger calls (dev only, disabled in production)
 
 ### Services (`services/`)
 
@@ -249,7 +256,7 @@ Dashboard renders all data
 
 - **DashboardTab.tsx** (362 lines) — Audit view: KPIs, AI analysis, amenities, advanced tools
 - **RentCastDataTab.tsx** (374 lines) — AVM, market health, trends, comps, owner/agent info
-- **AdminTab.tsx** (682 lines) — Admin dashboard with metrics, charts, cache management
+- **AdminTab.tsx** (682 lines) — Admin dashboard with sub-tabs (Overview, API Costs, Performance, Configuration), cost tracking charts, queue stats, cache management
 - **PortfolioTab.tsx** (177 lines) — Saved assessments grid with comparison mode
 - **SettingsTab.tsx** (135 lines) — Global settings, investment targets, amenity editor
 
@@ -290,6 +297,16 @@ Dashboard renders all data
 - **vite.config.ts** (37 lines) — Proxy /api to :3002, HMR, optimizeDeps
 - **types.ts** (152 lines) — Core TypeScript interfaces
 - **constants.ts** (40 lines) — Default config and amenities
+
+### Scripts (`scripts/`)
+
+- **load-test.ts** — Automated multi-user load testing engine with color-coded output and JSON export
+- **test-scenarios.ts** — Pre-configured test scenarios (rate limits, concurrent access, queue priority, cost attribution, stress)
+- **clean-start.ps1** — PowerShell script to kill stale Node processes, resolve port conflicts, and start dev servers
+
+### Testing (`public/`)
+
+- **test-dashboard.html** — Interactive web UI for manual multi-user testing (dev only, access at `/test-dashboard.html`)
 
 ---
 
@@ -375,23 +392,57 @@ All prompts return structured JSON for seamless UI integration.
 
 ### Server-Side Cache (In-Memory TTL)
 
-- **Claude Cache**: 30 minute TTL, max 500 entries, LRU eviction
-- **RentCast Cache**: 60 minute TTL, max 500 entries, LRU eviction
+- **Claude Cache**: 2-hour TTL, max 500 entries, LRU eviction
+- **RentCast Cache**: 2-hour TTL, max 500 entries, LRU eviction
 - Hit/miss counters tracked for admin dashboard
 - Cache clears on server restart (acceptable for MVP)
 
 ### Client-Side Cache (React Query)
 
 - **Garbage Collection**: 24 hours
-- **Stale Time**: 5 minutes (default), 30 minutes (per-hook override)
+- **Stale Time**: 2 hours (per-hook override)
 - **Retry**: 3 attempts with exponential backoff
 - **Refetch on Mount**: false (prevents unnecessary API calls)
 
-### Rate Limits (IP-Based)
+### Rate Limits — Express (IP-Based)
 
 - **General API**: 30 requests per minute
 - **Claude Messages**: 10 requests per minute
 - **Full Analysis**: 3 requests per 10 minutes
+
+### Rate Limits — Per-User Tier Enforcement
+
+Implemented in `server/auth.ts`. Each user's usage is tracked by session token (or IP fallback for anonymous users). Counters reset automatically.
+
+- **Free Tier**: 3 analyses/day, 15 Claude calls/hour
+- **Pro Tier**: 50 analyses/day, 100 Claude calls/hour
+- **Daily Reset**: 24 hours from first request
+- **Hourly Reset**: 1 hour from first Claude call
+
+### Claude Queue (`server/claudeQueue.ts`)
+
+Token bucket rate limiter that controls concurrent access to the Claude API and prioritizes paying users.
+
+- **Max Concurrent**: 3 simultaneous Claude API calls
+- **Token Refill**: 1 token per second
+- **Max Tokens**: 5 (burst capacity)
+- **Priority**: Pro tier (priority 1) processed before Free tier (priority 0)
+- **FIFO**: Same-tier users processed in order of arrival
+- **Stats Tracked**: queued, processing, completed, failed jobs; average wait and processing times
+
+### Cost Tracking (`server/costTracker.ts`)
+
+Real-time API cost tracking with per-model granularity and budget alerting.
+
+- **Claude Sonnet-4**: $3.00 / 1M input tokens, $15.00 / 1M output tokens
+- **Claude Haiku**: $0.80 / 1M input tokens, $4.00 / 1M output tokens
+- **RentCast**: $0.03 per request (configurable via admin)
+- **Daily Budget**: $50 default (configurable), alert at 80% threshold
+- **History**: 7-day rolling cost history
+- **Model Normalization**: Strips date suffixes (e.g., `claude-sonnet-4-20250514` → `claude-sonnet-4`)
+- **Admin Endpoints**: `/api/admin/costs`, `/api/admin/cost-history`, `/api/admin/budget`, `/api/admin/pricing`
+
+**Note**: All caches, session state, queue state, and cost data are in-memory. They reset on server restart. This is acceptable for MVP. Consider Redis for persistence in a later phase.
 
 ### Performance Baseline
 
@@ -410,10 +461,12 @@ All prompts return structured JSON for seamless UI integration.
 - **API Keys**: Server-side only (Express proxy). No `VITE_` prefix for secrets.
 - **Security Headers**: Helmet middleware (HSTS, X-Frame-Options, etc.)
 - **CORS**: Configurable via `CORS_ORIGIN` env var. Defaults to localhost in dev.
-- **Rate Limiting**: IP-based via express-rate-limit
-- **Authentication**: Session scaffold (in-memory Map, IP fallback). Not production auth.
+- **Rate Limiting**: IP-based via express-rate-limit + per-user tier limits via session auth
+- **Authentication**: Session-based auth with usage tracking, tier enforcement, IP fallback for anonymous users
 - **Data Storage**: Browser localStorage (portfolio, settings). No server-side persistence.
 - **Input Validation**: Basic sanitization on API routes
+- **Test Routes**: All `/api/test/*` endpoints disabled when `NODE_ENV=production`
+- **Test Dashboard**: `public/test-dashboard.html` exists but only functions in development (API calls go through dev-only routes)
 
 ### Environment Variables
 
@@ -431,11 +484,12 @@ VITE_GOOGLE_MAPS_API_KEY=your-key-here
 
 ### What Needs to Change for Production
 
-- Replace session scaffold with real auth (Supabase, Clerk, or Auth0)
+- Replace session auth with real auth (Supabase, Clerk, or Auth0) for persistent user accounts
 - Add Content Security Policy (currently disabled for Tailwind inline styles)
 - Add HTTPS enforcement (handled by hosting platform)
 - Add environment variable validation on startup
-- Consider Redis for cache persistence across deploys
+- Consider Redis for cache and session persistence across deploys
+- Remove `public/test-dashboard.html` from production build (or add to `.gitignore`)
 
 ---
 
@@ -452,14 +506,18 @@ VITE_GOOGLE_MAPS_API_KEY=your-key-here
 AirROI runs as a **single Express server** that:
 1. Serves the built frontend from `dist/` (static files)
 2. Proxies API requests to Claude and RentCast
-3. Handles auth, caching, rate limiting, and admin metrics
+3. Handles auth, caching, rate limiting, queue management, cost tracking, and admin metrics
 4. Falls back to `index.html` for client-side routing (SPA)
+5. Disables test routes when `NODE_ENV=production`
 
 ### Step-by-Step: Railway Deployment (Recommended)
 
-**Why Railway**: Always-on server ($5/mo), in-memory state persists, zero code changes needed, auto-deploy from GitHub.
+**Why Railway**: Always-on server ($5/mo), in-memory state persists (sessions, caches, queue, cost tracking), zero code changes needed, auto-deploy from GitHub.
 
-**Step 1: Add production start script to package.json**
+**Why NOT Vercel**: AirROI relies on an always-on Express server with in-memory state (sessions, caches, queue, cost tracking). Vercel converts Express to serverless functions, resetting all state on every invocation. This would break auth, caching, rate limiting, queue management, and cost tracking. Significant refactoring would be required.
+
+**Step 1: Verify production start script exists in package.json**
+This should already be present:
 ```json
 "start": "node --import tsx server/index.ts"
 ```
@@ -476,7 +534,8 @@ In Railway Dashboard > Variables:
 - `RENTCAST_API_KEY` = your RentCast key
 - `CORS_ORIGIN` = your domain (e.g., `https://airroi.up.railway.app`)
 - `NODE_ENV` = `production`
-- `API_PORT` = `3002` (or let Railway assign via `PORT`)
+
+**Note on PORT**: Railway automatically assigns a `PORT` env var. The server checks `PORT` first, then falls back to `API_PORT`, then `3002`. You do **not** need to set `PORT` or `API_PORT` manually — Railway handles it.
 
 **Step 4: Configure build**
 Railway auto-detects Node.js. Set:
@@ -489,10 +548,18 @@ Push to master — Railway auto-deploys. URL assigned automatically (e.g., `airr
 **Step 6: Custom domain (optional)**
 Railway Dashboard > Settings > Domains > Add custom domain.
 
+### What Happens Automatically in Production
+
+When `NODE_ENV=production`:
+- Test routes (`/api/test/*`) return 403 Forbidden
+- Test dashboard (`/test-dashboard.html`) has no functional API to call
+- All other routes (API, admin, health) work normally
+- Static files served from `dist/`
+
 ### Alternative Platforms
 
 **Render (Free or $7/mo)**
-- Free tier: sleeps after 15 min inactivity, 60s cold start wake
+- Free tier: sleeps after 15 min inactivity, 60s cold start wake — causes in-memory state loss
 - Paid tier: always-on, similar to Railway
 - Setup: Connect GitHub, set build/start commands, add env vars
 
@@ -501,16 +568,19 @@ Railway Dashboard > Settings > Domains > Add custom domain.
 - Docker-based, edge deployment
 - More setup work but cheapest always-on option
 
-**Vercel (NOT recommended for this app)**
+**Vercel — NOT recommended for this app**
 - Converts Express to serverless functions
-- In-memory caches, metrics, and sessions reset per invocation
-- Would require significant refactoring
+- In-memory caches, metrics, sessions, queue, and cost tracking reset per invocation
+- Would require significant refactoring (move to Redis/database for all state)
 
 ### Build & Run Commands
 
 ```bash
 # Development (both servers)
 npm run dev:full
+
+# Clean start (kill stale processes, resolve ports)
+npm run clean-start
 
 # Production build
 npm run build
@@ -521,18 +591,30 @@ npm start
 # Individual processes
 npm run dev      # Vite dev server only
 npm run server   # Express server only
+
+# Multi-user testing (dev only, requires server running)
+npm run test:rate-limits    # Rate limit enforcement
+npm run test:concurrent     # Concurrent user access
+npm run test:queue          # Queue prioritization
+npm run test:costs          # Cost attribution
+npm run test:stress         # Heavy load test
+npm run test:load           # All scenarios
 ```
 
 ### Deployment Checklist
 
 - [ ] `npm run build` succeeds with no errors
+- [ ] `start` script exists in `package.json`
 - [ ] All environment variables configured on hosting platform
 - [ ] `CORS_ORIGIN` set to production domain
-- [ ] `NODE_ENV=production` set
+- [ ] `NODE_ENV=production` set (disables test routes)
 - [ ] Health check passes: `GET /api/health`
 - [ ] Admin dashboard accessible: navigate to Admin tab
+- [ ] Admin > API Costs section loads correctly
 - [ ] First property search completes successfully
 - [ ] Repeat search returns cached results (under 1s)
+- [ ] Test routes return 403: `GET /api/test/health` should fail
+- [ ] Optionally remove `public/test-dashboard.html` from production build
 
 ---
 
@@ -667,40 +749,46 @@ settings/
 9. **RentCast Data Expansion** — 6 tiers of data: AVM, features, history, comps, trends, listings
 10. **Dashboard Reorganization** — RentCast Data tab, compact layout, professional styling
 11. **Admin Dashboard** — Server metrics, API usage, model tracking, cache management, charts
+12. **Multi-User Infrastructure** — Per-user rate limiting (free/pro tiers), Claude queue with priority (token bucket), real-time cost tracking with budget alerts, admin endpoints for queue/costs/config
+13. **Model Optimization** — Haiku for simple tasks (address suggestions, amenity impact), Sonnet-4 for complex analysis, corrected Claude pricing in cost tracker
+14. **Admin Enhancements** — Sub-tabs (Overview, API Costs, Performance, Configuration), API cost history chart (Recharts), external dashboard links (Claude, RentCast), configurable rate limits and budget from admin UI
+15. **Multi-User Testing** — Automated load testing scripts (5 scenarios), interactive test dashboard, test API routes (dev only), validated rate limits, queue priority, cost tracking, concurrent access
 
 ### Next Phases
 
-**Phase 12: Production Deployment**
-- Add `start` script to package.json
-- Deploy to Railway (or Render/Fly.io)
+**Phase 16: Production Deployment**
+- `start` script added to `package.json` — DONE
+- `PORT` env var handling fixed for Railway — DONE
+- Deploy to Railway
 - Configure environment variables and custom domain
-- Verify health check and first search
+- Verify health check, admin dashboard, and first search
+- Confirm test routes disabled (`GET /api/test/health` returns 403)
 
-**Phase 13: Real Authentication (Supabase)**
-- Replace session scaffold with Supabase Auth
+**Phase 17: Real Authentication (Supabase)**
+- Replace session auth with Supabase Auth for persistent user accounts
 - Login/signup UI with email/password and Google SSO
-- Per-user rate limits with session tokens
+- Migrate per-user rate limits to database-backed sessions
 - PostgreSQL for persistent portfolios and settings
 
-**Phase 14: Map Integration**
+**Phase 18: Map Integration**
 - Google Maps API key already in .env
 - Show property + AVM comps + rental listings on interactive map
 - Use latitude/longitude from RentCast data
 - Click-to-zoom comp details
 
-**Phase 15: Performance Optimization**
+**Phase 19: Performance Optimization**
 - Code splitting with `manualChunks` (vendor, react-query, recharts)
 - Lazy-load heavy components (Charts, FinancialTables, MarketTrendCharts)
 - `React.memo` and `useCallback` for render optimization
 - Reduce/remove 5s pre-analysis delay if rate limiting is stable
 
-**Phase 16: Payments (Stripe)**
+**Phase 20: Payments (Stripe)**
 - Stripe integration for subscription billing
 - Free/Pro/Team/Enterprise tier enforcement
 - Usage tracking and overage handling
 - Billing portal and invoice management
 
-**Phase 17: Testing & CI/CD**
+**Phase 21: Testing & CI/CD**
 - Unit tests (Vitest) for financial logic and services
 - E2E tests (Playwright) for critical user flows
 - GitHub Actions pipeline for build/test/deploy
@@ -719,10 +807,15 @@ settings/
 7. **Side effects in `useEffect`, never `useMemo`** — recently fixed, don't regress
 8. **RentCast proxy is transparent** — new endpoints work automatically via `/api/rentcast/*`
 9. **Phase 5+ data is all optional** — every new field on `RentCastProperty` is `?`, UI guards with `&&` checks
-10. **In-memory state resets on restart** — caches, metrics, sessions all rebuild from scratch
+10. **In-memory state resets on restart** — caches, metrics, sessions, queue, cost tracking all rebuild from scratch
+11. **`NODE_ENV=production` disables test routes** — all `/api/test/*` endpoints return 403 in production
+12. **Railway uses `PORT` env var** — server checks `PORT` first, then `API_PORT`, then defaults to `3002`. Never hardcode the port.
+13. **Railway is the recommended deployment platform** — Vercel is NOT compatible (serverless breaks in-memory state). Do not introduce Vercel-specific configs.
+14. **Claude pricing must stay accurate** — Sonnet-4: $3/$15 per 1M tokens, Haiku: $0.80/$4 per 1M tokens. These are set in `server/costTracker.ts`. Verify against Anthropic pricing page before changing.
+15. **Test users have `test_` prefix** — all test sessions created via `/api/test/create-user` are prefixed with `test_` for easy identification and cleanup
 
 ---
 
 **Document prepared for AirROI PRO Launch**
-**Last Updated:** February 12, 2026
-**Version:** 2.0
+**Last Updated:** February 13, 2026
+**Version:** 2.1

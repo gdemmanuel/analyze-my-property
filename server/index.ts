@@ -11,6 +11,7 @@ import { authMiddleware, createSession, startSessionCleanup, TIER_LIMITS, checkU
 import { metricsMiddleware, metricsStore } from './metrics.js';
 import { claudeQueue } from './claudeQueue.js';
 import { costTracker } from './costTracker.js';
+import testRoutes from './test-routes.js';
 
 // Load environment variables from .env
 dotenv.config();
@@ -29,8 +30,18 @@ app.use(helmet({
 // CORS — restrict to known origins in production
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',')
-  : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'];
-app.use(cors({ origin: allowedOrigins }));
+  : [
+      'http://localhost:3000', 
+      'http://localhost:3001', 
+      'http://localhost:3002',
+      'http://10.1.10.102:3001', // Network IP from Vite
+    ];
+app.use(cors({ 
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 app.use(authMiddleware);
 app.use(metricsMiddleware);
@@ -181,6 +192,11 @@ app.post('/api/admin/cache/clear', (req, res) => {
 });
 
 app.use('/api', generalLimiter);
+
+// ============================================================================
+// TEST ROUTES (DEV ONLY)
+// ============================================================================
+app.use('/api/test', testRoutes);
 
 // ============================================================================
 // CLAUDE PROXY ROUTES
@@ -484,7 +500,7 @@ app.get('/{*splat}', (req, res) => {
 // START SERVER
 // ============================================================================
 
-const PORT = parseInt(process.env.API_PORT || '3002', 10);
+const PORT = parseInt(process.env.PORT || process.env.API_PORT || '3002', 10);
 
 app.listen(PORT, () => {
   console.log(`\n🚀 AirROI API Server running on http://localhost:${PORT}`);

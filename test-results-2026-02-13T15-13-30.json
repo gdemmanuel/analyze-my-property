@@ -1,0 +1,118 @@
+[
+  {
+    "scenario": "Concurrent User Access",
+    "startTime": 1770995608637,
+    "endTime": 1770995610220,
+    "duration": 1583,
+    "usersCreated": 8,
+    "actionsExecuted": 0,
+    "actionsFailed": 10,
+    "results": [
+      {
+        "userId": "concurrent_test_9",
+        "action": "claude",
+        "success": false,
+        "error": "User token not found",
+        "responseTime": 0
+      },
+      {
+        "userId": "concurrent_test_10",
+        "action": "claude",
+        "success": false,
+        "error": "User token not found",
+        "responseTime": 0
+      },
+      {
+        "userId": "concurrent_test_1",
+        "action": "claude",
+        "success": false,
+        "error": "Too many requests. Please slow down.",
+        "responseTime": 5
+      },
+      {
+        "userId": "concurrent_test_2",
+        "action": "claude",
+        "success": false,
+        "error": "Too many requests. Please slow down.",
+        "responseTime": 213
+      },
+      {
+        "userId": "concurrent_test_3",
+        "action": "claude",
+        "success": false,
+        "error": "Too many requests. Please slow down.",
+        "responseTime": 408
+      },
+      {
+        "userId": "concurrent_test_4",
+        "action": "claude",
+        "success": false,
+        "error": "Too many requests. Please slow down.",
+        "responseTime": 620
+      },
+      {
+        "userId": "concurrent_test_5",
+        "action": "claude",
+        "success": false,
+        "error": "Too many requests. Please slow down.",
+        "responseTime": 814
+      },
+      {
+        "userId": "concurrent_test_6",
+        "action": "claude",
+        "success": false,
+        "error": "Too many requests. Please slow down.",
+        "responseTime": 1010
+      },
+      {
+        "userId": "concurrent_test_7",
+        "action": "claude",
+        "success": false,
+        "error": "Too many requests. Please slow down.",
+        "responseTime": 1206
+      },
+      {
+        "userId": "concurrent_test_8",
+        "action": "claude",
+        "success": false,
+        "error": "Too many requests. Please slow down.",
+        "responseTime": 1417
+      }
+    ],
+    "queueStats": {
+      "error": "Too many requests. Please slow down.",
+      "retryAfter": 60
+    },
+    "costSummary": {
+      "today": {
+        "date": "Fri Feb 13 2026",
+        "totalCost": 0.015495199999999999,
+        "claudeCost": 0.015495199999999999,
+        "rentcastCost": 0,
+        "totalCalls": 4,
+        "claudeCalls": 4,
+        "rentcastCalls": 0,
+        "byModel": {
+          "claude-3-5-haiku": {
+            "calls": 1,
+            "cost": 0.0000872,
+            "inputTokens": 9,
+            "outputTokens": 20
+          },
+          "claude-sonnet-4": {
+            "calls": 3,
+            "cost": 0.015407999999999998,
+            "inputTokens": 96,
+            "outputTokens": 1008
+          }
+        },
+        "byRentCastEndpoint": {}
+      },
+      "dailyBudget": 50,
+      "budgetPercent": 0,
+      "remaining": 49.98,
+      "shouldThrottle": false,
+      "status": "normal"
+    }
+  }
+]

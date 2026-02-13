@@ -236,4 +236,11 @@ export function getSessionStats(): { active: number; total: number; byTier: Reco
   return { active, total: sessions.size, byTier };
 }
 
+/**
+ * Get all sessions (for testing/admin purposes)
+ */
+export function getAllSessions(): Session[] {
+  return Array.from(sessions.values());
+}
+
 export { TIER_LIMITS };

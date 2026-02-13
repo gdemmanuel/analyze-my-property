@@ -1,0 +1,85 @@
+[
+  {
+    "scenario": "Queue Priority Verification",
+    "startTime": 1770995866345,
+    "endTime": 1770995869413,
+    "duration": 3068,
+    "usersCreated": 5,
+    "actionsExecuted": 5,
+    "actionsFailed": 0,
+    "results": [
+      {
+        "userId": "free_queue_1",
+        "action": "claude",
+        "success": true,
+        "responseTime": 6
+      },
+      {
+        "userId": "free_queue_2",
+        "action": "claude",
+        "success": true,
+        "responseTime": 114
+      },
+      {
+        "userId": "free_queue_3",
+        "action": "claude",
+        "success": true,
+        "responseTime": 215
+      },
+      {
+        "userId": "pro_queue_1",
+        "action": "claude",
+        "success": true,
+        "responseTime": 320
+      },
+      {
+        "userId": "pro_queue_2",
+        "action": "claude",
+        "success": true,
+        "responseTime": 410
+      }
+    ],
+    "queueStats": {
+      "stats": {
+        "queuedJobs": 0,
+        "processingJobs": 0,
+        "completedJobs": 4,
+        "failedJobs": 0,
+        "averageWaitTime": 15,
+        "averageProcessingTime": 6555
+      },
+      "timestamp": "2026-02-13T15:17:49.407Z"
+    },
+    "costSummary": {
+      "today": {
+        "date": "Fri Feb 13 2026",
+        "totalCost": 0.015495199999999999,
+        "claudeCost": 0.015495199999999999,
+        "rentcastCost": 0,
+        "totalCalls": 4,
+        "claudeCalls": 4,
+        "rentcastCalls": 0,
+        "byModel": {
+          "claude-3-5-haiku": {
+            "calls": 1,
+            "cost": 0.0000872,
+            "inputTokens": 9,
+            "outputTokens": 20
+          },
+          "claude-sonnet-4": {
+            "calls": 3,
+            "cost": 0.015407999999999998,
+            "inputTokens": 96,
+            "outputTokens": 1008
+          }
+        },
+        "byRentCastEndpoint": {}
+      },
+      "dailyBudget": 50,
+      "budgetPercent": 0,
+      "remaining": 49.98,
+      "shouldThrottle": false,
+      "status": "normal"
+    }
+  }
+]

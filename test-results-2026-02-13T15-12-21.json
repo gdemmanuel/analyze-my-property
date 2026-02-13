@@ -1,0 +1,79 @@
+[
+  {
+    "scenario": "Queue Priority Verification",
+    "startTime": 1770995540800,
+    "endTime": 1770995541330,
+    "duration": 530,
+    "usersCreated": 5,
+    "actionsExecuted": 4,
+    "actionsFailed": 1,
+    "results": [
+      {
+        "userId": "free_queue_1",
+        "action": "claude",
+        "success": true,
+        "responseTime": 6
+      },
+      {
+        "userId": "free_queue_2",
+        "action": "claude",
+        "success": true,
+        "responseTime": 119
+      },
+      {
+        "userId": "free_queue_3",
+        "action": "claude",
+        "success": true,
+        "responseTime": 208
+      },
+      {
+        "userId": "pro_queue_1",
+        "action": "claude",
+        "success": true,
+        "responseTime": 313
+      },
+      {
+        "userId": "pro_queue_2",
+        "action": "claude",
+        "success": false,
+        "error": "Too many requests. Please slow down.",
+        "responseTime": 418
+      }
+    ],
+    "queueStats": {
+      "error": "Too many requests. Please slow down.",
+      "retryAfter": 60
+    },
+    "costSummary": {
+      "today": {
+        "date": "Fri Feb 13 2026",
+        "totalCost": 0.015495199999999999,
+        "claudeCost": 0.015495199999999999,
+        "rentcastCost": 0,
+        "totalCalls": 4,
+        "claudeCalls": 4,
+        "rentcastCalls": 0,
+        "byModel": {
+          "claude-3-5-haiku": {
+            "calls": 1,
+            "cost": 0.0000872,
+            "inputTokens": 9,
+            "outputTokens": 20
+          },
+          "claude-sonnet-4": {
+            "calls": 3,
+            "cost": 0.015407999999999998,
+            "inputTokens": 96,
+            "outputTokens": 1008
+          }
+        },
+        "byRentCastEndpoint": {}
+      },
+      "dailyBudget": 50,
+      "budgetPercent": 0,
+      "remaining": 49.98,
+      "shouldThrottle": false,
+      "status": "normal"
+    }
+  }
+]

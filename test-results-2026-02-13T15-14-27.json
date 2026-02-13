@@ -1,0 +1,85 @@
+[
+  {
+    "scenario": "Concurrent User Access",
+    "startTime": 1770995661008,
+    "endTime": 1770995667682,
+    "duration": 6674,
+    "usersCreated": 5,
+    "actionsExecuted": 5,
+    "actionsFailed": 0,
+    "results": [
+      {
+        "userId": "concurrent_test_1",
+        "action": "claude",
+        "success": true,
+        "responseTime": 11
+      },
+      {
+        "userId": "concurrent_test_2",
+        "action": "claude",
+        "success": true,
+        "responseTime": 1012
+      },
+      {
+        "userId": "concurrent_test_3",
+        "action": "claude",
+        "success": true,
+        "responseTime": 2018
+      },
+      {
+        "userId": "concurrent_test_4",
+        "action": "claude",
+        "success": true,
+        "responseTime": 3011
+      },
+      {
+        "userId": "concurrent_test_5",
+        "action": "claude",
+        "success": true,
+        "responseTime": 4021
+      }
+    ],
+    "queueStats": {
+      "stats": {
+        "queuedJobs": 0,
+        "processingJobs": 0,
+        "completedJobs": 4,
+        "failedJobs": 0,
+        "averageWaitTime": 15,
+        "averageProcessingTime": 6555
+      },
+      "timestamp": "2026-02-13T15:14:27.675Z"
+    },
+    "costSummary": {
+      "today": {
+        "date": "Fri Feb 13 2026",
+        "totalCost": 0.015495199999999999,
+        "claudeCost": 0.015495199999999999,
+        "rentcastCost": 0,
+        "totalCalls": 4,
+        "claudeCalls": 4,
+        "rentcastCalls": 0,
+        "byModel": {
+          "claude-3-5-haiku": {
+            "calls": 1,
+            "cost": 0.0000872,
+            "inputTokens": 9,
+            "outputTokens": 20
+          },
+          "claude-sonnet-4": {
+            "calls": 3,
+            "cost": 0.015407999999999998,
+            "inputTokens": 96,
+            "outputTokens": 1008
+          }
+        },
+        "byRentCastEndpoint": {}
+      },
+      "dailyBudget": 50,
+      "budgetPercent": 0,
+      "remaining": 49.98,
+      "shouldThrottle": false,
+      "status": "normal"
+    }
+  }
+]
