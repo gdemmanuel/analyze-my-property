@@ -4,7 +4,7 @@ import {
   AlertTriangle, CheckCircle, XCircle, BarChart3, Shield, Cpu, HardDrive, HelpCircle, DollarSign, ExternalLink
 } from 'lucide-react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
 // ============================================================================
@@ -811,7 +811,7 @@ const AdminTab: React.FC = () => {
                   tick={{ fontSize: 11, fontWeight: 600 }}
                   tickFormatter={(value) => `$${value.toFixed(2)}`}
                 />
-                <Tooltip 
+                <ChartTooltip 
                   contentStyle={{ 
                     backgroundColor: 'white', 
                     border: '1px solid #e2e8f0',
