@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { Settings, Sparkles, Trash, Target } from 'lucide-react';
 import { PropertyConfig, Amenity } from '../types';
-import ApiCostChart from './ApiCostChart';
 
 interface SettingsTabProps {
   baseConfig: PropertyConfig;
@@ -73,9 +72,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
 
   return (
     <div className="space-y-4 pb-20 max-w-full mx-auto animate-in fade-in duration-500 px-2">
-      {/* API Cost Tracking Chart */}
-      <ApiCostChart />
-
       {/* Global Settings Section - Compact Grid */}
       <div className="bg-white p-4 rounded-lg border border-slate-200 shadow">
         <h2 className="text-lg font-black text-slate-800 mb-4 uppercase tracking-tighter flex items-center gap-3">

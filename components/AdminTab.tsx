@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Activity, Server, Clock, Database, Users, Zap, RefreshCw, Trash2,
-  AlertTriangle, CheckCircle, XCircle, BarChart3, Shield, Cpu, HardDrive, HelpCircle, DollarSign, ExternalLink
+  AlertTriangle, CheckCircle, XCircle, BarChart3, Shield, Cpu, HardDrive, HelpCircle, DollarSign, ExternalLink, TrendingUp
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, ResponsiveContainer
 } from 'recharts';
+import ApiCostChart from './ApiCostChart';
 
 // ============================================================================
 // TYPES
@@ -117,7 +118,10 @@ const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, 
 // COMPONENT
 // ============================================================================
 
+type AdminSubTab = 'overview' | 'costs' | 'performance' | 'config';
+
 const AdminTab: React.FC = () => {
+  const [activeSubTab, setActiveSubTab] = useState<AdminSubTab>('overview');
   const [metrics, setMetrics] = useState<MetricsSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -354,6 +358,34 @@ const AdminTab: React.FC = () => {
         </div>
       </div>
 
+      {/* Sub-Tab Navigation */}
+      <div className="flex gap-2 border-b border-slate-200 pb-2">
+        {[
+          { id: 'overview', label: 'Overview', icon: Activity },
+          { id: 'costs', label: 'API Costs', icon: DollarSign },
+          { id: 'performance', label: 'Performance', icon: TrendingUp },
+          { id: 'config', label: 'Configuration', icon: HardDrive },
+        ].map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActiveSubTab(id as AdminSubTab)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+              activeSubTab === id
+                ? 'bg-slate-900 text-white'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Icon size={14} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ================================================================== */}
+      {/* OVERVIEW TAB                                                        */}
+      {/* ================================================================== */}
+      {activeSubTab === 'overview' && (
+        <div className="space-y-6">
       {/* ================================================================== */}
       {/* SECTION 1: Health Overview Cards                                    */}
       {/* ================================================================== */}
@@ -1116,6 +1148,216 @@ const AdminTab: React.FC = () => {
           </div>
         </div>
       </div>
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* COSTS TAB                                                           */}
+      {/* ================================================================== */}
+      {activeSubTab === 'costs' && (
+        <div className="space-y-6">
+          <ApiCostChart />
+          
+          {/* Quick Access Links */}
+          <div className="bg-white rounded-xl border border-slate-100 p-5">
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-4">External Dashboards</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <a
+                href="https://console.anthropic.com/settings/usage"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors group"
+              >
+                <div>
+                  <div className="text-sm font-black text-blue-900">Claude Dashboard</div>
+                  <div className="text-xs text-blue-600 mt-1">View usage & billing</div>
+                </div>
+                <ExternalLink size={16} className="text-blue-600 group-hover:translate-x-0.5 transition-transform" />
+              </a>
+              
+              <a
+                href="https://console.anthropic.com/settings/billing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-4 bg-indigo-50 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors group"
+              >
+                <div>
+                  <div className="text-sm font-black text-indigo-900">Claude Billing</div>
+                  <div className="text-xs text-indigo-600 mt-1">Payment & invoices</div>
+                </div>
+                <ExternalLink size={16} className="text-indigo-600 group-hover:translate-x-0.5 transition-transform" />
+              </a>
+              
+              <a
+                href="https://app.rentcast.io/app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-4 bg-emerald-50 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors group"
+              >
+                <div>
+                  <div className="text-sm font-black text-emerald-900">RentCast Dashboard</div>
+                  <div className="text-xs text-emerald-600 mt-1">API usage & limits</div>
+                </div>
+                <ExternalLink size={16} className="text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* PERFORMANCE TAB                                                     */}
+      {/* ================================================================== */}
+      {activeSubTab === 'performance' && (
+        <div className="space-y-6">
+          {/* API Endpoint Usage */}
+          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+            <div className="p-5 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <BarChart3 size={16} className="text-slate-400" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">API Endpoint Performance</h3>
+              </div>
+            </div>
+            {metrics && metrics.api.endpoints.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50">
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest">Endpoint</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest text-center">Calls</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest text-center">Errors</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest text-right">Avg Time</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest text-right">P95 Time</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest text-right">Cache Hit %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {metrics.api.endpoints.map((ep, idx) => (
+                      <tr key={idx} className={`border-b border-slate-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
+                        <td className="px-4 py-3 font-mono text-xs text-slate-900 font-bold">{ep.endpoint}</td>
+                        <td className="px-4 py-3 text-center text-sm font-black text-slate-900">{ep.callCount}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`text-sm font-black ${ep.errorCount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                            {ep.errorCount}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm font-black text-slate-900">{formatTime(ep.avgResponseTimeMs)}</td>
+                        <td className="px-4 py-3 text-right text-sm font-black text-slate-900">{formatTime(ep.p95ResponseTimeMs)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <span className={`text-sm font-black ${ep.cacheHitRate > 50 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                            {ep.cacheHitRate.toFixed(1)}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-8 text-center text-sm text-slate-500">No endpoint data available yet</div>
+            )}
+          </div>
+
+          {/* Cache Performance */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl border border-slate-100 p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Database size={16} className="text-blue-400" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Claude Cache</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600 font-black">Size</span>
+                  <span className="font-black text-slate-900">{metrics?.cache.claude.size || 0} entries</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600 font-black">Hits</span>
+                  <span className="font-black text-emerald-600">{metrics?.cache.claude.hits || 0}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600 font-black">Misses</span>
+                  <span className="font-black text-amber-600">{metrics?.cache.claude.misses || 0}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600 font-black">Hit Rate</span>
+                  <span className="font-black text-blue-600">{claudeCacheHitRate}%</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-100 p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Database size={16} className="text-emerald-400" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">RentCast Cache</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600 font-black">Size</span>
+                  <span className="font-black text-slate-900">{metrics?.cache.rentcast.size || 0} entries</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600 font-black">Hits</span>
+                  <span className="font-black text-emerald-600">{metrics?.cache.rentcast.hits || 0}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600 font-black">Misses</span>
+                  <span className="font-black text-amber-600">{metrics?.cache.rentcast.misses || 0}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600 font-black">Hit Rate</span>
+                  <span className="font-black text-emerald-600">{rentcastCacheHitRate}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* CONFIGURATION TAB                                                   */}
+      {/* ================================================================== */}
+      {activeSubTab === 'config' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl border border-slate-100 p-6">
+            <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 mb-6">System Configuration</h3>
+            <button
+              onClick={() => setShowConfigModal(true)}
+              className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-lg text-sm font-black uppercase tracking-widest hover:bg-slate-800 transition-colors"
+            >
+              <HardDrive size={16} />
+              Open Configuration Panel
+            </button>
+          </div>
+
+          {/* Server Info */}
+          <div className="bg-white rounded-xl border border-slate-100 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Server size={16} className="text-slate-400" />
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Server Information</h3>
+            </div>
+            {metrics && (
+              <div className="space-y-3">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500 font-black">Node Version</span>
+                  <span className="font-black text-slate-900">{metrics.server.nodeVersion}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500 font-black">Started At</span>
+                  <span className="font-black text-slate-900">{new Date(metrics.server.startedAt).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500 font-black">RSS Memory</span>
+                  <span className="font-black text-slate-900">{formatBytes(metrics.server.memory.rss)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500 font-black">Heap Used / Total</span>
+                  <span className="font-black text-slate-900">{formatBytes(metrics.server.memory.heapUsed)} / {formatBytes(metrics.server.memory.heapTotal)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Configuration Modal */}
       {showConfigModal && (
