@@ -13,8 +13,8 @@ import { claudeQueue } from './claudeQueue.js';
 import { costTracker } from './costTracker.js';
 import testRoutes from './test-routes.js';
 
-// Load environment variables from .env
-dotenv.config();
+// Load environment variables from .env (only in development, Railway injects them directly in production)
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -498,7 +498,7 @@ VITE_GOOGLE_MAPS_API_KEY=your-key-here
 ### Prerequisites
 
 - Node.js 18+ installed
-- GitHub repository connected: `https://github.com/gdemmanuel/analyze-my-property.git`
+- GitHub repository: `https://github.com/gdemmanuel/analyze-my-property.git`
 - API keys: `ANTHROPIC_API_KEY`, `RENTCAST_API_KEY`
 
 ### How It Works in Production
@@ -526,7 +526,7 @@ This should already be present:
 1. Go to [railway.com](https://railway.com)
 2. Sign up with GitHub
 3. Click "New Project" then "Deploy from GitHub repo"
-4. Select `gdemmanuel/AirROI`
+4. Select `gdemmanuel/analyze-my-property`
 
 **Step 3: Configure environment variables**
 In Railway Dashboard > Variables:
