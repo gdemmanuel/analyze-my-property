@@ -328,6 +328,15 @@ const AdminTab: React.FC = () => {
   const cacheHitRate = cacheHitTotal + cacheMissTotal > 0
     ? ((cacheHitTotal / (cacheHitTotal + cacheMissTotal)) * 100).toFixed(1)
     : '0.0';
+  
+  // Individual cache hit rates
+  const claudeCacheHitRate = metrics.cache.claude.hits + metrics.cache.claude.misses > 0
+    ? ((metrics.cache.claude.hits / (metrics.cache.claude.hits + metrics.cache.claude.misses)) * 100).toFixed(1)
+    : '0.0';
+  
+  const rentcastCacheHitRate = metrics.cache.rentcast.hits + metrics.cache.rentcast.misses > 0
+    ? ((metrics.cache.rentcast.hits / (metrics.cache.rentcast.hits + metrics.cache.rentcast.misses)) * 100).toFixed(1)
+    : '0.0';
 
   return (
     <div className="max-w-[1600px] mx-auto p-4 lg:p-8 space-y-6 animate-in fade-in duration-700">
