@@ -4,11 +4,12 @@ import { supabase } from '../src/lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface UserMenuProps {
-  user: SupabaseUser;
-  tier: 'free' | 'pro';
+  user: SupabaseUser | null;
+  userTier: 'free' | 'pro';
+  onSignIn: () => void;
 }
 
-export const UserMenu: React.FC<UserMenuProps> = ({ user, tier }) => {
+export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -29,6 +30,18 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, tier }) => {
     setIsOpen(false);
   };
 
+  // If no user, show sign in button
+  if (!user) {
+    return (
+      <button
+        onClick={onSignIn}
+        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-sm font-semibold rounded-lg transition-all"
+      >
+        Sign In
+      </button>
+    );
+  }
+
   const userEmail = user.email || 'User';
   const displayEmail = userEmail.length > 20 ? `${userEmail.slice(0, 17)}...` : userEmail;
 
@@ -46,12 +59,12 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, tier }) => {
           <span className="text-xs text-white font-medium">{displayEmail}</span>
           <span
             className={`text-[10px] px-1.5 py-0.5 rounded ${
-              tier === 'pro'
+              userTier === 'pro'
                 ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-900'
                 : 'bg-slate-700 text-slate-300'
             }`}
           >
-            {tier.toUpperCase()}
+            {userTier.toUpperCase()}
           </span>
         </div>
         <ChevronDown
@@ -67,7 +80,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, tier }) => {
           <div className="px-4 py-3 border-b border-gray-200">
             <p className="text-sm font-medium text-gray-900">{user.email}</p>
             <p className="text-xs text-gray-500 mt-1">
-              {tier === 'pro' ? 'Pro Plan' : 'Free Plan'}
+              {userTier === 'pro' ? 'Pro Plan' : 'Free Plan'}
             </p>
           </div>
 
@@ -85,7 +98,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, tier }) => {
               Account Settings
             </button>
 
-            {tier === 'free' && (
+            {userTier === 'free' && (
               <button
                 onClick={() => {
                   setIsOpen(false);
