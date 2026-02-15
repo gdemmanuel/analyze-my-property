@@ -7,9 +7,11 @@ interface UserMenuProps {
   user: SupabaseUser | null;
   userTier: 'free' | 'pro';
   onSignIn: () => void;
+  onSettingsClick?: () => void;
+  onUpgradeClick?: () => void;
 }
 
-export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn }) => {
+export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn, onSettingsClick, onUpgradeClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -30,12 +32,12 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn }) 
     setIsOpen(false);
   };
 
-  // If no user, show sign in button
+  // If no user, show compact sign in button
   if (!user) {
     return (
       <button
         onClick={onSignIn}
-        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-sm font-semibold rounded-lg transition-all"
+        className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-xs font-bold rounded-lg transition-all"
       >
         Sign In
       </button>
@@ -47,28 +49,25 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn }) 
 
   return (
     <div className="relative" ref={menuRef}>
-      {/* Trigger button */}
+      {/* Compact Trigger button - just avatar and tier badge */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors"
+        className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
       >
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-          <User size={18} className="text-white" />
+        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <User size={14} className="text-white" />
         </div>
-        <div className="hidden md:flex flex-col items-start">
-          <span className="text-xs text-white font-medium">{displayEmail}</span>
-          <span
-            className={`text-[10px] px-1.5 py-0.5 rounded ${
-              userTier === 'pro'
-                ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-900'
-                : 'bg-slate-700 text-slate-300'
-            }`}
-          >
-            {userTier.toUpperCase()}
-          </span>
-        </div>
+        <span
+          className={`text-[9px] px-1.5 py-0.5 rounded font-black ${
+            userTier === 'pro'
+              ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-900'
+              : 'bg-slate-700 text-slate-300'
+          }`}
+        >
+          {userTier.toUpperCase()}
+        </span>
         <ChevronDown
-          size={16}
+          size={14}
           className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
@@ -86,24 +85,24 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn }) 
 
           {/* Menu items */}
           <div className="py-1">
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                // TODO: Navigate to account settings
-                alert('Account settings coming soon!');
-              }}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-            >
-              <Settings size={16} />
-              Account Settings
-            </button>
-
-            {userTier === 'free' && (
+            {onSettingsClick && (
               <button
                 onClick={() => {
                   setIsOpen(false);
-                  // TODO: Navigate to upgrade page
-                  alert('Upgrade to Pro coming soon!');
+                  onSettingsClick();
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <Settings size={16} />
+                Account Settings
+              </button>
+            )}
+
+            {userTier === 'free' && onUpgradeClick && (
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  onUpgradeClick();
                 }}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
               >

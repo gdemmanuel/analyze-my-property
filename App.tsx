@@ -857,6 +857,12 @@ const App: React.FC = () => {
         userTier={userTier}
         isAdmin={isAdmin}
         onSignIn={() => setShowAuthModal(true)}
+        onSettingsClick={() => setActiveTab('assumptions')}
+        onUpgradeClick={() => {
+          // For now, just show an informative message
+          // In Phase 18, this will open a Stripe checkout
+          alert('Pro tier: $29/month\n\n✓ 50 analyses per day\n✓ 100 Claude calls per hour\n✓ Priority support\n\nStripe payment integration coming in Phase 18!');
+        }}
       />
 
       {/* Main Content - pt-24 preserves nav spacing (CRITICAL: do not change to p-8) */}

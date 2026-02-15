@@ -17,9 +17,11 @@ interface NavBarProps {
   userTier: 'free' | 'pro';
   isAdmin: boolean;
   onSignIn: () => void;
+  onSettingsClick?: () => void;
+  onUpgradeClick?: () => void;
 }
 
-const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, strategy, setStrategy, savedCount, user, userTier, isAdmin, onSignIn }) => {
+const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, strategy, setStrategy, savedCount, user, userTier, isAdmin, onSignIn, onSettingsClick, onUpgradeClick }) => {
   // Define all possible tabs
   const allTabs = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Audit' },
@@ -81,7 +83,13 @@ const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, strategy, setS
           </div>
 
           {/* User Menu */}
-          <UserMenu user={user} userTier={userTier} onSignIn={onSignIn} />
+          <UserMenu 
+            user={user} 
+            userTier={userTier} 
+            onSignIn={onSignIn}
+            onSettingsClick={onSettingsClick}
+            onUpgradeClick={onUpgradeClick}
+          />
         </div>
       </div>
     </nav>
