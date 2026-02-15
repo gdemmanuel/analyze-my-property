@@ -41,6 +41,7 @@ const App: React.FC = () => {
   // Auth state
   const [user, setUser] = useState<User | null>(null);
   const [userTier, setUserTier] = useState<'free' | 'pro'>('free');
+  const [isAdmin, setIsAdmin] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   
@@ -130,6 +131,7 @@ const App: React.FC = () => {
           .then(res => res.json())
           .then(data => {
             if (data.tier) setUserTier(data.tier);
+            if (data.is_admin !== undefined) setIsAdmin(data.is_admin);
           })
           .catch(err => console.error('Failed to fetch user tier:', err));
       }
@@ -149,10 +151,12 @@ const App: React.FC = () => {
           .then(res => res.json())
           .then(data => {
             if (data.tier) setUserTier(data.tier);
+            if (data.is_admin !== undefined) setIsAdmin(data.is_admin);
           })
           .catch(err => console.error('Failed to fetch user tier:', err));
       } else {
         setUserTier('free');
+        setIsAdmin(false);
       }
     });
 
@@ -851,6 +855,7 @@ const App: React.FC = () => {
         savedCount={savedAssessments.length}
         user={user}
         userTier={userTier}
+        isAdmin={isAdmin}
         onSignIn={() => setShowAuthModal(true)}
       />
 

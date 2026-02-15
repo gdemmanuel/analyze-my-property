@@ -118,7 +118,7 @@ const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, 
 // COMPONENT
 // ============================================================================
 
-type AdminSubTab = 'overview' | 'costs' | 'performance' | 'config';
+type AdminSubTab = 'overview' | 'costs' | 'performance' | 'config' | 'users';
 
 const AdminTab: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<AdminSubTab>('overview');
@@ -132,6 +132,8 @@ const AdminTab: React.FC = () => {
   const [pricingInfo, setPricingInfo] = useState<any>(null);
   const [rateLimits, setRateLimits] = useState<any>(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [usersData, setUsersData] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [configForm, setConfigForm] = useState({
     dailyBudget: 50,
     rentcastCost: 0.03,
@@ -372,6 +374,7 @@ const AdminTab: React.FC = () => {
       <div className="flex gap-2 border-b border-slate-200 pb-2">
         {[
           { id: 'overview', label: 'Overview', icon: Activity },
+          { id: 'users', label: 'Users', icon: Users },
           { id: 'costs', label: 'API Costs', icon: DollarSign },
           { id: 'performance', label: 'Performance', icon: TrendingUp },
           { id: 'config', label: 'Configuration', icon: HardDrive },

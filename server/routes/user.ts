@@ -234,7 +234,7 @@ router.put('/settings', requireAuth, async (req: Request, res: Response) => {
     const { supabaseAdmin } = await import('../supabaseAuth');
     
     // Upsert (update if exists, insert if not)
-    const { data, error } = await supabaseAdmin
+    const { data, error} = await supabaseAdmin
       .from('user_settings')
       .upsert({
         user_id: req.user.id,
@@ -250,6 +250,68 @@ router.put('/settings', requireAuth, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error updating user settings:', error);
     res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
+/**
+ * GET /api/user/all (ADMIN ONLY)
+ * Returns all users with their profiles and usage stats
+ */
+router.get('/all', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Check if user is admin
+    const { getUserProfile } = await import('../supabaseAuth');
+    const profile = await getUserProfile(req.user.id);
+    
+    if (!profile || !profile.is_admin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { supabaseAdmin } = await import('../supabaseAuth');
+    
+    // Get all users with their profiles and usage
+    const { data: users, error } = await supabaseAdmin
+      .from('user_profiles')
+      .select(`
+        *,
+        email:id(email)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Get usage data for all users
+    const { data: usageData } = await supabaseAdmin
+      .from('user_usage')
+      .select('*');
+
+    // Combine the data
+    const usersWithUsage = await Promise.all((users || []).map(async (user: any) => {
+      // Get email from auth.users
+      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(user.id);
+      const usage = usageData?.find((u: any) => u.user_id === user.id);
+      
+      return {
+        id: user.id,
+        email: authUser.user?.email || 'N/A',
+        tier: user.tier,
+        is_admin: user.is_admin,
+        created_at: user.created_at,
+        analyses_today: usage?.analyses_today || 0,
+        claude_calls_this_hour: usage?.claude_calls_this_hour || 0,
+        last_analysis: usage?.last_analysis_timestamp,
+        last_claude_call: usage?.last_claude_call_timestamp
+      };
+    }));
+
+    res.json(usersWithUsage);
+  } catch (error) {
+    console.error('Error fetching all users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
 

@@ -15,10 +15,26 @@ interface NavBarProps {
   savedCount: number;
   user: User | null;
   userTier: 'free' | 'pro';
+  isAdmin: boolean;
   onSignIn: () => void;
 }
 
-const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, strategy, setStrategy, savedCount, user, userTier, onSignIn }) => {
+const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, strategy, setStrategy, savedCount, user, userTier, isAdmin, onSignIn }) => {
+  // Define all possible tabs
+  const allTabs = [
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Audit' },
+    { id: 'rentcast', icon: BarChart3, label: 'RentCast Data' },
+    { id: 'analytics', icon: BarChart3, label: 'Performance' },
+    { id: 'monthly', icon: Calendar, label: 'Monthly' },
+    { id: 'yearly', icon: TrendingUp, label: 'Yearly' },
+    { id: 'portfolio', icon: Briefcase, label: 'Portfolio' },
+    { id: 'assumptions', icon: Settings, label: 'Settings' },
+    { id: 'admin', icon: Shield, label: 'Admin' }
+  ];
+
+  // Filter tabs based on admin status
+  const visibleTabs = isAdmin ? allTabs : allTabs.filter(tab => tab.id !== 'admin');
+
   return (
     <nav className="w-full h-auto bg-[#0f172a] text-white px-4 lg:px-8 py-4 fixed top-0 left-0 right-0 z-50 border-b border-slate-800 print:hidden">
       <div className="max-w-[1800px] mx-auto flex items-center justify-between gap-4">
@@ -30,16 +46,7 @@ const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, strategy, setS
 
         {/* Navigation Tabs */}
         <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
-          {[
-            { id: 'dashboard', icon: LayoutDashboard, label: 'Audit' },
-            { id: 'rentcast', icon: BarChart3, label: 'RentCast Data' },
-            { id: 'analytics', icon: BarChart3, label: 'Performance' },
-            { id: 'monthly', icon: Calendar, label: 'Monthly' },
-            { id: 'yearly', icon: TrendingUp, label: 'Yearly' },
-            { id: 'portfolio', icon: Briefcase, label: 'Portfolio' },
-            { id: 'assumptions', icon: Settings, label: 'Settings' },
-            { id: 'admin', icon: Shield, label: 'Admin' }
-          ].map(item => (
+          {visibleTabs.map(item => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id as any)}

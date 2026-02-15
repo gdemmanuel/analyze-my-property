@@ -30,6 +30,7 @@ export const TIER_LIMITS = {
 export interface UserProfile {
   id: string;
   tier: 'free' | 'pro';
+  is_admin: boolean;
   created_at: string;
   updated_at: string;
 }
