@@ -220,19 +220,54 @@ const AdminTab: React.FC = () => {
     }
   }, []);
 
+  const fetchUsers = useCallback(async () => {
+    setLoadingUsers(true);
+    try {
+      // Get session token
+      const { data: { session } } = await (await import('../src/lib/supabase')).supabase.auth.getSession();
+      if (!session) {
+        console.error('No session found');
+        return;
+      }
+
+      const res = await fetch('/api/user/all', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setUsersData(data);
+      } else {
+        console.error('Failed to fetch users:', res.status);
+      }
+    } catch (e) {
+      console.error('Failed to fetch users:', e);
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchMetrics();
     fetchCosts();
     fetchCostHistory();
     fetchPricing();
     fetchRateLimits();
+    if (activeSubTab === 'users') {
+      fetchUsers();
+    }
     const interval = setInterval(() => {
       fetchMetrics();
       fetchCosts();
       fetchCostHistory();
+      if (activeSubTab === 'users') {
+        fetchUsers();
+      }
     }, 30000);
     return () => clearInterval(interval);
-  }, [fetchMetrics, fetchCosts, fetchCostHistory, fetchPricing, fetchRateLimits]);
+  }, [fetchMetrics, fetchCosts, fetchCostHistory, fetchPricing, fetchRateLimits, fetchUsers, activeSubTab]);
 
   const handleClearCache = async (target: 'claude' | 'rentcast' | 'all') => {
     setClearing(target);
@@ -295,6 +330,32 @@ const AdminTab: React.FC = () => {
     } catch (e) {
       console.error('Failed to save config:', e);
       alert('Failed to save configuration');
+    }
+  };
+
+  const handleUpdateUserRole = async (userId: string, updates: { tier?: string; is_admin?: boolean }) => {
+    try {
+      const { data: { session } } = await (await import('../src/lib/supabase')).supabase.auth.getSession();
+      if (!session) return;
+
+      const res = await fetch(`/api/user/${userId}/role`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(updates)
+      });
+
+      if (res.ok) {
+        // Refresh users data
+        await fetchUsers();
+      } else {
+        alert('Failed to update user');
+      }
+    } catch (e) {
+      console.error('Failed to update user role:', e);
+      alert('Failed to update user');
     }
   };
 
@@ -1161,6 +1222,143 @@ const AdminTab: React.FC = () => {
           </div>
         </div>
       </div>
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* USERS TAB                                                           */}
+      {/* ================================================================== */}
+      {activeSubTab === 'users' && (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-black text-slate-900">User Management</h2>
+              <p className="text-sm text-slate-600 mt-1">Manage user accounts, tiers, and permissions</p>
+            </div>
+            <button
+              onClick={fetchUsers}
+              disabled={loadingUsers}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={loadingUsers ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          </div>
+
+          {/* Users Table */}
+          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-900">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-900">Tier</th>
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-900">Admin</th>
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-900">Analyses Today</th>
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-900">Claude Calls/Hr</th>
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-900">Last Active</th>
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-900">Joined</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {loadingUsers ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                        <RefreshCw size={20} className="animate-spin mx-auto mb-2" />
+                        Loading users...
+                      </td>
+                    </tr>
+                  ) : usersData.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                        No users found
+                      </td>
+                    </tr>
+                  ) : (
+                    usersData.map((user) => (
+                      <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3 text-sm text-slate-900">{user.email}</td>
+                        <td className="px-4 py-3">
+                          <select
+                            value={user.tier}
+                            onChange={(e) => handleUpdateUserRole(user.id, { tier: e.target.value })}
+                            className="px-3 py-1 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="free">Free</option>
+                            <option value="pro">Pro</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => handleUpdateUserRole(user.id, { is_admin: !user.is_admin })}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                              user.is_admin
+                                ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            {user.is_admin ? 'ADMIN' : 'USER'}
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-900">{user.analyses_today}</td>
+                        <td className="px-4 py-3 text-sm text-slate-900">{user.claude_calls_this_hour}</td>
+                        <td className="px-4 py-3 text-sm text-slate-600">
+                          {user.last_analysis || user.last_claude_call
+                            ? new Date(user.last_analysis || user.last_claude_call).toLocaleString()
+                            : 'Never'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-600">
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Summary Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-xl border border-slate-100 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Users size={20} className="text-blue-600" />
+                <span className="text-xs font-black uppercase tracking-widest text-slate-600">Total Users</span>
+              </div>
+              <div className="text-2xl font-black text-slate-900">{usersData.length}</div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-100 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Users size={20} className="text-green-600" />
+                <span className="text-xs font-black uppercase tracking-widest text-slate-600">Free Users</span>
+              </div>
+              <div className="text-2xl font-black text-slate-900">
+                {usersData.filter(u => u.tier === 'free').length}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-100 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Users size={20} className="text-purple-600" />
+                <span className="text-xs font-black uppercase tracking-widest text-slate-600">Pro Users</span>
+              </div>
+              <div className="text-2xl font-black text-slate-900">
+                {usersData.filter(u => u.tier === 'pro').length}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-100 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield size={20} className="text-red-600" />
+                <span className="text-xs font-black uppercase tracking-widest text-slate-600">Admins</span>
+              </div>
+              <div className="text-2xl font-black text-slate-900">
+                {usersData.filter(u => u.is_admin).length}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

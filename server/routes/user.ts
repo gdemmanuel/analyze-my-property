@@ -315,4 +315,51 @@ router.get('/all', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * PATCH /api/user/:userId/role (ADMIN ONLY)
+ * Update a user's tier or admin status
+ */
+router.patch('/:userId/role', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Check if user is admin
+    const { getUserProfile } = await import('../supabaseAuth');
+    const profile = await getUserProfile(req.user.id);
+    
+    if (!profile || !profile.is_admin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { userId } = req.params;
+    const { tier, is_admin } = req.body;
+
+    if (!tier && is_admin === undefined) {
+      return res.status(400).json({ error: 'Must provide tier or is_admin' });
+    }
+
+    const { supabaseAdmin } = await import('../supabaseAuth');
+    
+    const updates: any = { updated_at: new Date().toISOString() };
+    if (tier) updates.tier = tier;
+    if (is_admin !== undefined) updates.is_admin = is_admin;
+
+    const { data, error } = await supabaseAdmin
+      .from('user_profiles')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({ error: 'Failed to update user role' });
+  }
+});
+
 export default router;
