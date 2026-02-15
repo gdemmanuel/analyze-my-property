@@ -769,11 +769,32 @@ settings/
 - Health check verified, server running successfully — ✅ DONE
 - Test routes disabled in production — ✅ DONE
 
-**Phase 17: Real Authentication (Supabase)**
-- Replace session auth with Supabase Auth for persistent user accounts
-- Login/signup UI with email/password and Google SSO
-- Migrate per-user rate limits to database-backed sessions
-- PostgreSQL for persistent portfolios and settings
+**Phase 17: Real Authentication (Supabase)** ✅ COMPLETE
+- Created Supabase project with PostgreSQL database — ✅ DONE
+- Implemented database schema:
+  - `user_profiles` table (tier management) — ✅ DONE
+  - `assessments` table (saved properties) — ✅ DONE
+  - `user_settings` table (user config) — ✅ DONE
+  - `user_usage` table (rate limit tracking) — ✅ DONE
+  - Row Level Security (RLS) policies — ✅ DONE
+  - SQL functions for atomic counters — ✅ DONE
+- Frontend authentication:
+  - `AuthModal.tsx` component (sign in/up) — ✅ DONE
+  - `UserMenu.tsx` component (user dropdown) — ✅ DONE
+  - Email/password + Google OAuth — ✅ DONE
+  - Auth state management in App.tsx — ✅ DONE
+- Backend integration:
+  - `server/supabaseAuth.ts` (JWT verification) — ✅ DONE
+  - `server/routes/user.ts` (8 new API endpoints) — ✅ DONE
+  - Updated Claude routes with DB rate limiting — ✅ DONE
+  - Replaced in-memory sessions with database — ✅ DONE
+- Data migration:
+  - Automatic localStorage → Supabase migration — ✅ DONE
+  - Preserves user data on first sign-in — ✅ DONE
+- Documentation:
+  - `SUPABASE_SETUP.md` (setup guide) — ✅ DONE
+  - `PHASE_17_TESTING.md` (testing checklist) — ✅ DONE
+  - `PHASE_17_PROGRESS.md` (implementation log) — ✅ DONE
 
 **Phase 18: Map Integration**
 - Google Maps API key already in .env

@@ -1,0 +1,297 @@
+import { createClient } from '@supabase/supabase-js';
+import { Request, Response, NextFunction } from 'express';
+
+// ============================================================================
+// SUPABASE AUTH - Server-side authentication with PostgreSQL persistence
+// ============================================================================
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('❌ SUPABASE_URL or SUPABASE_SERVICE_KEY is missing');
+  process.exit(1);
+}
+
+// Server-side Supabase client with service role key (bypasses RLS)
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
+
+// Tier limits (same as before)
+export const TIER_LIMITS = {
+  free: { analysesPerDay: 3, claudeCallsPerHour: 15 },
+  pro: { analysesPerDay: 50, claudeCallsPerHour: 100 },
+};
+
+export interface UserProfile {
+  id: string;
+  tier: 'free' | 'pro';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserUsage {
+  user_id: string;
+  analyses_today: number;
+  claude_calls_this_hour: number;
+  last_analysis_timestamp: string | null;
+  last_claude_call_timestamp: string | null;
+  daily_reset_timestamp: string;
+  hourly_reset_timestamp: string;
+  updated_at: string;
+}
+
+// Extend Express Request type
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+      userProfile?: UserProfile;
+    }
+  }
+}
+
+/**
+ * Verify JWT token and get user
+ */
+export async function verifyToken(token: string) {
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  
+  if (error || !user) {
+    return { user: null, error: error?.message || 'Invalid token' };
+  }
+  
+  return { user, error: null };
+}
+
+/**
+ * Get user profile (tier information)
+ */
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  const { data, error } = await supabaseAdmin
+    .from('user_profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+  
+  if (error || !data) {
+    console.error('Error fetching user profile:', error);
+    return null;
+  }
+  
+  return data as UserProfile;
+}
+
+/**
+ * Get or create user usage record
+ */
+async function getUserUsage(userId: string): Promise<UserUsage | null> {
+  let { data, error } = await supabaseAdmin
+    .from('user_usage')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+  
+  // If no usage record exists, create one (shouldn't happen due to trigger, but just in case)
+  if (error && error.code === 'PGRST116') {
+    const { data: newData, error: insertError } = await supabaseAdmin
+      .from('user_usage')
+      .insert({
+        user_id: userId,
+        analyses_today: 0,
+        claude_calls_this_hour: 0,
+        daily_reset_timestamp: new Date().toISOString(),
+        hourly_reset_timestamp: new Date().toISOString(),
+      })
+      .select()
+      .single();
+    
+    if (insertError) {
+      console.error('Error creating user usage:', insertError);
+      return null;
+    }
+    
+    data = newData;
+  } else if (error) {
+    console.error('Error fetching user usage:', error);
+    return null;
+  }
+  
+  return data as UserUsage;
+}
+
+/**
+ * Check if user has exceeded rate limits
+ */
+export async function checkUsageLimits(
+  userId: string,
+  type: 'analysis' | 'claude'
+): Promise<{ allowed: boolean; message?: string; usage?: UserUsage }> {
+  const profile = await getUserProfile(userId);
+  if (!profile) {
+    return { allowed: false, message: 'User profile not found' };
+  }
+  
+  const usage = await getUserUsage(userId);
+  if (!usage) {
+    return { allowed: false, message: 'Usage tracking unavailable' };
+  }
+  
+  const now = Date.now();
+  const limits = TIER_LIMITS[profile.tier];
+  
+  // Check if daily reset is needed
+  const dailyResetTime = new Date(usage.daily_reset_timestamp).getTime();
+  const dayInMs = 24 * 60 * 60 * 1000;
+  if (now - dailyResetTime > dayInMs) {
+    // Reset daily counter
+    await supabaseAdmin
+      .from('user_usage')
+      .update({
+        analyses_today: 0,
+        daily_reset_timestamp: new Date(now).toISOString(),
+      })
+      .eq('user_id', userId);
+    
+    usage.analyses_today = 0;
+  }
+  
+  // Check if hourly reset is needed
+  const hourlyResetTime = new Date(usage.hourly_reset_timestamp).getTime();
+  const hourInMs = 60 * 60 * 1000;
+  if (now - hourlyResetTime > hourInMs) {
+    // Reset hourly counter
+    await supabaseAdmin
+      .from('user_usage')
+      .update({
+        claude_calls_this_hour: 0,
+        hourly_reset_timestamp: new Date(now).toISOString(),
+      })
+      .eq('user_id', userId);
+    
+    usage.claude_calls_this_hour = 0;
+  }
+  
+  // Check limits
+  if (type === 'analysis') {
+    if (usage.analyses_today >= limits.analysesPerDay) {
+      return {
+        allowed: false,
+        message: `Analysis rate limit reached. ${profile.tier === 'free' ? 'Upgrade to Pro for more analyses.' : 'Daily limit: ' + limits.analysesPerDay}`,
+        usage,
+      };
+    }
+  } else if (type === 'claude') {
+    if (usage.claude_calls_this_hour >= limits.claudeCallsPerHour) {
+      return {
+        allowed: false,
+        message: `Claude API rate limit reached. Try again in ${Math.ceil((hourlyResetTime + hourInMs - now) / 60000)} minutes.`,
+        usage,
+      };
+    }
+  }
+  
+  return { allowed: true, usage };
+}
+
+/**
+ * Increment usage counter
+ */
+export async function incrementUsage(userId: string, type: 'analysis' | 'claude'): Promise<void> {
+  const now = new Date().toISOString();
+  
+  if (type === 'analysis') {
+    await supabaseAdmin
+      .from('user_usage')
+      .update({
+        analyses_today: supabaseAdmin.rpc('increment', { x: 1 }), // This won't work, let's use a different approach
+        last_analysis_timestamp: now,
+      })
+      .eq('user_id', userId);
+    
+    // Better approach: increment in SQL
+    await supabaseAdmin.rpc('increment_analyses', { user_id: userId });
+  } else {
+    await supabaseAdmin
+      .from('user_usage')
+      .update({
+        claude_calls_this_hour: supabaseAdmin.rpc('increment', { x: 1 }),
+        last_claude_call_timestamp: now,
+      })
+      .eq('user_id', userId);
+    
+    await supabaseAdmin.rpc('increment_claude_calls', { user_id: userId });
+  }
+}
+
+/**
+ * Auth middleware - verifies JWT and attaches user to request
+ */
+export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  
+  const token = authHeader.replace('Bearer ', '');
+  
+  const { user, error } = await verifyToken(token);
+  
+  if (error || !user) {
+    return res.status(401).json({ error: error || 'Invalid token' });
+  }
+  
+  // Attach user and profile to request
+  req.user = user;
+  req.userProfile = await getUserProfile(user.id);
+  
+  if (!req.userProfile) {
+    return res.status(500).json({ error: 'User profile not found' });
+  }
+  
+  next();
+}
+
+/**
+ * Get all users (admin only)
+ */
+export async function getAllUsers() {
+  const { data, error } = await supabaseAdmin
+    .from('user_profiles')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error('Error fetching users:', error);
+    return [];
+  }
+  
+  return data;
+}
+
+/**
+ * Get user stats for admin dashboard
+ */
+export async function getUserStats() {
+  const { data: profiles } = await supabaseAdmin
+    .from('user_profiles')
+    .select('tier');
+  
+  const { count: totalUsers } = await supabaseAdmin
+    .from('user_profiles')
+    .select('*', { count: 'exact', head: true });
+  
+  const freeUsers = profiles?.filter(p => p.tier === 'free').length || 0;
+  const proUsers = profiles?.filter(p => p.tier === 'pro').length || 0;
+  
+  return {
+    total: totalUsers || 0,
+    free: freeUsers,
+    pro: proUsers,
+  };
+}

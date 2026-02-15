@@ -1,0 +1,256 @@
+import { Router, Request, Response } from 'express';
+import { authMiddleware, getUserProfile } from '../supabaseAuth';
+
+const router = Router();
+
+/**
+ * GET /api/user/profile
+ * Returns the authenticated user's profile
+ */
+router.get('/profile', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const profile = await getUserProfile(req.user.id);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    res.json(profile);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
+/**
+ * PUT /api/user/profile
+ * Updates the authenticated user's profile
+ */
+router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { full_name } = req.body;
+    
+    // Note: Tier updates should be done through admin routes or payment flow
+    const { supabaseAdmin } = await import('../supabaseAuth');
+    
+    const { data, error } = await supabaseAdmin
+      .from('user_profiles')
+      .update({ 
+        full_name,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+/**
+ * GET /api/user/usage
+ * Returns the authenticated user's current usage stats
+ */
+router.get('/usage', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { supabaseAdmin } = await import('../supabaseAuth');
+    
+    const { data, error } = await supabaseAdmin
+      .from('user_usage')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 = no rows returned (profile not created yet)
+      throw error;
+    }
+
+    res.json(data || {
+      analyses_today: 0,
+      claude_calls_this_hour: 0,
+      last_analysis_timestamp: null,
+      last_claude_call_timestamp: null,
+      last_reset_date: null,
+      hourly_reset_time: null
+    });
+  } catch (error) {
+    console.error('Error fetching user usage:', error);
+    res.status(500).json({ error: 'Failed to fetch usage stats' });
+  }
+});
+
+/**
+ * GET /api/user/assessments
+ * Returns the authenticated user's saved property assessments
+ */
+router.get('/assessments', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { supabaseAdmin } = await import('../supabaseAuth');
+    
+    const { data, error } = await supabaseAdmin
+      .from('assessments')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    res.json(data || []);
+  } catch (error) {
+    console.error('Error fetching assessments:', error);
+    res.status(500).json({ error: 'Failed to fetch assessments' });
+  }
+});
+
+/**
+ * POST /api/user/assessments
+ * Saves a new property assessment for the authenticated user
+ */
+router.post('/assessments', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { assessment_data } = req.body;
+    if (!assessment_data) {
+      return res.status(400).json({ error: 'Assessment data is required' });
+    }
+
+    const { supabaseAdmin } = await import('../supabaseAuth');
+    
+    const { data, error } = await supabaseAdmin
+      .from('assessments')
+      .insert({
+        user_id: req.user.id,
+        assessment_data
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.status(201).json(data);
+  } catch (error) {
+    console.error('Error saving assessment:', error);
+    res.status(500).json({ error: 'Failed to save assessment' });
+  }
+});
+
+/**
+ * DELETE /api/user/assessments/:id
+ * Deletes a specific assessment
+ */
+router.delete('/assessments/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { id } = req.params;
+
+    const { supabaseAdmin } = await import('../supabaseAuth');
+    
+    const { error } = await supabaseAdmin
+      .from('assessments')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', req.user.id); // Ensure user can only delete their own
+
+    if (error) throw error;
+
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting assessment:', error);
+    res.status(500).json({ error: 'Failed to delete assessment' });
+  }
+});
+
+/**
+ * GET /api/user/settings
+ * Returns the authenticated user's settings
+ */
+router.get('/settings', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { supabaseAdmin } = await import('../supabaseAuth');
+    
+    const { data, error } = await supabaseAdmin
+      .from('user_settings')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+
+    res.json(data || { settings_data: {} });
+  } catch (error) {
+    console.error('Error fetching user settings:', error);
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
+
+/**
+ * PUT /api/user/settings
+ * Updates the authenticated user's settings
+ */
+router.put('/settings', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { settings_data } = req.body;
+    if (!settings_data) {
+      return res.status(400).json({ error: 'Settings data is required' });
+    }
+
+    const { supabaseAdmin } = await import('../supabaseAuth');
+    
+    // Upsert (update if exists, insert if not)
+    const { data, error } = await supabaseAdmin
+      .from('user_settings')
+      .upsert({
+        user_id: req.user.id,
+        settings_data,
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    console.error('Error updating user settings:', error);
+    res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
+export default router;

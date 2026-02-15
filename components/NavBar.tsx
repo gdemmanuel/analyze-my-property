@@ -4,6 +4,8 @@ import {
   Briefcase, Settings, Shield
 } from 'lucide-react';
 import { RentalStrategy } from '../types';
+import { UserMenu } from './UserMenu';
+import type { User } from '@supabase/supabase-js';
 
 interface NavBarProps {
   activeTab: string;
@@ -11,9 +13,12 @@ interface NavBarProps {
   strategy: RentalStrategy;
   setStrategy: (s: RentalStrategy) => void;
   savedCount: number;
+  user: User | null;
+  userTier: 'free' | 'pro';
+  onSignIn: () => void;
 }
 
-const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, strategy, setStrategy, savedCount }) => {
+const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, strategy, setStrategy, savedCount, user, userTier, onSignIn }) => {
   return (
     <nav className="w-full h-auto bg-[#0f172a] text-white px-4 lg:px-8 py-4 fixed top-0 left-0 right-0 z-50 border-b border-slate-800 print:hidden">
       <div className="max-w-[1800px] mx-auto flex items-center justify-between gap-4">
@@ -49,21 +54,27 @@ const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, strategy, setS
           ))}
         </div>
 
-        {/* Strategy Toggle */}
-        <div className="flex items-center gap-1 bg-[#1e293b]/50 rounded-lg p-1 border border-white/5 shrink-0">
-          {[
-            { id: 'STR', label: 'STR', color: 'bg-[#f43f5e]' },
-            { id: 'MTR', label: 'MTR', color: 'bg-blue-500' },
-            { id: 'LTR', label: 'LTR', color: 'bg-[#10b981]' }
-          ].map(s => (
-            <button
-              key={s.id}
-              onClick={() => setStrategy(s.id as RentalStrategy)}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${strategy === s.id ? `${s.color} text-white shadow-lg` : 'text-slate-400 hover:text-white'}`}
-            >
-              {s.label}
-            </button>
-          ))}
+        {/* Strategy Toggle & User Menu */}
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Strategy Toggle */}
+          <div className="flex items-center gap-1 bg-[#1e293b]/50 rounded-lg p-1 border border-white/5">
+            {[
+              { id: 'STR', label: 'STR', color: 'bg-[#f43f5e]' },
+              { id: 'MTR', label: 'MTR', color: 'bg-blue-500' },
+              { id: 'LTR', label: 'LTR', color: 'bg-[#10b981]' }
+            ].map(s => (
+              <button
+                key={s.id}
+                onClick={() => setStrategy(s.id as RentalStrategy)}
+                className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${strategy === s.id ? `${s.color} text-white shadow-lg` : 'text-slate-400 hover:text-white'}`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* User Menu */}
+          <UserMenu user={user} userTier={userTier} onSignIn={onSignIn} />
         </div>
       </div>
     </nav>

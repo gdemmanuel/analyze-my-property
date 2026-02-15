@@ -7,11 +7,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import Anthropic from '@anthropic-ai/sdk';
 import { claudeCache, rentcastCache } from './cache.js';
-import { authMiddleware, createSession, startSessionCleanup, TIER_LIMITS, checkUsageLimits, incrementUsage } from './auth.js';
+import { authMiddleware as oldAuthMiddleware, createSession, startSessionCleanup, TIER_LIMITS as OLD_TIER_LIMITS, checkUsageLimits as oldCheckUsageLimits, incrementUsage as oldIncrementUsage } from './auth.js';
+import { authMiddleware, checkUsageLimits, incrementUsage, TIER_LIMITS } from './supabaseAuth.js';
 import { metricsMiddleware, metricsStore } from './metrics.js';
 import { claudeQueue } from './claudeQueue.js';
 import { costTracker } from './costTracker.js';
 import testRoutes from './test-routes.js';
+import userRoutes from './routes/user.js';
 
 // Load environment variables from .env (only in development, Railway injects them directly in production)
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -46,8 +48,8 @@ app.use(cors({
 app.use(authMiddleware);
 app.use(metricsMiddleware);
 
-// Start session cleanup
-startSessionCleanup();
+// Note: Old session cleanup is deprecated, Supabase handles auth sessions
+// startSessionCleanup();
 
 // ============================================================================
 // API KEY VALIDATION
@@ -199,6 +201,11 @@ app.use('/api', generalLimiter);
 app.use('/api/test', testRoutes);
 
 // ============================================================================
+// USER ROUTES (AUTHENTICATED)
+// ============================================================================
+app.use('/api/user', userRoutes);
+
+// ============================================================================
 // CLAUDE PROXY ROUTES
 // ============================================================================
 
@@ -217,18 +224,19 @@ app.post('/api/claude/messages', claudeLimiter, async (req, res) => {
     }
 
     // Get user info from auth middleware
-    const userId = (req as any).userId || 'anonymous';
-    const tier = (req as any).tier || 'free';
-    const usage = (req as any).usage;
+    const userId = (req as any).user?.id || 'anonymous';
+    const tier = (req as any).userProfile?.tier || 'free';
 
-    // Check usage limits
-    const limitCheck = checkUsageLimits(tier, usage, 'claude');
-    if (!limitCheck.allowed) {
-      return res.status(429).json({
-        error: limitCheck.reason,
-        retryAfter: limitCheck.resetIn,
-        type: 'usage_limit_exceeded',
-      });
+    // Check usage limits (Supabase-based)
+    if (userId !== 'anonymous') {
+      const limitCheck = await checkUsageLimits(userId, 'claude');
+      if (!limitCheck.allowed) {
+        return res.status(429).json({
+          error: limitCheck.message || 'Rate limit exceeded',
+          type: 'usage_limit_exceeded',
+          usage: limitCheck.usage
+        });
+      }
     }
 
     // Build cache key from request payload
@@ -242,8 +250,10 @@ app.post('/api/claude/messages', claudeLimiter, async (req, res) => {
 
     if (isDev) console.log(`[Server] Proxying Claude request: model=${model}, max_tokens=${max_tokens}`);
 
-    // Increment usage counter
-    incrementUsage(req, 'claude');
+    // Increment usage counter (Supabase-based)
+    if (userId !== 'anonymous') {
+      await incrementUsage(userId, 'claude');
+    }
 
     // Queue the Claude API call
     const result = await claudeQueue.enqueue(userId, tier, async () => {
@@ -299,30 +309,32 @@ app.post('/api/claude/analysis', analysisLimiter, async (req, res) => {
     }
 
     // Get user info from auth middleware
-    const userId = (req as any).userId || 'anonymous';
-    const tier = (req as any).tier || 'free';
-    const usage = (req as any).usage;
+    const userId = (req as any).user?.id || 'anonymous';
+    const tier = (req as any).userProfile?.tier || 'free';
 
-    // Check both analysis and Claude call limits
-    const analysisLimitCheck = checkUsageLimits(tier, usage, 'analysis');
-    if (!analysisLimitCheck.allowed) {
-      return res.status(429).json({
-        error: analysisLimitCheck.reason,
-        retryAfter: analysisLimitCheck.resetIn,
-        type: 'usage_limit_exceeded',
-      });
+    // Check BOTH analysis AND Claude limits
+    if (userId !== 'anonymous') {
+      const analysisCheck = await checkUsageLimits(userId, 'analysis');
+      if (!analysisCheck.allowed) {
+        return res.status(429).json({
+          error: analysisCheck.message || 'Daily analysis limit exceeded',
+          type: 'usage_limit_exceeded',
+          usage: analysisCheck.usage
+        });
+      }
+
+      const claudeCheck = await checkUsageLimits(userId, 'claude');
+      if (!claudeCheck.allowed) {
+        return res.status(429).json({
+          error: claudeCheck.message || 'Hourly Claude limit exceeded',
+          type: 'usage_limit_exceeded',
+          usage: claudeCheck.usage
+        });
+      }
     }
 
-    const claudeLimitCheck = checkUsageLimits(tier, usage, 'claude');
-    if (!claudeLimitCheck.allowed) {
-      return res.status(429).json({
-        error: claudeLimitCheck.reason,
-        retryAfter: claudeLimitCheck.resetIn,
-        type: 'usage_limit_exceeded',
-      });
-    }
-
-    const cacheKey = `analysis:${JSON.stringify({ model, messages })}`;
+    // Build cache key
+    const cacheKey = `analysis:${JSON.stringify({ model, messages, tools, system })}`;
     const cached = claudeCache.get(cacheKey);
     if (cached) {
       if (isDev) console.log(`[Server] Cache HIT for analysis request`);
@@ -330,13 +342,15 @@ app.post('/api/claude/analysis', analysisLimiter, async (req, res) => {
       return res.json({ content: cached, cached: true });
     }
 
-    if (isDev) console.log(`[Server] Proxying analysis request: model=${model}`);
+    if (isDev) console.log(`[Server] Proxying analysis request`);
 
-    // Increment usage counters
-    incrementUsage(req, 'analysis');
-    incrementUsage(req, 'claude');
+    // Increment BOTH counters
+    if (userId !== 'anonymous') {
+      await incrementUsage(userId, 'analysis');
+      await incrementUsage(userId, 'claude');
+    }
 
-    // Queue the Claude API call
+    // Queue the call
     const result = await claudeQueue.enqueue(userId, tier, async () => {
       const createParams: any = { model, max_tokens, messages };
       if (tools) createParams.tools = tools;
@@ -354,8 +368,7 @@ app.post('/api/claude/analysis', analysisLimiter, async (req, res) => {
       return response.content;
     });
 
-    // Cache analysis results for 2 hours (increased from 30 minutes)
-    claudeCache.set(cacheKey, result, 2 * 60 * 60 * 1000);
+    claudeCache.set(cacheKey, result);
 
     return res.json({ content: result, cached: false });
   } catch (error: any) {
@@ -370,7 +383,7 @@ app.post('/api/claude/analysis', analysisLimiter, async (req, res) => {
     }
 
     return res.status(error.status || 500).json({
-      error: 'Analysis failed',
+      error: 'Claude API call failed',
       type: 'api_error',
     });
   }
@@ -443,19 +456,19 @@ app.use('/api/rentcast', async (req, res) => {
 
 /**
  * POST /api/auth/session
- * Create an anonymous session. Returns a bearer token.
- * In production, replace with real login (Supabase, NextAuth, etc.)
+ * DEPRECATED: Now handled by Supabase Auth
+ * Kept for backwards compatibility with old clients
  */
 app.post('/api/auth/session', (req, res) => {
-  // Tier is always 'free' for anonymous sessions.
-  // In production, tier will be determined by Supabase/DB lookup after login.
-  const { token, session } = createSession('free');
+  // Return minimal response for anonymous users
   res.json({
-    token,
-    userId: session.userId,
-    tier: session.tier,
-    expiresAt: session.expiresAt,
-    limits: TIER_LIMITS[session.tier],
+    token: 'anonymous',
+    userId: 'anonymous',
+    tier: 'free',
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    limits: TIER_LIMITS['free'],
+    deprecated: true,
+    message: 'Please use Supabase Auth instead'
   });
 });
 

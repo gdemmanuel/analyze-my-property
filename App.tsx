@@ -17,6 +17,8 @@ import Charts from './components/Charts';
 import FinancialTables from './components/FinancialTables';
 import { fetchPropertyData, fetchMarketStats, fetchRentEstimate, fetchSTRData, fetchSTRComps, RentCastProperty, extractMarketTrends, getBedroomMatchedStats, MarketStats } from './services/rentcastService';
 import { useRentCastData, useWebSTRData, usePropertyAnalysis } from './src/hooks/usePropertyData';
+import { supabase } from './src/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 
 // Extracted components
 import NavBar from './components/NavBar';
@@ -27,11 +29,21 @@ import AdminTab from './components/AdminTab';
 import SettingsTab from './components/SettingsTab';
 import PortfolioTab from './components/PortfolioTab';
 import ComparisonModal from './components/ComparisonModal';
+import { AuthModal } from './components/AuthModal';
+import { UserMenu } from './components/UserMenu';
+import { DataMigrationNotice } from './components/DataMigration';
 
 
 const App: React.FC = () => {
   const toast = useToast();
   const progress = useAnalysisProgress();
+  
+  // Auth state
+  const [user, setUser] = useState<User | null>(null);
+  const [userTier, setUserTier] = useState<'free' | 'pro'>('free');
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  
   const [baseConfig, setBaseConfig] = useState<PropertyConfig>(DEFAULT_CONFIG);
   const [amenities, setAmenities] = useState<Amenity[]>(AMENITIES);
   const [selectedAmenityIds, setSelectedAmenityIds] = useState<string[]>(['furnishings']);
@@ -102,6 +114,50 @@ const App: React.FC = () => {
   // ============================================================================
   // EFFECTS
   // ============================================================================
+
+  // Auth: Check for active session and listen for auth changes
+  useEffect(() => {
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setIsLoadingAuth(false);
+      
+      // Fetch user tier from profiles
+      if (session?.user) {
+        fetch('/api/user/profile', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.tier) setUserTier(data.tier);
+          })
+          .catch(err => console.error('Failed to fetch user tier:', err));
+      }
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        // Fetch tier on auth change
+        fetch('/api/user/profile', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.tier) setUserTier(data.tier);
+          })
+          .catch(err => console.error('Failed to fetch user tier:', err));
+      } else {
+        setUserTier('free');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Load investment targets from localStorage
   // Load investment targets from localStorage
@@ -793,6 +849,9 @@ const App: React.FC = () => {
         strategy={strategy}
         setStrategy={setStrategy}
         savedCount={savedAssessments.length}
+        user={user}
+        userTier={userTier}
+        onSignIn={() => setShowAuthModal(true)}
       />
 
       {/* Main Content - pt-24 preserves nav spacing (CRITICAL: do not change to p-8) */}
@@ -1020,6 +1079,15 @@ const App: React.FC = () => {
           runAnalysis={runAnalysis}
         />
       )}
+
+      {/* AUTH MODAL */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
+
+      {/* DATA MIGRATION NOTICE */}
+      <DataMigrationNotice />
     </div>
   );
 };
