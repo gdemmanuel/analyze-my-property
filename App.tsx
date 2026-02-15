@@ -125,6 +125,9 @@ const App: React.FC = () => {
       
       // Fetch user tier from profiles
       if (session?.user) {
+        // Close auth modal if user just signed in
+        setShowAuthModal(false);
+        
         fetch('/api/user/profile', {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         })
@@ -144,6 +147,9 @@ const App: React.FC = () => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        // Close auth modal on successful sign-in
+        setShowAuthModal(false);
+        
         // Fetch tier on auth change
         fetch('/api/user/profile', {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
