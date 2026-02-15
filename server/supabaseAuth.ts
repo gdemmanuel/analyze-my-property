@@ -5,19 +5,42 @@ import { Request, Response, NextFunction } from 'express';
 // SUPABASE AUTH - Server-side authentication with PostgreSQL persistence
 // ============================================================================
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+// Lazy load environment variables - don't evaluate at import time
+function getSupabaseUrl() {
+  const url = process.env.SUPABASE_URL;
+  if (!url) {
+    throw new Error('❌ SUPABASE_URL is missing. Please check your .env file.');
+  }
+  return url;
+}
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ SUPABASE_URL or SUPABASE_SERVICE_KEY is missing');
-  process.exit(1);
+function getSupabaseServiceKey() {
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!key) {
+    throw new Error('❌ SUPABASE_SERVICE_KEY is missing. Please check your .env file.');
+  }
+  return key;
 }
 
 // Server-side Supabase client with service role key (bypasses RLS)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+let _supabaseAdmin: any = null;
+
+export function getSupabaseAdmin() {
+  if (!_supabaseAdmin) {
+    _supabaseAdmin = createClient(getSupabaseUrl(), getSupabaseServiceKey(), {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+  }
+  return _supabaseAdmin;
+}
+
+// For backwards compatibility, export as supabaseAdmin
+export const supabaseAdmin = new Proxy({}, {
+  get(target, prop) {
+    return getSupabaseAdmin()[prop as string];
   }
 });
 

@@ -897,6 +897,7 @@ const App: React.FC = () => {
             insight={insight}
             displayedAddress={displayedAddress}
             strategy={strategy}
+            setStrategy={setStrategy}
             baseConfig={baseConfig}
             finalConfig={finalConfig}
             capRate={capRate}

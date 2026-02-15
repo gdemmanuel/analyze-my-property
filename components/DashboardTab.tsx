@@ -24,6 +24,7 @@ interface DashboardTabProps {
   insight: MarketInsight;
   displayedAddress: string;
   strategy: RentalStrategy;
+  setStrategy?: (s: RentalStrategy) => void;
   baseConfig: PropertyConfig;
   finalConfig: PropertyConfig;
   // Metrics
@@ -109,9 +110,25 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                 <div className="w-1.5 h-1.5 rounded-full bg-[#f43f5e] animate-pulse" />
                 {strategy} AUDIT • REAL-TIME DATA
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-end">
                 <button onClick={onExportReport} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 border border-indigo-400 rounded-lg text-[9px] font-black uppercase tracking-widest text-white shadow-lg"><Printer size={12} /> EXPORT PDF</button>
                 <button onClick={onSaveAssessment} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f43f5e] hover:bg-[#e11d48] rounded-lg text-[9px] font-black uppercase tracking-widest shadow-xl"><Save size={12} /> SAVE</button>
+                {/* Strategy Toggle Inline */}
+                <div className="flex items-center gap-1 bg-[#1e293b]/50 rounded-lg p-1 border border-white/5">
+                  {[
+                    { id: 'STR', label: 'STR', color: 'bg-[#f43f5e]' },
+                    { id: 'MTR', label: 'MTR', color: 'bg-blue-500' },
+                    { id: 'LTR', label: 'LTR', color: 'bg-[#10b981]' }
+                  ].map((s: any) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setStrategy?.(s.id)}
+                      className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all ${strategy === s.id ? `${s.color} text-white shadow-lg` : 'text-slate-400 hover:text-white'}`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="mb-6">

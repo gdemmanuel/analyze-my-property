@@ -1,9 +1,13 @@
+// Load environment variables FIRST, before any imports that use them
+import dotenv from 'dotenv';
+import path from 'path';
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+// Now import everything else
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
-import path from 'path';
 import { fileURLToPath } from 'url';
 import Anthropic from '@anthropic-ai/sdk';
 import { claudeCache, rentcastCache } from './cache.js';
@@ -14,9 +18,6 @@ import { claudeQueue } from './claudeQueue.js';
 import { costTracker } from './costTracker.js';
 import testRoutes from './test-routes.js';
 import userRoutes from './routes/user.js';
-
-// Load environment variables from .env (only in development, Railway injects them directly in production)
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
