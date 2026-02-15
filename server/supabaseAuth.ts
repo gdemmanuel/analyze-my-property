@@ -230,12 +230,17 @@ export async function incrementUsage(userId: string, type: 'analysis' | 'claude'
 
 /**
  * Auth middleware - verifies JWT and attaches user to request
+ * OPTIONAL: Only blocks if route is explicitly protected
  */
 export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   
+  // Allow unauthenticated requests to pass through
+  // Individual routes can check req.user to require auth
   if (!authHeader) {
-    return res.status(401).json({ error: 'Authentication required' });
+    req.user = null;
+    req.userProfile = null;
+    return next();
   }
   
   const token = authHeader.replace('Bearer ', '');
@@ -243,12 +248,27 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   const { user, error } = await verifyToken(token);
   
   if (error || !user) {
-    return res.status(401).json({ error: error || 'Invalid token' });
+    // Don't block, just don't attach user
+    req.user = null;
+    req.userProfile = null;
+    return next();
   }
   
   // Attach user and profile to request
   req.user = user;
   req.userProfile = await getUserProfile(user.id);
+  
+  next();
+}
+
+/**
+ * Require auth middleware - BLOCKS unauthenticated requests
+ * Use this for protected routes only
+ */
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
   
   if (!req.userProfile) {
     return res.status(500).json({ error: 'User profile not found' });

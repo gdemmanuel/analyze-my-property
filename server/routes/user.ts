@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { authMiddleware, getUserProfile } from '../supabaseAuth';
+import { requireAuth, getUserProfile } from '../supabaseAuth';
 
 const router = Router();
 
@@ -7,7 +7,7 @@ const router = Router();
  * GET /api/user/profile
  * Returns the authenticated user's profile
  */
-router.get('/profile', authMiddleware, async (req: Request, res: Response) => {
+router.get('/profile', requireAuth, async (req: Request, res: Response) => {
   try {
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -29,7 +29,7 @@ router.get('/profile', authMiddleware, async (req: Request, res: Response) => {
  * PUT /api/user/profile
  * Updates the authenticated user's profile
  */
-router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
+router.put('/profile', requireAuth, async (req: Request, res: Response) => {
   try {
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -63,7 +63,7 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
  * GET /api/user/usage
  * Returns the authenticated user's current usage stats
  */
-router.get('/usage', authMiddleware, async (req: Request, res: Response) => {
+router.get('/usage', requireAuth, async (req: Request, res: Response) => {
   try {
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -100,7 +100,7 @@ router.get('/usage', authMiddleware, async (req: Request, res: Response) => {
  * GET /api/user/assessments
  * Returns the authenticated user's saved property assessments
  */
-router.get('/assessments', authMiddleware, async (req: Request, res: Response) => {
+router.get('/assessments', requireAuth, async (req: Request, res: Response) => {
   try {
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -127,7 +127,7 @@ router.get('/assessments', authMiddleware, async (req: Request, res: Response) =
  * POST /api/user/assessments
  * Saves a new property assessment for the authenticated user
  */
-router.post('/assessments', authMiddleware, async (req: Request, res: Response) => {
+router.post('/assessments', requireAuth, async (req: Request, res: Response) => {
   try {
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -162,7 +162,7 @@ router.post('/assessments', authMiddleware, async (req: Request, res: Response) 
  * DELETE /api/user/assessments/:id
  * Deletes a specific assessment
  */
-router.delete('/assessments/:id', authMiddleware, async (req: Request, res: Response) => {
+router.delete('/assessments/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -191,7 +191,7 @@ router.delete('/assessments/:id', authMiddleware, async (req: Request, res: Resp
  * GET /api/user/settings
  * Returns the authenticated user's settings
  */
-router.get('/settings', authMiddleware, async (req: Request, res: Response) => {
+router.get('/settings', requireAuth, async (req: Request, res: Response) => {
   try {
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -220,7 +220,7 @@ router.get('/settings', authMiddleware, async (req: Request, res: Response) => {
  * PUT /api/user/settings
  * Updates the authenticated user's settings
  */
-router.put('/settings', authMiddleware, async (req: Request, res: Response) => {
+router.put('/settings', requireAuth, async (req: Request, res: Response) => {
   try {
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Unauthorized' });
