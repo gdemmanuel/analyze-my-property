@@ -226,24 +226,29 @@ const AdminTab: React.FC = () => {
       // Get session token
       const { data: { session } } = await (await import('../src/lib/supabase')).supabase.auth.getSession();
       if (!session) {
-        console.error('No session found');
+        console.error('[AdminTab] No session found when fetching users');
         return;
       }
 
+      console.log('[AdminTab] Fetching users from /api/user/all...');
       const res = await fetch('/api/user/all', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
       });
       
+      console.log('[AdminTab] Users response:', res.status);
+      
       if (res.ok) {
         const data = await res.json();
+        console.log('[AdminTab] Users data received:', data);
         setUsersData(data);
       } else {
-        console.error('Failed to fetch users:', res.status);
+        const errorText = await res.text();
+        console.error('[AdminTab] Failed to fetch users:', res.status, errorText);
       }
     } catch (e) {
-      console.error('Failed to fetch users:', e);
+      console.error('[AdminTab] Failed to fetch users:', e);
     } finally {
       setLoadingUsers(false);
     }
