@@ -101,11 +101,10 @@ export const usePropertyAnalysis = (
   rentEstimate: any,
   strData: any,
   strComps: any,
-  strategy: string,
   enabled: boolean = true
 ) => {
   return useQuery({
-    queryKey: ['propertyAnalysis', address, strategy],
+    queryKey: ['propertyAnalysis', address],
     queryFn: () => analyzeProperty(address, factual, marketStats, rentEstimate, strData, strComps),
     enabled: enabled && !!address,
     staleTime: 2 * 60 * 60 * 1000, // 2 hours (increased for production)

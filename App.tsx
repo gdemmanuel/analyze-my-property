@@ -318,7 +318,6 @@ const App: React.FC = () => {
     rentEstimateQuery.data,
     strData,
     strComps,
-    strategy,
     canAnalyze
   );
 
