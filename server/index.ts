@@ -334,16 +334,33 @@ app.post('/api/claude/analysis', analysisLimiter, async (req, res) => {
       }
     }
 
-    // Build cache key
-    const cacheKey = `analysis:${JSON.stringify({ model, messages, tools, system })}`;
+    // Extract address from messages for better cache key
+    let addressForCache = 'unknown';
+    try {
+      const userMessage = messages.find((m: any) => m.role === 'user');
+      if (userMessage && userMessage.content) {
+        // Look for address in the message content
+        const addressMatch = userMessage.content.match(/address[:\s]+([^\n,]+)/i);
+        if (addressMatch) {
+          // Normalize address: lowercase, trim, remove extra spaces
+          addressForCache = addressMatch[1].trim().toLowerCase().replace(/\s+/g, ' ');
+        }
+      }
+    } catch (e) {
+      // Fallback to full stringify if address extraction fails
+      addressForCache = 'fallback';
+    }
+
+    // Build cache key using normalized address + strategy
+    const cacheKey = `analysis:${addressForCache}:${model}`;
     const cached = claudeCache.get(cacheKey);
     if (cached) {
-      if (isDev) console.log(`[Server] Cache HIT for analysis request`);
+      if (isDev) console.log(`[Server] Cache HIT for analysis request: ${addressForCache}`);
       (res as any).__cached = true;
       return res.json({ content: cached, cached: true });
     }
 
-    if (isDev) console.log(`[Server] Proxying analysis request`);
+    if (isDev) console.log(`[Server] Cache MISS - Proxying analysis request for: ${addressForCache}`);
 
     // Increment BOTH counters
     if (userId !== 'anonymous') {
