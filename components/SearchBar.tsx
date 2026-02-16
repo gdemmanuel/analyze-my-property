@@ -37,7 +37,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           {isFetchingFactual ? 'FETCHING DATA...' : 'UNDERWRITE'}
         </button>
       </div>
-      {analysisError && <div className="mt-4 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-4"><AlertTriangle size={20} className="text-[#f43f5e]" /><p className="text-[10px] font-black uppercase text-[#f43f5e] tracking-widest">{analysisError}</p></div>}
+      {analysisError && <div className="mt-4 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-4"><AlertTriangle size={20} className="text-[#f43f5e]" /><p className="text-[10px] font-black uppercase text-[#f43f5e] tracking-widest" dangerouslySetInnerHTML={{ __html: analysisError }}></p></div>}
     </div>
   );
 };

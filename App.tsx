@@ -112,6 +112,13 @@ const App: React.FC = () => {
   // Rate Limit Countdown State
   const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
 
+  // Setup global upgrade handler
+  React.useEffect(() => {
+    (window as any).__triggerUpgrade = () => {
+      alert('Pro tier: $29/month\n\n✓ 50 analyses per day\n✓ 100 Claude calls per hour\n✓ Priority support\n\nStripe payment integration coming in Phase 18!');
+    };
+  }, []);
+
   // ============================================================================
   // EFFECTS
   // ============================================================================
@@ -562,6 +569,12 @@ const App: React.FC = () => {
       
       const data = await res.json();
       console.log('[App] Analysis limit check:', data);
+      
+      // Add upgrade link to message if needed
+      if (!data.canAnalyze && data.message) {
+        data.message += ' <a href="#upgrade" onclick="window.__triggerUpgrade?.()">Upgrade to Pro →</a>';
+      }
+      
       return data;
     } catch (error) {
       console.error('[App] Error checking analysis limit:', error);

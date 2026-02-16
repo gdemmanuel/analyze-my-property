@@ -215,7 +215,7 @@ app.get('/api/check-analysis-limit', authMiddleware, async (req, res) => {
       console.log('[Server] User at limit:', check);
       return res.json({
         canAnalyze: false,
-        message: `${profile.tier === 'free' ? 'Daily analysis limit reached. Upgrade to Pro for unlimited analyses.' : 'Daily limit: ' + TIER_LIMITS[profile.tier].analysesPerDay + ' analyses'}`,
+        message: `${profile.tier === 'free' ? 'Daily analysis limit reached. <a href="#upgrade" onclick="window.__triggerUpgrade?.();" style="color: #f43f5e; text-decoration: underline;">Upgrade to Pro →</a>' : 'Daily limit: ' + TIER_LIMITS[profile.tier].analysesPerDay + ' analyses'}`,
         usage: check.usage
       });
     }
