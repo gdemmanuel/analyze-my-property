@@ -8,9 +8,10 @@ interface AmenityROIPanelProps {
     isLoading?: boolean;
     onRefresh?: () => void;
     error?: string | null;
+    isSample?: boolean;
 }
 
-const AmenityROIPanel: React.FC<AmenityROIPanelProps> = ({ data, isLoading, onRefresh, error }) => {
+const AmenityROIPanel: React.FC<AmenityROIPanelProps> = ({ data, isLoading, onRefresh, error, isSample = false }) => {
     if (isLoading) {
         return (
             <div className="bg-white rounded-2xl border-2 border-slate-200 p-12 shadow-lg">
@@ -85,9 +86,10 @@ const AmenityROIPanel: React.FC<AmenityROIPanelProps> = ({ data, isLoading, onRe
                 {onRefresh && (
                     <button
                         onClick={onRefresh}
-                        className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                        disabled={isSample}
+                        className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Refresh
+                        {isSample ? 'Pro Only' : 'Refresh'}
                     </button>
                 )}
             </div>

@@ -102,7 +102,10 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
 }) => {
   // State for Pro-only feature access
   const [showProModal, setShowProModal] = React.useState(false);
-  const [showingSampleData, setShowingSampleData] = React.useState(false);
+  const [showingSamplePathToYes, setShowingSamplePathToYes] = React.useState(false);
+  const [showingSampleAmenityROI, setShowingSampleAmenityROI] = React.useState(false);
+  const [showingSampleSensitivity, setShowingSampleSensitivity] = React.useState(false);
+  const [showingSampleLenderPacket, setShowingSampleLenderPacket] = React.useState(false);
   const sampleSensitivityData = {
     adrVariations: [-10, -5, 0, 5, 10],
     occVariations: [-10, -5, 0, 5, 10],
@@ -505,14 +508,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
       </div>
 
       {/* ADVANCED ANALYSIS SECTION */}
-      <div className="mt-6 pt-6 border-t border-slate-200" style={userTier === 'free' && !showingSampleData ? { position: 'relative', opacity: 0.5 } : {}}>
-        {/* Sample watermark for free users viewing samples */}
-        {userTier === 'free' && showingSampleData && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <div className="text-9xl font-black text-slate-300 opacity-20 transform -rotate-12">SAMPLE</div>
-          </div>
-        )}
-        
+      <div className="mt-6 pt-6 border-t border-slate-200" style={userTier === 'free' && !showingSamplePathToYes && !showingSampleAmenityROI && !showingSampleSensitivity && !showingSampleLenderPacket ? { position: 'relative', opacity: 0.5 } : {}}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-lg"><Sparkles size={18} /></div>
@@ -528,43 +524,81 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
-          <ErrorBoundary>
-            <PathToYesPanel
-              data={userTier === 'free' && showingSampleData ? samplePathToYesData : pathToYesData}
-              isLoading={isLoadingPathToYes}
-              onRefresh={() => userTier === 'free' ? setShowingSampleData(true) : handleRunPathToYes()}
-              liveKpis={{ capRate, cashOnCash, dscr: totalDscr }}
-              targets={investmentTargets}
-            />
-          </ErrorBoundary>
-          <ErrorBoundary>
-            <AmenityROIPanel
-              data={userTier === 'free' && showingSampleData ? sampleAmenityROIData : amenityROIData}
-              isLoading={isLoadingAmenityROI}
-              onRefresh={() => userTier === 'free' ? setShowingSampleData(true) : handleRunAmenityROI()}
-            />
-          </ErrorBoundary>
+          <div className="relative">
+            {/* Sample watermark for Path to Yes */}
+            {userTier === 'free' && showingSamplePathToYes && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <div className="text-9xl font-black text-slate-300 opacity-20 transform -rotate-12">SAMPLE</div>
+              </div>
+            )}
+            <ErrorBoundary>
+              <PathToYesPanel
+                data={userTier === 'free' && showingSamplePathToYes ? samplePathToYesData : pathToYesData}
+                isLoading={isLoadingPathToYes}
+                onRefresh={() => userTier === 'free' ? setShowingSamplePathToYes(true) : handleRunPathToYes()}
+                liveKpis={{ capRate, cashOnCash, dscr: totalDscr }}
+                targets={investmentTargets}
+                isSample={userTier === 'free' && showingSamplePathToYes}
+              />
+            </ErrorBoundary>
+          </div>
+          
+          <div className="relative">
+            {/* Sample watermark for Amenity ROI */}
+            {userTier === 'free' && showingSampleAmenityROI && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <div className="text-9xl font-black text-slate-300 opacity-20 transform -rotate-12">SAMPLE</div>
+              </div>
+            )}
+            <ErrorBoundary>
+              <AmenityROIPanel
+                data={userTier === 'free' && showingSampleAmenityROI ? sampleAmenityROIData : amenityROIData}
+                isLoading={isLoadingAmenityROI}
+                onRefresh={() => userTier === 'free' ? setShowingSampleAmenityROI(true) : handleRunAmenityROI()}
+                isSample={userTier === 'free' && showingSampleAmenityROI}
+              />
+            </ErrorBoundary>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <ErrorBoundary>
-            <SensitivityTable
-              data={userTier === 'free' && showingSampleData ? sampleSensitivityData : sensitivityData}
-              isLoading={isLoadingSensitivity}
-              onRefresh={() => userTier === 'free' ? setShowingSampleData(true) : handleRunSensitivity()}
-            />
-          </ErrorBoundary>
-          <ErrorBoundary>
-            <LenderPacketExport
-              packet={userTier === 'free' && showingSampleData ? sampleLenderPacket : lenderPacket}
-              isLoading={isLoadingLenderPacket}
-              onGenerate={() => userTier === 'free' ? setShowingSampleData(true) : handleGenerateLenderPacket()}
-            />
-          </ErrorBoundary>
+          <div className="relative">
+            {/* Sample watermark for Sensitivity */}
+            {userTier === 'free' && showingSampleSensitivity && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <div className="text-9xl font-black text-slate-300 opacity-20 transform -rotate-12">SAMPLE</div>
+              </div>
+            )}
+            <ErrorBoundary>
+              <SensitivityTable
+                data={userTier === 'free' && showingSampleSensitivity ? sampleSensitivityData : sensitivityData}
+                isLoading={isLoadingSensitivity}
+                onRefresh={() => userTier === 'free' ? setShowingSampleSensitivity(true) : handleRunSensitivity()}
+                isSample={userTier === 'free' && showingSampleSensitivity}
+              />
+            </ErrorBoundary>
+          </div>
+          
+          <div className="relative">
+            {/* Sample watermark for Lender Packet */}
+            {userTier === 'free' && showingSampleLenderPacket && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <div className="text-9xl font-black text-slate-300 opacity-20 transform -rotate-12">SAMPLE</div>
+              </div>
+            )}
+            <ErrorBoundary>
+              <LenderPacketExport
+                packet={userTier === 'free' && showingSampleLenderPacket ? sampleLenderPacket : lenderPacket}
+                isLoading={isLoadingLenderPacket}
+                onGenerate={() => userTier === 'free' ? setShowingSampleLenderPacket(true) : handleGenerateLenderPacket()}
+                isSample={userTier === 'free' && showingSampleLenderPacket}
+              />
+            </ErrorBoundary>
+          </div>
         </div>
         
-        {/* Upgrade banner for free users viewing samples */}
-        {userTier === 'free' && showingSampleData && (
+        {/* Upgrade banner for free users viewing ANY samples */}
+        {userTier === 'free' && (showingSamplePathToYes || showingSampleAmenityROI || showingSampleSensitivity || showingSampleLenderPacket) && (
           <div className="mt-4 p-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl text-white text-center">
             <h3 className="text-lg font-black uppercase tracking-tight mb-2">Unlock Advanced Analysis</h3>
             <p className="text-sm mb-4 opacity-90">Get real insights for your properties with Pro tier</p>

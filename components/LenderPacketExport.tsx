@@ -8,9 +8,10 @@ interface LenderPacketExportProps {
   isLoading?: boolean;
   onGenerate?: () => void;
   error?: string | null;
+  isSample?: boolean; // Add flag to indicate sample mode
 }
 
-const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoading, onGenerate, error }) => {
+const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoading, onGenerate, error, isSample = false }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [activeTab, setActiveTab] = useState<'summary' | 'financial' | 'market' | 'risks'>('summary');
 
@@ -417,15 +418,15 @@ const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoadi
         </div>
         <button
           onClick={handleExportPDF}
-          disabled={isExporting}
-          className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 disabled:opacity-50 transition-colors"
+          disabled={isExporting || isSample}
+          className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isExporting ? (
             <Loader2 size={14} className="animate-spin" />
           ) : (
             <Download size={14} />
           )}
-          Export PDF
+          {isSample ? 'Pro Only' : 'Export PDF'}
         </button>
       </div>
 

@@ -20,6 +20,7 @@ interface PathToYesPanelProps {
         minDSCR: number;
     };
     error?: string | null;
+    isSample?: boolean;
 }
 
 // 5-tier status configuration
@@ -31,7 +32,7 @@ const statusConfig: Record<string, { bg: string; border: string; text: string; i
     'No-Buy': { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-600', icon: XCircle }
 };
 
-const PathToYesPanel: React.FC<PathToYesPanelProps> = ({ data, isLoading, onRefresh, onApplyRecommendation, liveKpis, targets, error }) => {
+const PathToYesPanel: React.FC<PathToYesPanelProps> = ({ data, isLoading, onRefresh, onApplyRecommendation, liveKpis, targets, error, isSample = false }) => {
     if (isLoading) {
         return (
             <div className="bg-white rounded-2xl border-2 border-slate-200 p-12 shadow-lg">
@@ -104,9 +105,10 @@ const PathToYesPanel: React.FC<PathToYesPanelProps> = ({ data, isLoading, onRefr
                 {onRefresh && (
                     <button
                         onClick={onRefresh}
-                        className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                        disabled={isSample}
+                        className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Refresh
+                        {isSample ? 'Pro Only' : 'Refresh'}
                     </button>
                 )}
             </div>
