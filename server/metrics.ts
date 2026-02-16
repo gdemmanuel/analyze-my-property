@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { claudeCache, rentcastCache } from './cache.js';
-import { getSessionStats } from './auth.js';
+import { getSupabaseAdmin } from './supabaseAuth.js';
 
 // ============================================================================
 // METRICS STORE — In-memory metrics collection for the admin dashboard
@@ -161,9 +161,47 @@ class MetricsStore {
   /**
    * Return a full snapshot of all metrics for the admin dashboard.
    */
-  getSnapshot(): MetricsSnapshot {
+  async getSnapshot(): Promise<MetricsSnapshot> {
     const mem = process.memoryUsage();
-    const sessionStats = getSessionStats();
+    
+    // Fetch active sessions from Supabase
+    let sessionStats = {
+      active: 0,
+      total: 0,
+      byTier: {} as Record<string, number>,
+    };
+    
+    try {
+      const supabase = getSupabaseAdmin();
+      
+      // Get active sessions (last 24 hours)
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: sessions, error: sessionsError } = await supabase.auth.admin.listUsers();
+      
+      if (!sessionsError && sessions?.users) {
+        // Count users who signed in within the last 24 hours
+        const activeUsers = sessions.users.filter(
+          (u: any) => u.last_sign_in_at && new Date(u.last_sign_in_at) > new Date(oneDayAgo)
+        );
+        sessionStats.active = activeUsers.length;
+        sessionStats.total = sessions.users.length;
+        
+        // Count by tier
+        const { data: profiles } = await supabase
+          .from('user_profiles')
+          .select('user_id, tier');
+        
+        if (profiles) {
+          const tierMap = new Map(profiles.map((p: any) => [p.user_id, p.tier]));
+          activeUsers.forEach((u: any) => {
+            const tier = tierMap.get(u.id) || 'free';
+            sessionStats.byTier[tier] = (sessionStats.byTier[tier] || 0) + 1;
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[Metrics] Error fetching session stats:', error);
+    }
 
     const endpoints = Array.from(this.endpointStats.entries())
       .map(([endpoint, stats]) => ({

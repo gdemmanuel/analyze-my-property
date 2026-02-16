@@ -134,6 +134,7 @@ const AdminTab: React.FC = () => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [usersData, setUsersData] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userStats, setUserStats] = useState<any[]>([]);
   const [configForm, setConfigForm] = useState({
     dailyBudget: 50,
     rentcastCost: 0.03,
@@ -246,6 +247,15 @@ const AdminTab: React.FC = () => {
       } else {
         const errorText = await res.text();
         console.error('[AdminTab] Failed to fetch users:', res.status, errorText);
+      }
+      
+      // Fetch user call statistics
+      console.log('[AdminTab] Fetching user stats from /api/admin/user-stats...');
+      const statsRes = await fetch('/api/admin/user-stats');
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        console.log('[AdminTab] User stats received:', statsData);
+        setUserStats(statsData);
       }
     } catch (e) {
       console.error('[AdminTab] Failed to fetch users:', e);
@@ -1262,6 +1272,7 @@ const AdminTab: React.FC = () => {
                     <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-900">Admin</th>
                     <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-900">Analyses Today</th>
                     <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-900">Claude Calls/Hr</th>
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-900">Total API Calls</th>
                     <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-900">Last Active</th>
                     <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-900">Joined</th>
                   </tr>
@@ -1269,55 +1280,71 @@ const AdminTab: React.FC = () => {
                 <tbody className="divide-y divide-slate-100">
                   {loadingUsers ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                      <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                         <RefreshCw size={20} className="animate-spin mx-auto mb-2" />
                         Loading users...
                       </td>
                     </tr>
                   ) : usersData.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                      <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                         No users found
                       </td>
                     </tr>
                   ) : (
-                    usersData.map((user) => (
-                      <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-4 py-3 text-sm text-slate-900">{user.email}</td>
-                        <td className="px-4 py-3">
-                          <select
-                            value={user.tier}
-                            onChange={(e) => handleUpdateUserRole(user.id, { tier: e.target.value })}
-                            className="px-3 py-1 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="free">Free</option>
-                            <option value="pro">Pro</option>
-                          </select>
-                        </td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() => handleUpdateUserRole(user.id, { is_admin: !user.is_admin })}
-                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
-                              user.is_admin
-                                ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            {user.is_admin ? 'ADMIN' : 'USER'}
-                          </button>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-slate-900">{user.analyses_today}</td>
-                        <td className="px-4 py-3 text-sm text-slate-900">{user.claude_calls_this_hour}</td>
-                        <td className="px-4 py-3 text-sm text-slate-600">
-                          {user.last_analysis || user.last_claude_call
-                            ? new Date(user.last_analysis || user.last_claude_call).toLocaleString()
-                            : 'Never'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-slate-600">
-                          {new Date(user.created_at).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))
+                    usersData.map((user) => {
+                      // Find matching user stats
+                      const stats = userStats.find(s => s.userId === user.id) || {
+                        totalCalls: 0,
+                        claudeCalls: 0,
+                        analysisCalls: 0,
+                        rentcastCalls: 0
+                      };
+                      
+                      return (
+                        <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-3 text-sm text-slate-900">{user.email}</td>
+                          <td className="px-4 py-3">
+                            <select
+                              value={user.tier}
+                              onChange={(e) => handleUpdateUserRole(user.id, { tier: e.target.value })}
+                              className="px-3 py-1 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="free">Free</option>
+                              <option value="pro">Pro</option>
+                            </select>
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => handleUpdateUserRole(user.id, { is_admin: !user.is_admin })}
+                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                                user.is_admin
+                                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                            >
+                              {user.is_admin ? 'ADMIN' : 'USER'}
+                            </button>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-900">{user.analyses_today}</td>
+                          <td className="px-4 py-3 text-sm text-slate-900">{user.claude_calls_this_hour}</td>
+                          <td className="px-4 py-3">
+                            <div className="text-sm font-black text-slate-900">{stats.totalCalls}</div>
+                            <div className="text-[10px] text-slate-500">
+                              {stats.analysisCalls} analyses • {stats.claudeCalls} Claude
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-600">
+                            {user.last_analysis || user.last_claude_call
+                              ? new Date(user.last_analysis || user.last_claude_call).toLocaleString()
+                              : 'Never'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-600">
+                            {new Date(user.created_at).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

@@ -15,7 +15,7 @@ import { authMiddleware as oldAuthMiddleware, createSession, startSessionCleanup
 import { authMiddleware, checkUsageLimits, incrementUsage, TIER_LIMITS } from './supabaseAuth.js';
 import { metricsMiddleware, metricsStore } from './metrics.js';
 import { claudeQueue } from './claudeQueue.js';
-import { costTracker } from './costTracker.js';
+import { costTracker } from './databaseCostTracker.js';
 import testRoutes from './test-routes.js';
 import userRoutes from './routes/user.js';
 
@@ -108,9 +108,10 @@ const analysisLimiter = rateLimit({
 });
 
 // Admin routes registered BEFORE rate limiter to avoid any interference
-app.get('/api/admin/metrics', (_req, res) => {
+app.get('/api/admin/metrics', async (_req, res) => {
   console.log('[Server] Admin metrics requested');
-  res.json(metricsStore.getSnapshot());
+  const snapshot = await metricsStore.getSnapshot();
+  res.json(snapshot);
 });
 
 app.get('/api/admin/queue', (_req, res) => {
@@ -118,14 +119,22 @@ app.get('/api/admin/queue', (_req, res) => {
   res.json(claudeQueue.getStats());
 });
 
-app.get('/api/admin/costs', (_req, res) => {
+app.get('/api/admin/costs', async (_req, res) => {
   console.log('[Server] Cost stats requested');
-  res.json(costTracker.getSummary());
+  const summary = await costTracker.getSummary();
+  res.json(summary);
 });
 
-app.get('/api/admin/cost-history', (_req, res) => {
+app.get('/api/admin/cost-history', async (_req, res) => {
   console.log('[Server] Cost history requested');
-  res.json(costTracker.getHistory());
+  const history = await costTracker.getHistory();
+  res.json(history);
+});
+
+app.get('/api/admin/user-stats', async (_req, res) => {
+  console.log('[Server] User stats requested');
+  const stats = await costTracker.getUserCallStats();
+  res.json(stats);
 });
 
 app.post('/api/admin/budget', (req, res) => {
@@ -267,7 +276,7 @@ app.post('/api/claude/messages', claudeLimiter, async (req, res) => {
       // Track cost
       const inputTokens = response.usage?.input_tokens || 0;
       const outputTokens = response.usage?.output_tokens || 0;
-      const cost = costTracker.recordClaude(model, inputTokens, outputTokens, '/api/claude/messages', userId);
+      const cost = await costTracker.recordClaude(model, inputTokens, outputTokens, '/api/claude/messages', userId);
       
       if (isDev) console.log(`[CostTracker] Request cost: $${cost.toFixed(4)} (${inputTokens} in, ${outputTokens} out)`);
       
@@ -379,7 +388,7 @@ app.post('/api/claude/analysis', analysisLimiter, async (req, res) => {
       // Track cost
       const inputTokens = response.usage?.input_tokens || 0;
       const outputTokens = response.usage?.output_tokens || 0;
-      const cost = costTracker.recordClaude(model, inputTokens, outputTokens, '/api/claude/analysis', userId);
+      const cost = await costTracker.recordClaude(model, inputTokens, outputTokens, '/api/claude/analysis', userId);
       
       if (isDev) console.log(`[CostTracker] Analysis cost: $${cost.toFixed(4)} (${inputTokens} in, ${outputTokens} out)`);
       
@@ -455,7 +464,7 @@ app.use('/api/rentcast', async (req, res) => {
 
     // Track RentCast API cost
     const userId = (req as any).userId || 'anonymous';
-    const cost = costTracker.recordRentCast(req.url, userId);
+    const cost = await costTracker.recordRentCast(req.url, userId);
     if (isDev) console.log(`[CostTracker] RentCast request cost: $${cost.toFixed(4)}`);
 
     // Cache successful responses for 60 minutes
