@@ -102,14 +102,132 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
 }) => {
   // State for Pro-only feature access
   const [showProModal, setShowProModal] = React.useState(false);
+  const [showingSampleData, setShowingSampleData] = React.useState(false);
+  const sampleSensitivityData = {
+    adrOccupancyMatrix: [
+      [-0.2, -0.2, -0.1, -0.1, 0],
+      [-0.1, -0.06, 0, 0.1, 0.1],
+      [0.1, 0.1, 0.2, 0.2, 0.3],
+      [0.2, 0.3, 0.3, 0.4, 0.4],
+      [0.4, 0.4, 0.5, 0.5, 0.6]
+    ],
+    interestRateSensitivity: [
+      { rateChange: -100, monthlyImpact: -1500 },
+      { rateChange: -50, monthlyImpact: -750 },
+      { rateChange: 0, monthlyImpact: 0 },
+      { rateChange: 50, monthlyImpact: 750 },
+      { rateChange: 100, monthlyImpact: 1500 }
+    ],
+    criticalBreakpoints: [
+      { metric: 'Owner Surplus breaks even', condition: 'ADR -8% or Occupancy -7%' },
+      { metric: 'Cash-on-Cash breaks even', condition: 'ADR -6% or Occupancy -5%' },
+      { metric: 'DSCR reaches 1.0 (debt coverage)', condition: 'ADR +3% or Occupancy +4%' },
+      { metric: 'Rate sensitivity: positive CoC', condition: 'Mortgage rate below 6.25%' },
+      { metric: 'Rate sensitivity: DSCR above 1.0', condition: 'Mortgage rate below 5.75%' }
+    ],
+    recommendation: 'Investment shows marginal viability with DSCR below 1.0 and low CoC. Requires ADR growth or occupancy improvement for strong returns. Rate increases above 50bps make investment unviable. Consider passing unless significant operational improvements are achievable.'
+  };
 
-  // Wrap handlers for Pro-only features
-  const withProCheck = (handler: () => void) => {
-    if (userTier === 'free') {
-      setShowProModal(true);
-      return;
+  const sampleAmenityROIData = {
+    recommendations: [
+      {
+        amenity: 'EV Charger',
+        setupCost: 1500,
+        additionalIncome: 2834,
+        paybackMonths: 6.4,
+        confidenceRange: { low: 5.8, high: 7.1 }
+      },
+      {
+        amenity: 'Game Room',
+        setupCost: 4000,
+        additionalIncome: 8964,
+        paybackMonths: 5.4,
+        confidenceRange: { low: 4.9, high: 5.9 }
+      },
+      {
+        amenity: 'Hot Tub',
+        setupCost: 8500,
+        additionalIncome: 21318,
+        paybackMonths: 4.8,
+        confidenceRange: { low: 4.3, high: 5.3 },
+        warning: 'Stacks at 70% efficiency with Cedar Sauna (spa overlap)'
+      },
+      {
+        amenity: 'Cedar Sauna',
+        setupCost: 6500,
+        additionalIncome: 11577,
+        paybackMonths: 6.8,
+        confidenceRange: { low: 6.1, high: 7.5 },
+        warning: 'Stacks at 70% efficiency with Hot Tub (spa overlap)'
+      },
+      {
+        amenity: 'Luxury Deck',
+        setupCost: 12000,
+        additionalIncome: 16497,
+        paybackMonths: 8.7,
+        confidenceRange: { low: 7.8, high: 9.6 }
+      }
+    ],
+    stackingRecommendations: [
+      'Start with EV Charger + Game Room for maximum buy impact with minimal capital ($5,500 total)',
+      'Add Hot Tub as third amenity for premium positioning (total $14,000 investment)',
+      'Avoid combining Hot Tub + Cedar Sauna due to spa feature overlap (70% efficiency)',
+      'EV Charger + Game Room + Hot Tub combination provides optimal investment metric improvement',
+      'Luxury Deck should be considered only after core amenities due to high capital requirement vs. impact'
+    ]
+  };
+
+  const samplePathToYesData = {
+    currentStatus: 'Review',
+    statusLabel: 'This deal needs significant improvements.',
+    recommendation: 'CoC of 4.77% meets the target threshold. While the cap rate exceeds the 6% minimum, both cash-on-cash return and DSCR fall significantly short of targets.',
+    targetGaps: [
+      { metric: 'CAP RATE', current: 6.60, target: 6.00, status: 'pass' },
+      { metric: 'CASH-ON-CASH', current: 4.77, target: 10.00, gap: 5.23, status: 'fail' },
+      { metric: 'DSCR', current: 1.09, target: 1.25, gap: 0.16, status: 'fail' }
+    ],
+    recommendedActions: [
+      {
+        priority: 1,
+        action: 'Increase rental income or reduce operating expenses',
+        impact: 'Need to improve cash flow by ~$5,130 annually to reach 10% cash-on-cash target',
+        details: 'Consider rent increases, reduce vacancy periods, or negotiate lower property management fees'
+      },
+      {
+        priority: 2,
+        action: 'Refinance to lower debt service payments',
+        impact: 'Reducing monthly debt service by ~$390 would achieve minimum 1.25 DSCR',
+        details: 'Explore refinancing options with lower interest rates or longer amortization periods'
+      }
+    ],
+    minimalChangesToBuy: 'Improve monthly cash flow by $428 to achieve both DSCR and cash-on-cash targets'
+  };
+
+  const sampleLenderPacket = {
+    generatedDate: '2024-12-19',
+    recommendation: 'Strong Buy',
+    executiveSummary: 'Exceptional 13.5% cash-on-cash return with strong 1.57 DSCR providing comfortable debt coverage. 9.5% cap rate significantly exceeds typical STR market returns of 6-8%. Prime Pocono Mountains location with proven tourism demand and 42% occupancy at $370 ADR. Hot tub amenity with 15-month payback period to drive premium pricing and occupancy. Below-market purchase price of $329,900 vs. median $285,000 with strong upside potential.',
+    investmentHighlights: [
+      'Exceptional 13.5% cash-on-cash return with strong 1.57 DSCR providing comfortable debt coverage',
+      '9.5% cap rate significantly exceeds typical STR market returns of 6-8%',
+      'Prime Pocono Mountains location with proven tourism demand and 42% occupancy at $370 ADR',
+      'Hot tub amenity with 15-month payback period to drive premium pricing and occupancy',
+      'Below-market purchase price of $329,900 vs. median $285,000 with strong upside potential'
+    ],
+    dealSnapshot: {
+      acquisitionPrice: 329900,
+      cashRequired: 84377,
+      capRate: 9.54,
+      cashOnCash: 13.5
+    },
+    propertyDetails: {
+      address: '123 Sample Street, Pocono Mountains, PA 18466',
+      type: 'Single Family',
+      beds: 4,
+      baths: 2,
+      sqft: 1740,
+      yearBuilt: 1998
     }
-    handler();
   };
 
   return (
@@ -270,13 +388,24 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
       </div>
 
       {/* ADVANCED ANALYSIS SECTION */}
-      <div className="mt-6 pt-6 border-t border-slate-200" style={userTier === 'free' ? { position: 'relative', opacity: 0.5, pointerEvents: 'none' } : {}}>
+      <div className="mt-6 pt-6 border-t border-slate-200" style={userTier === 'free' && !showingSampleData ? { position: 'relative', opacity: 0.5 } : {}}>
+        {/* Sample watermark for free users viewing samples */}
+        {userTier === 'free' && showingSampleData && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <div className="text-9xl font-black text-slate-300 opacity-20 transform -rotate-12">SAMPLE</div>
+          </div>
+        )}
+        
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-lg"><Sparkles size={18} /></div>
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tight text-slate-900">Advanced Analysis {userTier === 'free' && <span className="text-xs text-purple-600 font-black ml-2">PRO ONLY</span>}</h2>
-              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">AI-Powered Deep Dive Tools</p>
+              <h2 className="text-xl font-black uppercase tracking-tight text-slate-900">
+                Advanced Analysis {userTier === 'free' && <span className="text-xs text-purple-600 font-black ml-2">PRO ONLY</span>}
+              </h2>
+              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                AI-Powered Deep Dive Tools {userTier === 'free' && '• Click any button to see sample'}
+              </p>
             </div>
           </div>
         </div>
@@ -284,18 +413,18 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
           <ErrorBoundary>
             <PathToYesPanel
-              data={pathToYesData}
+              data={userTier === 'free' && showingSampleData ? samplePathToYesData : pathToYesData}
               isLoading={isLoadingPathToYes}
-              onRefresh={() => withProCheck(handleRunPathToYes)}
+              onRefresh={() => userTier === 'free' ? setShowingSampleData(true) : handleRunPathToYes()}
               liveKpis={{ capRate, cashOnCash, dscr: totalDscr }}
               targets={investmentTargets}
             />
           </ErrorBoundary>
           <ErrorBoundary>
             <AmenityROIPanel
-              data={amenityROIData}
+              data={userTier === 'free' && showingSampleData ? sampleAmenityROIData : amenityROIData}
               isLoading={isLoadingAmenityROI}
-              onRefresh={() => withProCheck(handleRunAmenityROI)}
+              onRefresh={() => userTier === 'free' ? setShowingSampleData(true) : handleRunAmenityROI()}
             />
           </ErrorBoundary>
         </div>
@@ -303,75 +432,66 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <ErrorBoundary>
             <SensitivityTable
-              data={sensitivityData}
+              data={userTier === 'free' && showingSampleData ? sampleSensitivityData : sensitivityData}
               isLoading={isLoadingSensitivity}
-              onRefresh={() => withProCheck(handleRunSensitivity)}
+              onRefresh={() => userTier === 'free' ? setShowingSampleData(true) : handleRunSensitivity()}
             />
           </ErrorBoundary>
           <ErrorBoundary>
             <LenderPacketExport
-              packet={lenderPacket}
+              packet={userTier === 'free' && showingSampleData ? sampleLenderPacket : lenderPacket}
               isLoading={isLoadingLenderPacket}
-              onGenerate={() => withProCheck(handleGenerateLenderPacket)}
+              onGenerate={() => userTier === 'free' ? setShowingSampleData(true) : handleGenerateLenderPacket()}
             />
           </ErrorBoundary>
         </div>
+        
+        {/* Upgrade banner for free users viewing samples */}
+        {userTier === 'free' && showingSampleData && (
+          <div className="mt-4 p-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl text-white text-center">
+            <h3 className="text-lg font-black uppercase tracking-tight mb-2">Unlock Advanced Analysis</h3>
+            <p className="text-sm mb-4 opacity-90">Get real insights for your properties with Pro tier</p>
+            <button
+              onClick={() => {
+                alert('Pro tier: $29/month\n\n✓ 50 analyses per day\n✓ 100 Claude calls per hour\n✓ Advanced Analysis Tools\n✓ Priority support\n\nStripe payment integration coming in Phase 18!');
+              }}
+              className="px-8 py-3 bg-white text-purple-600 font-black rounded-lg hover:bg-slate-100 transition-all"
+            >
+              UPGRADE TO PRO
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Pro-Only Modal */}
+      {/* Pro Upgrade Modal (simple version) */}
       {showProModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-            {/* SAMPLE Watermark */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-center opacity-10">
-                <div className="text-8xl font-black text-slate-400 transform -rotate-45">SAMPLE</div>
-              </div>
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
+            <div className="p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white mb-4 inline-block">
+              <Sparkles size={24} />
             </div>
             
-            {/* Content */}
-            <div className="relative p-8 text-center">
-              <div className="p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white mb-4 inline-block">
-                <Sparkles size={24} />
-              </div>
-              
-              <h2 className="text-2xl font-black text-slate-900 mb-3">Advanced Analysis</h2>
-              <p className="text-slate-600 mb-6 text-sm font-black uppercase tracking-wider">
-                Unlock powerful AI-driven insights with Pro
-              </p>
-              
-              <ul className="text-left space-y-3 mb-8">
-                <li className="flex items-center gap-3 text-sm font-bold text-slate-700">
-                  <span className="text-purple-600 font-black">✓</span> Sensitivity Analysis
-                </li>
-                <li className="flex items-center gap-3 text-sm font-bold text-slate-700">
-                  <span className="text-purple-600 font-black">✓</span> Amenity ROI Optimization
-                </li>
-                <li className="flex items-center gap-3 text-sm font-bold text-slate-700">
-                  <span className="text-purple-600 font-black">✓</span> Path to Yes Analysis
-                </li>
-                <li className="flex items-center gap-3 text-sm font-bold text-slate-700">
-                  <span className="text-purple-600 font-black">✓</span> Lender Packet Export
-                </li>
-              </ul>
-              
-              <button
-                onClick={() => {
-                  setShowProModal(false);
-                  alert('Pro tier: $29/month\n\n✓ 50 analyses per day\n✓ 100 Claude calls per hour\n✓ Advanced Analysis Tools\n✓ Priority support\n\nStripe payment integration coming in Phase 18!');
-                }}
-                className="w-full px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black rounded-lg transition-all mb-3"
-              >
-                UPGRADE TO PRO
-              </button>
-              
-              <button
-                onClick={() => setShowProModal(false)}
-                className="w-full px-6 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-lg transition-all"
-              >
-                Close
-              </button>
-            </div>
+            <h2 className="text-2xl font-black text-slate-900 mb-3">Upgrade to Pro</h2>
+            <p className="text-slate-600 mb-6 text-sm font-bold">
+              Get access to Advanced Analysis tools and unlimited analyses
+            </p>
+            
+            <button
+              onClick={() => {
+                setShowProModal(false);
+                alert('Pro tier: $29/month\n\n✓ 50 analyses per day\n✓ 100 Claude calls per hour\n✓ Advanced Analysis Tools\n✓ Priority support\n\nStripe payment integration coming in Phase 18!');
+              }}
+              className="w-full px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black rounded-lg transition-all mb-3"
+            >
+              UPGRADE TO PRO
+            </button>
+            
+            <button
+              onClick={() => setShowProModal(false)}
+              className="w-full px-6 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-lg transition-all"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
