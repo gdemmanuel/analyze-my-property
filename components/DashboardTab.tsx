@@ -134,16 +134,23 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                 </div>
               </div>
             </div>
-            <div className="mb-2">
-              {/* Address and Property Badges Section */}
-              <div className="flex items-start justify-between gap-4 mb-2">
-                <div className="flex items-center gap-3 group">
-                  <h2 className="text-2xl lg:text-3xl font-black tracking-tighter leading-none text-white">{displayedAddress}</h2>
-                  <a href={`https://www.zillow.com/homes/for_sale/${encodeURIComponent(displayedAddress)}_rb/`} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 hover:bg-[#f43f5e] hover:scale-110 rounded-full transition-all text-white"><Map size={14} /></a>
+            <div className="mb-1">
+              {/* Address Row */}
+              <div className="flex items-center gap-3 group mb-2">
+                <h2 className="text-2xl lg:text-3xl font-black tracking-tighter leading-none text-white">{displayedAddress}</h2>
+                <a href={`https://www.zillow.com/homes/for_sale/${encodeURIComponent(displayedAddress)}_rb/`} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 hover:bg-[#f43f5e] hover:scale-110 rounded-full transition-all text-white"><Map size={14} /></a>
+              </div>
+              {/* Beds/Baths/SQFT and Property Features on same row */}
+              <div className="flex items-center gap-4 flex-wrap">
+                {/* Beds/Baths/SQFT */}
+                <div className="flex gap-4 text-slate-600 text-[10px] font-black uppercase tracking-[0.25em]">
+                  <span className="flex gap-2 items-center"><Home size={14} className="text-[#f43f5e]" /> {insight.beds} BEDS</span>
+                  <span className="flex gap-2 items-center"><Layers size={14} className="text-[#3b82f6]" /> {insight.baths} BATHS</span>
+                  <span className="flex gap-2 items-center"><Ruler size={14} className="text-[#10b981]" /> {insight.sqft.toLocaleString()} SQFT</span>
                 </div>
-                {/* Property Features Next to Address */}
+                {/* Property Features Badges */}
                 {propertyData?.features && Object.values(propertyData.features).some(v => v != null) && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {propertyData.features.pool && <span className="px-3 py-1.5 bg-blue-500/20 text-blue-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Droplets size={12} /> Pool</span>}
                     {propertyData.features.garage && <span className="px-3 py-1.5 bg-slate-500/20 text-slate-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Car size={12} /> {propertyData.features.garageSpaces || '?'}-Car</span>}
                     {propertyData.features.fireplace && <span className="px-3 py-1.5 bg-orange-500/20 text-orange-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Flame size={12} /> Fireplace</span>}
@@ -152,12 +159,6 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                     {propertyData.zoning && <span className="px-3 py-1.5 bg-amber-500/20 text-amber-200 rounded text-[9px] font-black whitespace-nowrap">Zone: {propertyData.zoning}</span>}
                   </div>
                 )}
-              </div>
-              {/* Beds/Baths/SQFT row */}
-              <div className="flex gap-6 text-slate-600 text-[10px] font-black uppercase tracking-[0.25em]">
-                <span className="flex gap-2 items-center border-r border-white/10 pr-6 last:border-0"><Home size={14} className="text-[#f43f5e]" /> {insight.beds} BEDS</span>
-                <span className="flex gap-2 items-center border-r border-white/10 pr-6 last:border-0"><Layers size={14} className="text-[#3b82f6]" /> {insight.baths} BATHS</span>
-                <span className="flex gap-2 items-center border-r border-white/10 pr-6 last:border-0"><Ruler size={14} className="text-[#10b981]" /> {insight.sqft.toLocaleString()} SQFT</span>
               </div>
             </div>
           </div>
