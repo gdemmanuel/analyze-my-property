@@ -225,7 +225,7 @@ app.use('/api/user', userRoutes);
  * Body: { model, max_tokens, messages, tools?, system? }
  * Returns: Claude API response content array
  */
-app.post('/api/claude/messages', claudeLimiter, async (req, res) => {
+app.post('/api/claude/messages', authMiddleware, claudeLimiter, async (req, res) => {
   try {
     const { model, max_tokens, messages, tools, system } = req.body;
 
@@ -310,7 +310,7 @@ app.post('/api/claude/messages', claudeLimiter, async (req, res) => {
  * POST /api/claude/analysis
  * Stricter rate limit for full property analysis (the most expensive call)
  */
-app.post('/api/claude/analysis', analysisLimiter, async (req, res) => {
+app.post('/api/claude/analysis', authMiddleware, analysisLimiter, async (req, res) => {
   try {
     const { model, max_tokens, messages, tools, system } = req.body;
 
@@ -425,7 +425,7 @@ app.post('/api/claude/analysis', analysisLimiter, async (req, res) => {
  * Strips /api/rentcast/ prefix and forwards to https://api.rentcast.io/v1/...
  * with the server-side API key injected.
  */
-app.use('/api/rentcast', async (req, res) => {
+app.use('/api/rentcast', authMiddleware, async (req, res) => {
   if (!RENTCAST_API_KEY) {
     return res.status(503).json({ error: 'RentCast API key not configured on server' });
   }
@@ -463,7 +463,7 @@ app.use('/api/rentcast', async (req, res) => {
     const data = await response.json();
 
     // Track RentCast API cost
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as any).user?.id || 'anonymous';
     const cost = await costTracker.recordRentCast(req.url, userId);
     if (isDev) console.log(`[CostTracker] RentCast request cost: $${cost.toFixed(4)}`);
 
