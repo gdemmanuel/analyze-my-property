@@ -174,29 +174,38 @@ class MetricsStore {
     try {
       const supabase = getSupabaseAdmin();
       
-      // Get active sessions (last 24 hours)
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data: sessions, error: sessionsError } = await supabase.auth.admin.listUsers();
+      // Get all users
+      const { data: allUsers, error: usersError } = await supabase.auth.admin.listUsers();
       
-      if (!sessionsError && sessions?.users) {
-        // Count users who signed in within the last 24 hours
-        const activeUsers = sessions.users.filter(
-          (u: any) => u.last_sign_in_at && new Date(u.last_sign_in_at) > new Date(oneDayAgo)
+      if (!usersError && allUsers?.users) {
+        sessionStats.total = allUsers.users.length;
+        
+        // Count active sessions: users who made an API call in the last hour
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+        const { data: recentActivity } = await supabase
+          .from('api_usage_log')
+          .select('user_id')
+          .gte('created_at', oneHourAgo);
+        
+        // Get unique active user IDs
+        const activeUserIds = new Set(
+          recentActivity?.map((log: any) => log.user_id).filter(Boolean) || []
         );
-        sessionStats.active = activeUsers.length;
-        sessionStats.total = sessions.users.length;
+        sessionStats.active = activeUserIds.size;
         
-        // Count by tier
-        const { data: profiles } = await supabase
-          .from('user_profiles')
-          .select('user_id, tier');
-        
-        if (profiles) {
-          const tierMap = new Map(profiles.map((p: any) => [p.user_id, p.tier]));
-          activeUsers.forEach((u: any) => {
-            const tier = tierMap.get(u.id) || 'free';
-            sessionStats.byTier[tier] = (sessionStats.byTier[tier] || 0) + 1;
-          });
+        // Count by tier for active users
+        if (activeUserIds.size > 0) {
+          const { data: profiles } = await supabase
+            .from('user_profiles')
+            .select('user_id, tier')
+            .in('user_id', Array.from(activeUserIds));
+          
+          if (profiles) {
+            profiles.forEach((p: any) => {
+              const tier = p.tier || 'free';
+              sessionStats.byTier[tier] = (sessionStats.byTier[tier] || 0) + 1;
+            });
+          }
         }
       }
     } catch (error) {

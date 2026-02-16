@@ -323,7 +323,7 @@ export class DatabaseCostTracker {
       // Query API usage log grouped by user_id
       const { data, error } = await supabase
         .from('api_usage_log')
-        .select('user_id, service, endpoint')
+        .select('user_id, api_type, endpoint')
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -342,7 +342,7 @@ export class DatabaseCostTracker {
       
       data?.forEach((log: any) => {
         const userId = log.user_id || 'anonymous';
-        const service = log.service;
+        const apiType = log.api_type;
         const endpoint = log.endpoint;
         
         if (!userStats.has(userId)) {
@@ -358,12 +358,12 @@ export class DatabaseCostTracker {
         const stats = userStats.get(userId)!;
         stats.totalCalls++;
         
-        if (service === 'claude') {
+        if (apiType === 'claude') {
           stats.claudeCalls++;
           if (endpoint === '/api/claude/analysis') {
             stats.analysisCalls++;
           }
-        } else if (service === 'rentcast') {
+        } else if (apiType === 'rentcast') {
           stats.rentcastCalls++;
         }
       });
