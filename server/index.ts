@@ -201,14 +201,18 @@ app.get('/api/check-analysis-limit', authMiddleware, async (req, res) => {
     }
     
     // Get user profile and check limits
-    const profile = await (req as any).userProfile || null;
+    const profile = (req as any).userProfile;
     if (!profile) {
+      console.warn('[Server] No profile for user:', userId);
       return res.json({ canAnalyze: true });
     }
     
+    console.log('[Server] Checking analysis limit for user:', userId, 'tier:', profile.tier);
     const check = await checkUsageLimits(userId, 'analysis');
+    console.log('[Server] Usage check result:', check);
     
     if (!check.allowed) {
+      console.log('[Server] User at limit:', check);
       return res.json({
         canAnalyze: false,
         message: `${profile.tier === 'free' ? 'Daily analysis limit reached. Upgrade to Pro for unlimited analyses.' : 'Daily limit: ' + TIER_LIMITS[profile.tier].analysesPerDay + ' analyses'}`,

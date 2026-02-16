@@ -542,17 +542,26 @@ const App: React.FC = () => {
   // Check if user can run an analysis BEFORE making API calls
   const checkCanAnalyze = async (): Promise<{ canAnalyze: boolean; message?: string }> => {
     try {
+      // Get session token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+      
       const res = await fetch('/api/check-analysis-limit', {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        headers
       });
       
       if (!res.ok) {
-        console.error('[App] Failed to check analysis limit');
+        console.error('[App] Failed to check analysis limit:', res.status);
         return { canAnalyze: true }; // Optimistic: allow if check fails
       }
       
       const data = await res.json();
+      console.log('[App] Analysis limit check:', data);
       return data;
     } catch (error) {
       console.error('[App] Error checking analysis limit:', error);
