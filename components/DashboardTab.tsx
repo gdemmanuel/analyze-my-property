@@ -111,6 +111,8 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
     }
     handler();
   };
+
+  return (
     <div className="space-y-3 animate-in fade-in duration-700 max-w-[1600px] mx-auto">
       {/* Hero Card */}
       <div className="rounded-3xl bg-[#0f172a] shadow-2xl relative overflow-hidden border border-white/5 min-h-[300px]">
