@@ -105,7 +105,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
       <div className="rounded-3xl bg-[#0f172a] shadow-2xl relative overflow-hidden border border-white/5 min-h-[300px]">
         <div className="p-6 lg:p-8 relative z-10 flex flex-col justify-between h-full">
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 text-[#f43f5e] font-black text-[9px] uppercase tracking-[0.3em]">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#f43f5e] animate-pulse" />
                 {strategy} AUDIT • REAL-TIME DATA
@@ -134,7 +134,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                 </div>
               </div>
             </div>
-            <div className="mb-3">
+            <div className="mb-2">
               {/* Address and Property Badges Section */}
               <div className="flex items-start justify-between gap-4 mb-2">
                 <div className="flex items-center gap-3 group">
