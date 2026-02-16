@@ -104,66 +104,87 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   const [showProModal, setShowProModal] = React.useState(false);
   const [showingSampleData, setShowingSampleData] = React.useState(false);
   const sampleSensitivityData = {
-    adrOccupancyMatrix: [
-      [-0.2, -0.2, -0.1, -0.1, 0],
-      [-0.1, -0.06, 0, 0.1, 0.1],
-      [0.1, 0.1, 0.2, 0.2, 0.3],
-      [0.2, 0.3, 0.3, 0.4, 0.4],
-      [0.4, 0.4, 0.5, 0.5, 0.6]
+    adrVariations: [-10, -5, 0, 5, 10],
+    occVariations: [-10, -5, 0, 5, 10],
+    rateVariations: [-100, -50, 0, 50, 100],
+    matrix: [
+      { adrDelta: -10, occDelta: -10, ownerSurplus: -2000, cashOnCash: 2.5, dscr: 0.85 },
+      { adrDelta: -10, occDelta: -5, ownerSurplus: -1500, cashOnCash: 3.0, dscr: 0.90 },
+      { adrDelta: -10, occDelta: 0, ownerSurplus: -1000, cashOnCash: 3.5, dscr: 0.95 },
+      { adrDelta: -10, occDelta: 5, ownerSurplus: -500, cashOnCash: 4.0, dscr: 1.00 },
+      { adrDelta: -10, occDelta: 10, ownerSurplus: 0, cashOnCash: 4.5, dscr: 1.05 },
+      { adrDelta: -5, occDelta: -10, ownerSurplus: -1000, cashOnCash: 3.5, dscr: 0.90 },
+      { adrDelta: -5, occDelta: -5, ownerSurplus: -600, cashOnCash: 4.0, dscr: 0.95 },
+      { adrDelta: -5, occDelta: 0, ownerSurplus: 0, cashOnCash: 4.77, dscr: 1.09 },
+      { adrDelta: -5, occDelta: 5, ownerSurplus: 1000, cashOnCash: 5.5, dscr: 1.15 },
+      { adrDelta: -5, occDelta: 10, ownerSurplus: 1500, cashOnCash: 6.0, dscr: 1.20 },
+      { adrDelta: 0, occDelta: -10, ownerSurplus: 1000, cashOnCash: 5.0, dscr: 1.00 },
+      { adrDelta: 0, occDelta: -5, ownerSurplus: 2000, cashOnCash: 6.0, dscr: 1.09 },
+      { adrDelta: 0, occDelta: 0, ownerSurplus: 2500, cashOnCash: 6.60, dscr: 1.20 },
+      { adrDelta: 0, occDelta: 5, ownerSurplus: 3000, cashOnCash: 7.5, dscr: 1.30 },
+      { adrDelta: 0, occDelta: 10, ownerSurplus: 3500, cashOnCash: 8.0, dscr: 1.40 },
+      { adrDelta: 5, occDelta: -10, ownerSurplus: 2000, cashOnCash: 6.0, dscr: 1.10 },
+      { adrDelta: 5, occDelta: -5, ownerSurplus: 3000, cashOnCash: 7.0, dscr: 1.20 },
+      { adrDelta: 5, occDelta: 0, ownerSurplus: 3500, cashOnCash: 8.0, dscr: 1.30 },
+      { adrDelta: 5, occDelta: 5, ownerSurplus: 4000, cashOnCash: 9.0, dscr: 1.40 },
+      { adrDelta: 5, occDelta: 10, ownerSurplus: 4500, cashOnCash: 9.5, dscr: 1.50 },
+      { adrDelta: 10, occDelta: -10, ownerSurplus: 4000, cashOnCash: 8.0, dscr: 1.25 },
+      { adrDelta: 10, occDelta: -5, ownerSurplus: 4500, cashOnCash: 9.0, dscr: 1.35 },
+      { adrDelta: 10, occDelta: 0, ownerSurplus: 5000, cashOnCash: 10.0, dscr: 1.45 },
+      { adrDelta: 10, occDelta: 5, ownerSurplus: 5500, cashOnCash: 11.0, dscr: 1.55 },
+      { adrDelta: 10, occDelta: 10, ownerSurplus: 6000, cashOnCash: 12.0, dscr: 1.65 }
     ],
-    interestRateSensitivity: [
-      { rateChange: -100, monthlyImpact: -1500 },
-      { rateChange: -50, monthlyImpact: -750 },
-      { rateChange: 0, monthlyImpact: 0 },
-      { rateChange: 50, monthlyImpact: 750 },
-      { rateChange: 100, monthlyImpact: 1500 }
+    breakpoints: [
+      { description: 'Owner Surplus breaks even', threshold: 'ADR -8% or Occupancy -7%' },
+      { description: 'Cash-on-Cash breaks even', threshold: 'ADR -6% or Occupancy -5%' },
+      { description: 'DSCR reaches 1.0 (debt coverage)', threshold: 'ADR +3% or Occupancy +4%' },
+      { description: 'Rate sensitivity: positive CoC', threshold: 'Mortgage rate below 6.25%' },
+      { description: 'Rate sensitivity: DSCR above 1.0', threshold: 'Mortgage rate below 5.75%' }
     ],
-    criticalBreakpoints: [
-      { metric: 'Owner Surplus breaks even', condition: 'ADR -8% or Occupancy -7%' },
-      { metric: 'Cash-on-Cash breaks even', condition: 'ADR -6% or Occupancy -5%' },
-      { metric: 'DSCR reaches 1.0 (debt coverage)', condition: 'ADR +3% or Occupancy +4%' },
-      { metric: 'Rate sensitivity: positive CoC', condition: 'Mortgage rate below 6.25%' },
-      { metric: 'Rate sensitivity: DSCR above 1.0', condition: 'Mortgage rate below 5.75%' }
-    ],
-    recommendation: 'Investment shows marginal viability with DSCR below 1.0 and low CoC. Requires ADR growth or occupancy improvement for strong returns. Rate increases above 50bps make investment unviable. Consider passing unless significant operational improvements are achievable.'
+    guidance: 'Investment shows marginal viability with DSCR below 1.0 and low CoC. Requires ADR growth or occupancy improvement for strong returns. Rate increases above 50bps make investment unviable. Consider passing unless significant operational improvements are achievable.'
   };
 
   const sampleAmenityROIData = {
-    recommendations: [
+    rankedList: [
       {
-        amenity: 'EV Charger',
+        rank: 1,
+        name: 'EV Charger',
         setupCost: 1500,
-        additionalIncome: 2834,
+        deltaRevenue: 2834,
         paybackMonths: 6.4,
         confidenceRange: { low: 5.8, high: 7.1 }
       },
       {
-        amenity: 'Game Room',
+        rank: 2,
+        name: 'Game Room',
         setupCost: 4000,
-        additionalIncome: 8964,
+        deltaRevenue: 8964,
         paybackMonths: 5.4,
         confidenceRange: { low: 4.9, high: 5.9 }
       },
       {
-        amenity: 'Hot Tub',
+        rank: 3,
+        name: 'Hot Tub',
         setupCost: 8500,
-        additionalIncome: 21318,
+        deltaRevenue: 21318,
         paybackMonths: 4.8,
         confidenceRange: { low: 4.3, high: 5.3 },
-        warning: 'Stacks at 70% efficiency with Cedar Sauna (spa overlap)'
+        diminishingReturnsNote: 'Stacks at 70% efficiency with Cedar Sauna (spa overlap)'
       },
       {
-        amenity: 'Cedar Sauna',
+        rank: 4,
+        name: 'Cedar Sauna',
         setupCost: 6500,
-        additionalIncome: 11577,
+        deltaRevenue: 11577,
         paybackMonths: 6.8,
         confidenceRange: { low: 6.1, high: 7.5 },
-        warning: 'Stacks at 70% efficiency with Hot Tub (spa overlap)'
+        diminishingReturnsNote: 'Stacks at 70% efficiency with Hot Tub (spa overlap)'
       },
       {
-        amenity: 'Luxury Deck',
+        rank: 5,
+        name: 'Luxury Deck',
         setupCost: 12000,
-        additionalIncome: 16497,
+        deltaRevenue: 16497,
         paybackMonths: 8.7,
         confidenceRange: { low: 7.8, high: 9.6 }
       }
@@ -178,56 +199,152 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   };
 
   const samplePathToYesData = {
-    currentStatus: 'Review',
-    statusLabel: 'This deal needs significant improvements.',
-    recommendation: 'CoC of 4.77% meets the target threshold. While the cap rate exceeds the 6% minimum, both cash-on-cash return and DSCR fall significantly short of targets.',
-    targetGaps: [
-      { metric: 'CAP RATE', current: 6.60, target: 6.00, status: 'pass' },
-      { metric: 'CASH-ON-CASH', current: 4.77, target: 10.00, gap: 5.23, status: 'fail' },
-      { metric: 'DSCR', current: 1.09, target: 1.25, gap: 0.16, status: 'fail' }
+    currentStatus: 'Review' as const,
+    statusReason: 'CoC of 4.77% meets the target threshold. While the cap rate exceeds the 6% minimum, both cash-on-cash return and DSCR fall significantly short of targets.',
+    metricsEvaluated: ['CAP RATE', 'CASH-ON-CASH', 'DSCR'],
+    metricsExcluded: [],
+    targetGap: [
+      { metric: 'CAP RATE', current: 6.60, target: 6.00, gap: 0 },
+      { metric: 'CASH-ON-CASH', current: 4.77, target: 10.00, gap: 5.23 },
+      { metric: 'DSCR', current: 1.09, target: 1.25, gap: 0.16 }
     ],
-    recommendedActions: [
+    recommendations: [
       {
         priority: 1,
         action: 'Increase rental income or reduce operating expenses',
-        impact: 'Need to improve cash flow by ~$5,130 annually to reach 10% cash-on-cash target',
-        details: 'Consider rent increases, reduce vacancy periods, or negotiate lower property management fees'
+        quantifiedImpact: 'Need to improve cash flow by ~$5,130 annually to reach 10% cash-on-cash target',
+        implementationNotes: 'Consider rent increases, reduce vacancy periods, or negotiate lower property management fees'
       },
       {
         priority: 2,
         action: 'Refinance to lower debt service payments',
-        impact: 'Reducing monthly debt service by ~$390 would achieve minimum 1.25 DSCR',
-        details: 'Explore refinancing options with lower interest rates or longer amortization periods'
+        quantifiedImpact: 'Reducing monthly debt service by ~$390 would achieve minimum 1.25 DSCR',
+        implementationNotes: 'Explore refinancing options with lower interest rates or longer amortization periods'
       }
     ],
-    minimalChangesToBuy: 'Improve monthly cash flow by $428 to achieve both DSCR and cash-on-cash targets'
+    minimalChanges: ['Improve monthly cash flow by $428 to achieve both DSCR and cash-on-cash targets']
   };
 
   const sampleLenderPacket = {
     generatedDate: '2024-12-19',
-    recommendation: 'Strong Buy',
-    executiveSummary: 'Exceptional 13.5% cash-on-cash return with strong 1.57 DSCR providing comfortable debt coverage. 9.5% cap rate significantly exceeds typical STR market returns of 6-8%. Prime Pocono Mountains location with proven tourism demand and 42% occupancy at $370 ADR. Hot tub amenity with 15-month payback period to drive premium pricing and occupancy. Below-market purchase price of $329,900 vs. median $285,000 with strong upside potential.',
-    investmentHighlights: [
-      'Exceptional 13.5% cash-on-cash return with strong 1.57 DSCR providing comfortable debt coverage',
-      '9.5% cap rate significantly exceeds typical STR market returns of 6-8%',
-      'Prime Pocono Mountains location with proven tourism demand and 42% occupancy at $370 ADR',
-      'Hot tub amenity with 15-month payback period to drive premium pricing and occupancy',
-      'Below-market purchase price of $329,900 vs. median $285,000 with strong upside potential'
-    ],
-    dealSnapshot: {
-      acquisitionPrice: 329900,
-      cashRequired: 84377,
-      capRate: 9.54,
-      cashOnCash: 13.5
+    executiveSummary: {
+      recommendation: 'Strong Buy' as const,
+      highlights: [
+        'Exceptional 13.5% cash-on-cash return with strong 1.57 DSCR providing comfortable debt coverage',
+        '9.5% cap rate significantly exceeds typical STR market returns of 6-8%',
+        'Prime Pocono Mountains location with proven tourism demand and 42% occupancy at $370 ADR',
+        'Hot tub amenity with 15-month payback period to drive premium pricing and occupancy',
+        'Below-market purchase price of $329,900 vs. median $285,000 with strong upside potential'
+      ],
+      dealSnapshot: {
+        listPrice: 349900,
+        acquisitionPrice: 329900,
+        downPayment: 65980,
+        totalCashRequired: 84377,
+        projectedCoC: 13.5,
+        projectedCapRate: 9.54,
+        projectedDSCR: 1.57
+      }
     },
-    propertyDetails: {
+    propertyOverview: {
       address: '123 Sample Street, Pocono Mountains, PA 18466',
-      type: 'Single Family',
+      propertyType: 'Single Family',
       beds: 4,
       baths: 2,
       sqft: 1740,
-      yearBuilt: 1998
-    }
+      yearBuilt: 1998,
+      lotSize: '0.35 acres',
+      zoning: 'R-1 Residential',
+      condition: 'Good',
+      notableFeatures: ['Hot Tub', 'Mountain Views', 'Game Room', 'Fire Pit']
+    },
+    financialAnalysis: {
+      purchaseAnalysis: {
+        listPrice: 349900,
+        acquisitionPrice: 329900,
+        downPaymentPercent: 20,
+        downPaymentAmount: 65980,
+        loanAmount: 263920,
+        estimatedClosingCosts: 18397,
+        totalCashRequired: 84377
+      },
+      operatingPerformance: {
+        projectedGrossRevenue: 54000,
+        operatingExpenses: 22000,
+        noi: 32000,
+        annualDebtService: 18000,
+        cashFlowAfterDebt: 14000
+      },
+      investmentMetrics: {
+        capRate: 9.54,
+        cashOnCash: 13.5,
+        dscr: 1.57,
+        grossYield: 16.4,
+        breakEvenOccupancy: 38
+      },
+      fiveYearProjections: [
+        { year: 1, revenue: 54000, expenses: 22000, cashFlow: 14000, equity: 68000, cumulativeReturn: 14000 },
+        { year: 2, revenue: 56700, expenses: 22660, cashFlow: 15040, equity: 71500, cumulativeReturn: 29040 },
+        { year: 3, revenue: 59535, expenses: 23340, cashFlow: 16195, equity: 75200, cumulativeReturn: 45235 },
+        { year: 4, revenue: 62512, expenses: 24040, cashFlow: 17472, equity: 79100, cumulativeReturn: 62707 },
+        { year: 5, revenue: 65638, expenses: 24762, cashFlow: 18876, equity: 83200, cumulativeReturn: 81583 }
+      ]
+    },
+    marketAnalysis: {
+      comparables: [
+        { address: '456 Mountain Dr', beds: 4, baths: 2, adr: 380, occupancy: 45, distance: '0.8 mi' },
+        { address: '789 Forest Ln', beds: 3, baths: 2, adr: 350, occupancy: 40, distance: '1.2 mi' },
+        { address: '321 Lake View Rd', beds: 4, baths: 3, adr: 420, occupancy: 48, distance: '1.5 mi' }
+      ],
+      marketTrends: {
+        avgADR: 370,
+        avgOccupancy: 42,
+        seasonality: 'Strong winter (ski season) and summer, moderate spring/fall',
+        growthTrend: 'Growing 5-8% annually'
+      },
+      competitivePosition: 'Property is competitively positioned with recent upgrades and amenities matching top-performing comps',
+      demandIndicators: {
+        tourism: 'High - Pocono Mountains ski resorts, hiking, lakes',
+        events: 'Year-round festivals and outdoor events',
+        accessibility: 'Within 90 minutes of NYC/Philadelphia'
+      }
+    },
+    revenueStrategy: {
+      strategy: 'Premium positioning with hot tub and game room amenities targeting families and groups',
+      pricingStrategy: {
+        peakSeasonADR: 450,
+        offSeasonADR: 310,
+        avgADR: 370
+      },
+      occupancyProjections: {
+        year1: 42,
+        year2: 45,
+        year3: 48
+      },
+      amenityImpact: [
+        { name: 'Hot Tub', adrIncrease: 50, cost: 8500, paybackMonths: 15 },
+        { name: 'Game Room', adrIncrease: 30, cost: 4000, paybackMonths: 12 }
+      ],
+      managementPlan: 'Professional STR management with dynamic pricing and 24/7 guest support'
+    },
+    riskAssessment: {
+      regulatoryRisks: [
+        { risk: 'STR permit requirements', severity: 'Low' as const, mitigation: 'Zoning allows STRs with proper registration' }
+      ],
+      marketRisks: [
+        { risk: 'Seasonality impacts revenue', severity: 'Medium' as const, mitigation: 'Winter ski season offsets summer tourism' }
+      ],
+      propertyRisks: [
+        { risk: 'Hot tub maintenance costs', severity: 'Low' as const, mitigation: 'Built into operating expense projections' }
+      ],
+      financialRisks: [
+        { risk: 'Interest rate increases', severity: 'Low' as const, mitigation: 'Fixed 30-year mortgage locks in rate' }
+      ]
+    },
+    sources: [
+      { title: 'AirDNA Market Data', url: 'https://www.airdna.co' },
+      { title: 'Pocono Mountains Visitors Bureau', url: 'https://www.poconomountains.com' }
+    ]
   };
 
   return (
