@@ -960,6 +960,7 @@ const App: React.FC = () => {
             displayedAddress={displayedAddress}
             strategy={strategy}
             setStrategy={setStrategy}
+            userTier={userTier}
             baseConfig={baseConfig}
             finalConfig={finalConfig}
             capRate={capRate}

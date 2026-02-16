@@ -25,6 +25,7 @@ interface DashboardTabProps {
   displayedAddress: string;
   strategy: RentalStrategy;
   setStrategy?: (s: RentalStrategy) => void;
+  userTier: 'free' | 'pro';
   baseConfig: PropertyConfig;
   finalConfig: PropertyConfig;
   // Metrics
@@ -84,7 +85,7 @@ interface DashboardTabProps {
 }
 
 const DashboardTab: React.FC<DashboardTabProps> = ({
-  insight, displayedAddress, strategy, setStrategy, baseConfig, finalConfig,
+  insight, displayedAddress, strategy, setStrategy, userTier, baseConfig, finalConfig,
   capRate, cashOnCash, cashPortion, annualNoi, annualGross,
   annualProfit, annualSurplus, grossYield, downPayment, helocPortion,
   totalUpfrontCapital, currentRateValue, year1Data, totalDscr,
@@ -99,7 +100,17 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   investmentTargets,
   propertyData, marketStats, marketTrends, bedroomStats, rentalListings, rentEstimateData
 }) => {
-  return (
+  // State for Pro-only feature access
+  const [showProModal, setShowProModal] = React.useState(false);
+
+  // Wrap handlers for Pro-only features
+  const withProCheck = (handler: () => void) => {
+    if (userTier === 'free') {
+      setShowProModal(true);
+      return;
+    }
+    handler();
+  };
     <div className="space-y-3 animate-in fade-in duration-700 max-w-[1600px] mx-auto">
       {/* Hero Card */}
       <div className="rounded-3xl bg-[#0f172a] shadow-2xl relative overflow-hidden border border-white/5 min-h-[300px]">
@@ -257,12 +268,12 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
       </div>
 
       {/* ADVANCED ANALYSIS SECTION */}
-      <div className="mt-6 pt-6 border-t border-slate-200">
+      <div className="mt-6 pt-6 border-t border-slate-200" style={userTier === 'free' ? { position: 'relative', opacity: 0.5, pointerEvents: 'none' } : {}}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-lg"><Sparkles size={18} /></div>
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tight text-slate-900">Advanced Analysis</h2>
+              <h2 className="text-xl font-black uppercase tracking-tight text-slate-900">Advanced Analysis {userTier === 'free' && <span className="text-xs text-purple-600 font-black ml-2">PRO ONLY</span>}</h2>
               <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">AI-Powered Deep Dive Tools</p>
             </div>
           </div>
@@ -273,7 +284,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             <PathToYesPanel
               data={pathToYesData}
               isLoading={isLoadingPathToYes}
-              onRefresh={handleRunPathToYes}
+              onRefresh={() => withProCheck(handleRunPathToYes)}
               liveKpis={{ capRate, cashOnCash, dscr: totalDscr }}
               targets={investmentTargets}
             />
@@ -282,7 +293,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             <AmenityROIPanel
               data={amenityROIData}
               isLoading={isLoadingAmenityROI}
-              onRefresh={handleRunAmenityROI}
+              onRefresh={() => withProCheck(handleRunAmenityROI)}
             />
           </ErrorBoundary>
         </div>
@@ -292,18 +303,76 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             <SensitivityTable
               data={sensitivityData}
               isLoading={isLoadingSensitivity}
-              onRefresh={handleRunSensitivity}
+              onRefresh={() => withProCheck(handleRunSensitivity)}
             />
           </ErrorBoundary>
           <ErrorBoundary>
             <LenderPacketExport
               packet={lenderPacket}
               isLoading={isLoadingLenderPacket}
-              onGenerate={handleGenerateLenderPacket}
+              onGenerate={() => withProCheck(handleGenerateLenderPacket)}
             />
           </ErrorBoundary>
         </div>
       </div>
+
+      {/* Pro-Only Modal */}
+      {showProModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            {/* SAMPLE Watermark */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="text-center opacity-10">
+                <div className="text-8xl font-black text-slate-400 transform -rotate-45">SAMPLE</div>
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className="relative p-8 text-center">
+              <div className="p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white mb-4 inline-block">
+                <Sparkles size={24} />
+              </div>
+              
+              <h2 className="text-2xl font-black text-slate-900 mb-3">Advanced Analysis</h2>
+              <p className="text-slate-600 mb-6 text-sm font-black uppercase tracking-wider">
+                Unlock powerful AI-driven insights with Pro
+              </p>
+              
+              <ul className="text-left space-y-3 mb-8">
+                <li className="flex items-center gap-3 text-sm font-bold text-slate-700">
+                  <span className="text-purple-600 font-black">✓</span> Sensitivity Analysis
+                </li>
+                <li className="flex items-center gap-3 text-sm font-bold text-slate-700">
+                  <span className="text-purple-600 font-black">✓</span> Amenity ROI Optimization
+                </li>
+                <li className="flex items-center gap-3 text-sm font-bold text-slate-700">
+                  <span className="text-purple-600 font-black">✓</span> Path to Yes Analysis
+                </li>
+                <li className="flex items-center gap-3 text-sm font-bold text-slate-700">
+                  <span className="text-purple-600 font-black">✓</span> Lender Packet Export
+                </li>
+              </ul>
+              
+              <button
+                onClick={() => {
+                  setShowProModal(false);
+                  alert('Pro tier: $29/month\n\n✓ 50 analyses per day\n✓ 100 Claude calls per hour\n✓ Advanced Analysis Tools\n✓ Priority support\n\nStripe payment integration coming in Phase 18!');
+                }}
+                className="w-full px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black rounded-lg transition-all mb-3"
+              >
+                UPGRADE TO PRO
+              </button>
+              
+              <button
+                onClick={() => setShowProModal(false)}
+                className="w-full px-6 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-lg transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Market Comps Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
