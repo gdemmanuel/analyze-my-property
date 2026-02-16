@@ -84,7 +84,7 @@ interface DashboardTabProps {
 }
 
 const DashboardTab: React.FC<DashboardTabProps> = ({
-  insight, displayedAddress, strategy, baseConfig, finalConfig,
+  insight, displayedAddress, strategy, setStrategy, baseConfig, finalConfig,
   capRate, cashOnCash, cashPortion, annualNoi, annualGross,
   annualProfit, annualSurplus, grossYield, downPayment, helocPortion,
   totalUpfrontCapital, currentRateValue, year1Data, totalDscr,
