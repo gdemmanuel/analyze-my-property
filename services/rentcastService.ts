@@ -1,6 +1,18 @@
 // All RentCast API calls go through /api/rentcast/* — API key is never in the browser
 const isDev = import.meta.env.DEV;
 
+// Helper to get auth headers for API calls
+async function getAuthHeaders(): Promise<Record<string, string>> {
+    const { supabase } = await import('../src/lib/supabase');
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    const headers: Record<string, string> = {};
+    if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+    return headers;
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -186,11 +198,14 @@ export const fetchPropertyData = async (address: string): Promise<RentCastProper
 
         if (isDev) console.log(`[RentCast] Fetching data for: ${cleanAddress}`);
 
+        // Get auth headers
+        const headers = await getAuthHeaders();
+        
         // Fetch listings, AVM, and property record in parallel (they're independent)
         const [listingRes, avmRes, propRes] = await Promise.all([
-            fetch(`/api/rentcast/listings/sale?address=${encodedAddress}&status=Active`),
-            fetch(`/api/rentcast/avm/value?address=${encodedAddress}`).catch(() => null),
-            fetch(`/api/rentcast/properties?address=${encodedAddress}`),
+            fetch(`/api/rentcast/listings/sale?address=${encodedAddress}&status=Active`, { headers }),
+            fetch(`/api/rentcast/avm/value?address=${encodedAddress}`, { headers }).catch(() => null),
+            fetch(`/api/rentcast/properties?address=${encodedAddress}`, { headers }),
         ]);
 
         // 1. Active Listings (most accurate for current Price)
@@ -424,8 +439,9 @@ export const fetchPropertyData = async (address: string): Promise<RentCastProper
 
 export const fetchMarketStats = async (zipCode: string): Promise<MarketStats | null> => {
     try {
+        const headers = await getAuthHeaders();
         // Tier 2G: Request all data types (sale + rental) for comprehensive market view
-        const response = await fetch(`/api/rentcast/markets?zipCode=${zipCode}&dataType=All`);
+        const response = await fetch(`/api/rentcast/markets?zipCode=${zipCode}&dataType=All`, { headers });
 
         if (!response.ok) {
             console.error(`RentCast Market Stats Error: ${response.status}`);
@@ -456,8 +472,9 @@ export const fetchMarketStats = async (zipCode: string): Promise<MarketStats | n
 
 export const fetchRentEstimate = async (address: string): Promise<any | null> => {
     try {
+        const headers = await getAuthHeaders();
         const encodedAddress = encodeURIComponent(address);
-        const response = await fetch(`/api/rentcast/avm/rent/long-term?address=${encodedAddress}`);
+        const response = await fetch(`/api/rentcast/avm/rent/long-term?address=${encodedAddress}`, { headers });
 
         if (!response.ok) {
             console.error(`RentCast Rent Estimate Error: ${response.status}`);
@@ -487,13 +504,14 @@ export const fetchRentalListings = async (
     propertyType?: string
 ): Promise<RentalListing[] | null> => {
     try {
+        const headers = await getAuthHeaders();
         let url = `/api/rentcast/listings/rental/long-term?zipCode=${zipCode}&status=Active&limit=10`;
         if (bedrooms) url += `&bedrooms=${bedrooms}`;
         if (propertyType) url += `&propertyType=${encodeURIComponent(propertyType)}`;
 
         if (isDev) console.log(`[RentCast] Fetching rental listings for zip ${zipCode}`);
 
-        const response = await fetch(url);
+        const response = await fetch(url, { headers });
         if (!response.ok) {
             console.error(`RentCast Rental Listings Error: ${response.status}`);
             return null;

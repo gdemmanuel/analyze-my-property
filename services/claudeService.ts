@@ -146,9 +146,18 @@ async function claudeProxy(params: {
   tools?: any[];
   system?: string;
 }, endpoint: string = '/api/claude/messages'): Promise<{ type: string; text: string }[]> {
+  // Get auth token from Supabase session
+  const { supabase } = await import('../src/lib/supabase');
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  }
+  
   const res = await fetch(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(params),
   });
 
