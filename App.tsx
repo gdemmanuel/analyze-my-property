@@ -536,8 +536,14 @@ const App: React.FC = () => {
       .replace(/,\s*/g, ', ');
   };
 
+  // Ref to prevent multiple rapid analyses
+  const analysisTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
   // Simplified runAnalysis - just triggers React Query by setting targetAddress
   const runAnalysis = (selectedAddr?: string) => {
+    // Prevent rapid successive clicks
+    if (isAnalyzing) return;
+    
     const target = selectedAddr || propertyInput;
     if (!target) return;
     
