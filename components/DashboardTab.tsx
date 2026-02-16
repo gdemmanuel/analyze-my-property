@@ -144,12 +144,12 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
               {/* Property Features Inline */}
               {propertyData?.features && Object.values(propertyData.features).some(v => v != null) && (
                 <div className="flex flex-wrap gap-2">
-                  {propertyData.features.pool && <span className="px-2 py-1 bg-blue-500/20 text-blue-200 rounded text-[8px] font-black flex items-center gap-1"><Droplets size={10} /> Pool</span>}
-                  {propertyData.features.garage && <span className="px-2 py-1 bg-slate-500/20 text-slate-200 rounded text-[8px] font-black flex items-center gap-1"><Car size={10} /> {propertyData.features.garageSpaces || '?'}-Car</span>}
-                  {propertyData.features.fireplace && <span className="px-2 py-1 bg-orange-500/20 text-orange-200 rounded text-[8px] font-black flex items-center gap-1"><Flame size={10} /> Fireplace</span>}
-                  {propertyData.features.coolingType && <span className="px-2 py-1 bg-cyan-500/20 text-cyan-200 rounded text-[8px] font-black">AC: {propertyData.features.coolingType}</span>}
-                  {propertyData.features.heatingType && <span className="px-2 py-1 bg-red-500/20 text-red-200 rounded text-[8px] font-black">Heat: {propertyData.features.heatingType}</span>}
-                  {propertyData.zoning && <span className="px-2 py-1 bg-amber-500/20 text-amber-200 rounded text-[8px] font-black">Zone: {propertyData.zoning}</span>}
+                  {propertyData.features.pool && <span className="px-3 py-1.5 bg-blue-500/20 text-blue-200 rounded text-[9px] font-black flex items-center gap-1"><Droplets size={12} /> Pool</span>}
+                  {propertyData.features.garage && <span className="px-3 py-1.5 bg-slate-500/20 text-slate-200 rounded text-[9px] font-black flex items-center gap-1"><Car size={12} /> {propertyData.features.garageSpaces || '?'}-Car</span>}
+                  {propertyData.features.fireplace && <span className="px-3 py-1.5 bg-orange-500/20 text-orange-200 rounded text-[9px] font-black flex items-center gap-1"><Flame size={12} /> Fireplace</span>}
+                  {propertyData.features.coolingType && <span className="px-3 py-1.5 bg-cyan-500/20 text-cyan-200 rounded text-[9px] font-black">AC: {propertyData.features.coolingType}</span>}
+                  {propertyData.features.heatingType && <span className="px-3 py-1.5 bg-red-500/20 text-red-200 rounded text-[9px] font-black">Heat: {propertyData.features.heatingType}</span>}
+                  {propertyData.zoning && <span className="px-3 py-1.5 bg-amber-500/20 text-amber-200 rounded text-[9px] font-black">Zone: {propertyData.zoning}</span>}
                 </div>
               )}
             </div>
