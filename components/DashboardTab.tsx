@@ -105,7 +105,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
       <div className="rounded-3xl bg-[#0f172a] shadow-2xl relative overflow-hidden border border-white/5 min-h-[300px]">
         <div className="p-6 lg:p-8 relative z-10 flex flex-col justify-between h-full">
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2 text-[#f43f5e] font-black text-[9px] uppercase tracking-[0.3em]">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#f43f5e] animate-pulse" />
                 {strategy} AUDIT • REAL-TIME DATA
@@ -134,9 +134,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                 </div>
               </div>
             </div>
-            <div className="mb-1">
+            <div>
               {/* Address Row */}
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-3 group">
                   <h2 className="text-2xl lg:text-3xl font-black tracking-tighter leading-none text-white">{displayedAddress}</h2>
                   <a href={`https://www.zillow.com/homes/for_sale/${encodeURIComponent(displayedAddress)}_rb/`} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 hover:bg-[#f43f5e] hover:scale-110 rounded-full transition-all text-white"><Map size={14} /></a>
