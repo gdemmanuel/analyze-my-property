@@ -178,6 +178,69 @@ app.post('/api/admin/rate-limits', (req, res) => {
     return res.status(400).json({ error: 'Invalid claudeCallsPerHour value' });
   }
   
+  TIER_LIMITS[tier as 'free' | 'pro'] = {
+    analysesPerDay,
+    claudeCallsPerHour,
+  };
+  
+  res.json({ success: true, limits: TIER_LIMITS });
+});
+
+/**
+ * GET /api/check-analysis-limit
+ * Pre-flight check: Can the user run an analysis?
+ * Returns: { canAnalyze: boolean, message?: string, usage?: { analyses: number, limit: number } }
+ */
+app.get('/api/check-analysis-limit', authMiddleware, async (req, res) => {
+  try {
+    const userId = (req as any).user?.id;
+    
+    // Allow unauthenticated users to check (they're free tier)
+    if (!userId) {
+      return res.json({ canAnalyze: true });
+    }
+    
+    // Get user profile and check limits
+    const profile = await (req as any).userProfile || null;
+    if (!profile) {
+      return res.json({ canAnalyze: true });
+    }
+    
+    const check = await checkUsageLimits(userId, 'analysis');
+    
+    if (!check.allowed) {
+      return res.json({
+        canAnalyze: false,
+        message: `${profile.tier === 'free' ? 'Daily analysis limit reached. Upgrade to Pro for unlimited analyses.' : 'Daily limit: ' + TIER_LIMITS[profile.tier].analysesPerDay + ' analyses'}`,
+        usage: check.usage
+      });
+    }
+    
+    return res.json({
+      canAnalyze: true,
+      usage: check.usage
+    });
+  } catch (error) {
+    console.error('[Server] Error checking analysis limit:', error);
+    res.json({ canAnalyze: true }); // Optimistic: allow if check fails
+  }
+});
+
+app.post('/api/admin/rate-limits', (req, res) => {
+  const { tier, analysesPerDay, claudeCallsPerHour } = req.body;
+  
+  if (!tier || !['free', 'pro'].includes(tier)) {
+    return res.status(400).json({ error: 'Invalid tier. Must be "free" or "pro"' });
+  }
+  
+  if (typeof analysesPerDay !== 'number' || analysesPerDay < 1) {
+    return res.status(400).json({ error: 'Invalid analysesPerDay value' });
+  }
+  
+  if (typeof claudeCallsPerHour !== 'number' || claudeCallsPerHour < 1) {
+    return res.status(400).json({ error: 'Invalid claudeCallsPerHour value' });
+  }
+  
   (TIER_LIMITS as any)[tier] = { analysesPerDay, claudeCallsPerHour };
   res.json({ success: true, limits: TIER_LIMITS });
 });

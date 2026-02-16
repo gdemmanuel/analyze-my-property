@@ -539,13 +539,41 @@ const App: React.FC = () => {
   // Ref to prevent multiple rapid analyses
   const analysisTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
+  // Check if user can run an analysis BEFORE making API calls
+  const checkCanAnalyze = async (): Promise<{ canAnalyze: boolean; message?: string }> => {
+    try {
+      const res = await fetch('/api/check-analysis-limit', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!res.ok) {
+        console.error('[App] Failed to check analysis limit');
+        return { canAnalyze: true }; // Optimistic: allow if check fails
+      }
+      
+      const data = await res.json();
+      return data;
+    } catch (error) {
+      console.error('[App] Error checking analysis limit:', error);
+      return { canAnalyze: true }; // Optimistic: allow if check fails
+    }
+  };
+
   // Simplified runAnalysis - just triggers React Query by setting targetAddress
-  const runAnalysis = (selectedAddr?: string) => {
+  const runAnalysis = async (selectedAddr?: string) => {
     // Prevent rapid successive clicks
     if (isAnalyzing) return;
     
     const target = selectedAddr || propertyInput;
     if (!target) return;
+    
+    // CHECK LIMITS BEFORE MAKING ANY API CALLS
+    const limitCheck = await checkCanAnalyze();
+    if (!limitCheck.canAnalyze) {
+      setAnalysisError(limitCheck.message || 'Unable to run analysis at this time');
+      return;
+    }
     
     const normalizedAddress = normalizeAddress(target);
     
