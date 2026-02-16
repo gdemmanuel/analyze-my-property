@@ -205,7 +205,7 @@ export async function checkUsageLimits(
     if (usage.analyses_today >= limits.analysesPerDay) {
       return {
         allowed: false,
-        message: `Analysis rate limit reached. ${profile.tier === 'free' ? 'Upgrade to Pro for more analyses.' : 'Daily limit: ' + limits.analysesPerDay}`,
+        message: `${profile.tier === 'free' ? 'Daily analysis limit reached. Upgrade to Pro for unlimited analyses.' : 'Daily limit: ' + limits.analysesPerDay + ' analyses'}`,
         usage,
       };
     }

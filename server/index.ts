@@ -104,7 +104,7 @@ const analysisLimiter = rateLimit({
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Analysis rate limit reached. Please wait before running another full analysis.', retryAfter: 600 },
+  message: { error: 'You\'ve reached your analysis limit. Upgrade to Pro for unlimited analyses.', retryAfter: 600 },
 });
 
 // Admin routes registered BEFORE rate limiter to avoid any interference
