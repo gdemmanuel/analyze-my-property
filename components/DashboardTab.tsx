@@ -103,7 +103,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
     <div className="space-y-3 animate-in fade-in duration-700 max-w-[1600px] mx-auto">
       {/* Hero Card */}
       <div className="rounded-3xl bg-[#0f172a] shadow-2xl relative overflow-hidden border border-white/5 min-h-[300px]">
-        <div className="p-6 lg:p-8 relative z-10 flex flex-col justify-between h-full">
+        <div className="p-4 lg:p-6 relative z-10 flex flex-col justify-between h-full">
           <div>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2 text-[#f43f5e] font-black text-[9px] uppercase tracking-[0.3em]">
@@ -134,14 +134,20 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                 </div>
               </div>
             </div>
-            <div>
+            <div className="mb-4">
               {/* Address Row */}
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-3 group">
-                  <h2 className="text-2xl lg:text-3xl font-black tracking-tighter leading-none text-white">{displayedAddress}</h2>
-                  <a href={`https://www.zillow.com/homes/for_sale/${encodeURIComponent(displayedAddress)}_rb/`} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 hover:bg-[#f43f5e] hover:scale-110 rounded-full transition-all text-white"><Map size={14} /></a>
+              <div className="flex items-center gap-3 group mb-1">
+                <h2 className="text-2xl lg:text-3xl font-black tracking-tighter leading-none text-white">{displayedAddress}</h2>
+                <a href={`https://www.zillow.com/homes/for_sale/${encodeURIComponent(displayedAddress)}_rb/`} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 hover:bg-[#f43f5e] hover:scale-110 rounded-full transition-all text-white"><Map size={14} /></a>
+              </div>
+              {/* Beds/Baths/SQFT and Property Badges centered in middle */}
+              <div className="flex items-center justify-between">
+                <div className="flex gap-4 text-slate-600 text-[10px] font-black uppercase tracking-[0.25em]">
+                  <span className="flex gap-2 items-center"><Home size={14} className="text-[#f43f5e]" /> {insight.beds} BEDS</span>
+                  <span className="flex gap-2 items-center"><Layers size={14} className="text-[#3b82f6]" /> {insight.baths} BATHS</span>
+                  <span className="flex gap-2 items-center"><Ruler size={14} className="text-[#10b981]" /> {insight.sqft.toLocaleString()} SQFT</span>
                 </div>
-                {/* Property Features Badges - Centered/Right */}
+                {/* Property Features Badges in center-right */}
                 {propertyData?.features && Object.values(propertyData.features).some(v => v != null) && (
                   <div className="flex flex-wrap gap-2 justify-end">
                     {propertyData.features.pool && <span className="px-3 py-1.5 bg-blue-500/20 text-blue-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Droplets size={12} /> Pool</span>}
@@ -152,12 +158,6 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                     {propertyData.zoning && <span className="px-3 py-1.5 bg-amber-500/20 text-amber-200 rounded text-[9px] font-black whitespace-nowrap">Zone: {propertyData.zoning}</span>}
                   </div>
                 )}
-              </div>
-              {/* Beds/Baths/SQFT on separate row below */}
-              <div className="flex gap-4 text-slate-600 text-[10px] font-black uppercase tracking-[0.25em]">
-                <span className="flex gap-2 items-center"><Home size={14} className="text-[#f43f5e]" /> {insight.beds} BEDS</span>
-                <span className="flex gap-2 items-center"><Layers size={14} className="text-[#3b82f6]" /> {insight.baths} BATHS</span>
-                <span className="flex gap-2 items-center"><Ruler size={14} className="text-[#10b981]" /> {insight.sqft.toLocaleString()} SQFT</span>
               </div>
             </div>
           </div>
