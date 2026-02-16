@@ -140,22 +140,23 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                 <h2 className="text-2xl lg:text-3xl font-black tracking-tighter leading-none text-white">{displayedAddress}</h2>
                 <a href={`https://www.zillow.com/homes/for_sale/${encodeURIComponent(displayedAddress)}_rb/`} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 hover:bg-[#f43f5e] hover:scale-110 rounded-full transition-all text-white"><Map size={14} /></a>
               </div>
-              {/* Beds/Baths/SQFT and Property Badges centered in middle */}
-              <div className="flex items-center justify-between">
+              {/* Property info row with badges in center */}
+              <div className="flex items-center gap-6">
+                {/* Beds/Baths/SQFT on left */}
                 <div className="flex gap-4 text-slate-600 text-[10px] font-black uppercase tracking-[0.25em]">
                   <span className="flex gap-2 items-center"><Home size={14} className="text-[#f43f5e]" /> {insight.beds} BEDS</span>
                   <span className="flex gap-2 items-center"><Layers size={14} className="text-[#3b82f6]" /> {insight.baths} BATHS</span>
                   <span className="flex gap-2 items-center"><Ruler size={14} className="text-[#10b981]" /> {insight.sqft.toLocaleString()} SQFT</span>
                 </div>
-                {/* Property Features Badges in center-right */}
+                {/* Property Features Badges in center/middle */}
                 {propertyData?.features && Object.values(propertyData.features).some(v => v != null) && (
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    {propertyData.features.pool && <span className="px-3 py-1.5 bg-blue-500/20 text-blue-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Droplets size={12} /> Pool</span>}
-                    {propertyData.features.garage && <span className="px-3 py-1.5 bg-slate-500/20 text-slate-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Car size={12} /> {propertyData.features.garageSpaces || '?'}-Car</span>}
+                  <div className="flex flex-wrap gap-2">
                     {propertyData.features.fireplace && <span className="px-3 py-1.5 bg-orange-500/20 text-orange-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Flame size={12} /> Fireplace</span>}
                     {propertyData.features.coolingType && <span className="px-3 py-1.5 bg-cyan-500/20 text-cyan-200 rounded text-[9px] font-black whitespace-nowrap">AC: {propertyData.features.coolingType}</span>}
                     {propertyData.features.heatingType && <span className="px-3 py-1.5 bg-red-500/20 text-red-200 rounded text-[9px] font-black whitespace-nowrap">Heat: {propertyData.features.heatingType}</span>}
                     {propertyData.zoning && <span className="px-3 py-1.5 bg-amber-500/20 text-amber-200 rounded text-[9px] font-black whitespace-nowrap">Zone: {propertyData.zoning}</span>}
+                    {propertyData.features.pool && <span className="px-3 py-1.5 bg-blue-500/20 text-blue-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Droplets size={12} /> Pool</span>}
+                    {propertyData.features.garage && <span className="px-3 py-1.5 bg-slate-500/20 text-slate-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Car size={12} /> {propertyData.features.garageSpaces || '?'}-Car</span>}
                   </div>
                 )}
               </div>
