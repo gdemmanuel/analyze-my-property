@@ -87,8 +87,10 @@ export class DatabaseCostTracker {
     const supabase = getSupabaseAdmin();
 
     try {
+      console.log(`[CostTracker] Recording Claude call: user=${userId}, model=${normalizedModel}, endpoint=${endpoint}, cost=$${totalCost.toFixed(4)}`);
+      
       // Insert into api_usage_log
-      await supabase.from('api_usage_log').insert({
+      const { error: insertError } = await supabase.from('api_usage_log').insert({
         user_id: userId === 'anonymous' ? null : userId,
         api_type: 'claude',
         endpoint,
@@ -97,15 +99,27 @@ export class DatabaseCostTracker {
         output_tokens: outputTokens,
         cost_usd: totalCost,
       });
+      
+      if (insertError) {
+        console.error('[CostTracker] Error inserting into api_usage_log:', insertError);
+      } else {
+        console.log('[CostTracker] Successfully inserted into api_usage_log');
+      }
 
       // Update daily aggregate
-      await supabase.rpc('increment_daily_cost', {
+      const { error: rpcError } = await supabase.rpc('increment_daily_cost', {
         p_date: new Date().toISOString().split('T')[0],
         p_api_type: 'claude',
         p_cost: totalCost,
         p_model: normalizedModel,
         p_endpoint: endpoint,
       });
+      
+      if (rpcError) {
+        console.error('[CostTracker] Error calling increment_daily_cost:', rpcError);
+      } else {
+        console.log('[CostTracker] Successfully updated daily costs');
+      }
 
       await this.checkBudgetAlert();
       return totalCost;
@@ -331,6 +345,8 @@ export class DatabaseCostTracker {
         return [];
       }
       
+      console.log(`[CostTracker] Fetched ${data?.length || 0} API usage log entries`);
+      
       // Aggregate by user
       const userStats = new Map<string, { 
         userId: string; 
@@ -368,7 +384,9 @@ export class DatabaseCostTracker {
         }
       });
       
-      return Array.from(userStats.values());
+      const result = Array.from(userStats.values());
+      console.log(`[CostTracker] Aggregated stats for ${result.length} users:`, result);
+      return result;
     } catch (error) {
       console.error('[CostTracker] Error fetching user call stats:', error);
       return [];
