@@ -154,6 +154,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                 )}
               </div>
               {/* Beds/Baths/SQFT row */}
+              <div className="flex gap-6 text-slate-600 text-[10px] font-black uppercase tracking-[0.25em]">
                 <span className="flex gap-2 items-center border-r border-white/10 pr-6 last:border-0"><Home size={14} className="text-[#f43f5e]" /> {insight.beds} BEDS</span>
                 <span className="flex gap-2 items-center border-r border-white/10 pr-6 last:border-0"><Layers size={14} className="text-[#3b82f6]" /> {insight.baths} BATHS</span>
                 <span className="flex gap-2 items-center border-r border-white/10 pr-6 last:border-0"><Ruler size={14} className="text-[#10b981]" /> {insight.sqft.toLocaleString()} SQFT</span>
