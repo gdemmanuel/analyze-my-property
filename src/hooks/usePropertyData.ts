@@ -20,8 +20,11 @@ export const usePropertyData = (address: string, enabled: boolean = true) => {
     queryKey: ['property', address],
     queryFn: () => fetchPropertyData(address),
     enabled: enabled && !!address,
-    staleTime: 2 * 60 * 60 * 1000, // 2 hours (increased for production)
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours (extended for RentCast optimization)
+    gcTime: 48 * 60 * 60 * 1000, // Keep in cache for 48 hours
     refetchOnMount: false, // Use cache on repeat searches
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnReconnect: false, // Don't refetch on reconnect
   });
 };
 
@@ -33,8 +36,11 @@ export const useMarketStats = (zipCode: string | undefined, enabled: boolean = t
     queryKey: ['marketStats', zipCode],
     queryFn: () => fetchMarketStats(zipCode!),
     enabled: enabled && !!zipCode,
-    staleTime: 2 * 60 * 60 * 1000, // 2 hours (increased for production)
-    refetchOnMount: false, // Use cache on repeat searches
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours (market stats change slowly)
+    gcTime: 48 * 60 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 };
 
@@ -46,8 +52,11 @@ export const useRentEstimate = (address: string, enabled: boolean = true) => {
     queryKey: ['rentEstimate', address],
     queryFn: () => fetchRentEstimate(address),
     enabled: enabled && !!address,
-    staleTime: 2 * 60 * 60 * 1000, // 2 hours (increased for production)
-    refetchOnMount: false, // Use cache on repeat searches
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours (rent estimates stable)
+    gcTime: 48 * 60 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 };
 
@@ -130,8 +139,11 @@ export const useRentalListings = (
     queryKey: ['rentalListings', zipCode, bedrooms, propertyType],
     queryFn: () => fetchRentalListings(zipCode!, bedrooms, propertyType),
     enabled: enabled && !!zipCode,
-    staleTime: 2 * 60 * 60 * 1000, // 2 hours (increased for production)
+    staleTime: 12 * 60 * 60 * 1000, // 12 hours (rental listings change more frequently)
+    gcTime: 24 * 60 * 60 * 1000,
     refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 };
 

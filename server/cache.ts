@@ -81,4 +81,4 @@ export class TTLCache<T = any> {
 
 // Shared cache instances
 export const claudeCache = new TTLCache(2 * 60 * 60 * 1000);   // 2 hours for Claude responses (increased for production)
-export const rentcastCache = new TTLCache(2 * 60 * 60 * 1000); // 2 hours for RentCast data
+export const rentcastCache = new TTLCache(24 * 60 * 60 * 1000, 1000); // 24 hours for RentCast data (extended from 2h), max 1000 entries
