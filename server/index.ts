@@ -263,11 +263,54 @@ app.get('/api/queue/status', (req, res) => {
   });
 });
 
-app.post('/api/admin/cache/clear', (req, res) => {
+app.post('/api/admin/cache/clear', async (req, res) => {
   const { target } = req.body || {};
-  if (target === 'claude' || target === 'all') claudeCache.clear();
-  if (target === 'rentcast' || target === 'all') rentcastCache.clear();
-  res.json({ success: true, cleared: target || 'all', cache: { claude: claudeCache.size, rentcast: rentcastCache.size } });
+  
+  if (target === 'rentcast' || target === 'all') {
+    // Clear database cache
+    const { clearAllCache } = await import('./databaseCache.js');
+    await clearAllCache();
+  }
+  
+  if (target === 'claude' || target === 'all') {
+    claudeCache.clear();
+  }
+  
+  res.json({ 
+    success: true, 
+    cleared: target || 'all', 
+    cache: { 
+      claude: claudeCache.size, 
+      rentcast: rentcastCache.size 
+    } 
+  });
+});
+
+// New endpoint: Get RentCast cache statistics
+app.get('/api/admin/cache/stats', async (req, res) => {
+  try {
+    const { getCacheStats, getCacheStatsByEndpoint, getPopularCachedProperties } = await import('./databaseCache.js');
+    
+    const [stats, byEndpoint, popularProperties] = await Promise.all([
+      getCacheStats(),
+      getCacheStatsByEndpoint(),
+      getPopularCachedProperties(10),
+    ]);
+    
+    res.json({
+      success: true,
+      memory: {
+        claude: claudeCache.size,
+        rentcast: rentcastCache.size,
+      },
+      database: stats,
+      byEndpoint,
+      popularProperties,
+    });
+  } catch (error: any) {
+    console.error('[Admin] Error getting cache stats:', error);
+    res.status(500).json({ error: 'Failed to get cache stats' });
+  }
 });
 
 app.use('/api', generalLimiter);
@@ -491,6 +534,8 @@ app.post('/api/claude/analysis', authMiddleware, analysisLimiter, async (req, re
  * RentCast passthrough proxy — intercepts all GET /api/rentcast/... requests.
  * Strips /api/rentcast/ prefix and forwards to https://api.rentcast.io/v1/...
  * with the server-side API key injected.
+ * 
+ * Phase 2: Database-backed caching with configurable TTL per endpoint
  */
 app.use('/api/rentcast', authMiddleware, async (req, res) => {
   if (!RENTCAST_API_KEY) {
@@ -501,11 +546,10 @@ app.use('/api/rentcast', authMiddleware, async (req, res) => {
     // req.url = everything after /api/rentcast, e.g. /properties?address=...
     const url = `https://api.rentcast.io/v1${req.url}`;
 
-    // Check cache
-    const cacheKey = `rentcast:${url}`;
-    const cached = rentcastCache.get(cacheKey);
+    // Check database cache (checks memory cache first, then DB)
+    const { getCachedResponse, setCachedResponse } = await import('./databaseCache.js');
+    const cached = await getCachedResponse(url);
     if (cached) {
-      if (isDev) console.log(`[Server] Cache HIT for RentCast: ${req.url}`);
       (res as any).__cached = true;
       return res.json(cached);
     }
@@ -534,8 +578,8 @@ app.use('/api/rentcast', authMiddleware, async (req, res) => {
     const cost = await costTracker.recordRentCast(req.url, userId);
     if (isDev) console.log(`[CostTracker] RentCast request cost: $${cost.toFixed(4)}`);
 
-    // Cache successful responses for 60 minutes
-    rentcastCache.set(cacheKey, data);
+    // Cache successful responses (saves to both memory and database)
+    await setCachedResponse(url, data, response.status);
 
     return res.json(data);
   } catch (error: any) {

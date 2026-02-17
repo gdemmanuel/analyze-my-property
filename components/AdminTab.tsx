@@ -135,6 +135,7 @@ const AdminTab: React.FC = () => {
   const [usersData, setUsersData] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [userStats, setUserStats] = useState<any[]>([]);
+  const [cacheStats, setCacheStats] = useState<any>(null);
   const [configForm, setConfigForm] = useState({
     dailyBudget: 50,
     rentcastCost: 0.03,
@@ -256,6 +257,15 @@ const AdminTab: React.FC = () => {
         const statsData = await statsRes.json();
         console.log('[AdminTab] User stats received:', statsData);
         setUserStats(statsData);
+      }
+      
+      // Fetch cache stats
+      console.log('[AdminTab] Fetching cache stats from /api/admin/cache/stats...');
+      const cacheRes = await fetch('/api/admin/cache/stats');
+      if (cacheRes.ok) {
+        const cacheData = await cacheRes.json();
+        console.log('[AdminTab] Cache stats received:', cacheData);
+        setCacheStats(cacheData);
       }
     } catch (e) {
       console.error('[AdminTab] Failed to fetch users:', e);
@@ -1615,6 +1625,74 @@ const AdminTab: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Database Cache Statistics */}
+          {cacheStats?.database && (
+            <div className="bg-white rounded-xl border border-slate-100 p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <HardDrive size={16} className="text-emerald-400" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Database Cache Performance</h3>
+              </div>
+              
+              {/* Cache Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div className="bg-emerald-50 rounded-lg p-3">
+                  <div className="text-xs font-black text-emerald-600 uppercase mb-1">Active Entries</div>
+                  <div className="text-2xl font-black text-emerald-900">{cacheStats.database.activeEntries || 0}</div>
+                </div>
+                <div className="bg-blue-50 rounded-lg p-3">
+                  <div className="text-xs font-black text-blue-600 uppercase mb-1">Total Hits</div>
+                  <div className="text-2xl font-black text-blue-900">{cacheStats.database.totalHits || 0}</div>
+                </div>
+                <div className="bg-purple-50 rounded-lg p-3">
+                  <div className="text-xs font-black text-purple-600 uppercase mb-1">Avg Hit Count</div>
+                  <div className="text-2xl font-black text-purple-900">{(cacheStats.database.avgHitCount || 0).toFixed(1)}</div>
+                </div>
+                <div className="bg-green-50 rounded-lg p-3">
+                  <div className="text-xs font-black text-green-600 uppercase mb-1">Cost Saved</div>
+                  <div className="text-2xl font-black text-green-900">${(cacheStats.database.totalCostSaved || 0).toFixed(2)}</div>
+                </div>
+              </div>
+
+              {/* Cache by Endpoint */}
+              {cacheStats.byEndpoint && cacheStats.byEndpoint.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-3">Cache by Endpoint</h4>
+                  <div className="space-y-2">
+                    {cacheStats.byEndpoint.slice(0, 5).map((ep: any, idx: number) => (
+                      <div key={idx} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+                        <div className="flex-1">
+                          <div className="text-xs font-mono font-bold text-slate-900">{ep.endpoint}</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">
+                            {ep.entries} entries • {ep.totalHits} hits
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs font-black text-emerald-600">${(ep.costSaved || 0).toFixed(2)}</div>
+                          <div className="text-[10px] text-slate-500">saved</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Popular Cached Properties */}
+              {cacheStats.popularProperties && cacheStats.popularProperties.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-3">Most Cached Properties</h4>
+                  <div className="space-y-1.5">
+                    {cacheStats.popularProperties.slice(0, 5).map((prop: any, idx: number) => (
+                      <div key={idx} className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded text-xs">
+                        <span className="font-mono text-slate-600 truncate flex-1">{prop.cache_key.substring(0, 16)}...</span>
+                        <span className="font-black text-slate-900 ml-2">{prop.hit_count} hits</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* RentCast Usage Warning */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
