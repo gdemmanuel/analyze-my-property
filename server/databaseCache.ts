@@ -8,7 +8,7 @@
  * - Fallback to in-memory cache on DB errors
  */
 
-import { supabaseAdmin } from './supabaseAdmin.js';
+import { getSupabaseAdmin } from './supabaseAuth.js';
 import { rentcastCache as memoryCache } from './cache.js';
 import crypto from 'crypto';
 
@@ -123,10 +123,11 @@ export interface CacheStats {
  */
 export async function getFromDatabaseCache(url: string): Promise<CacheEntry | null> {
   try {
+    const supabase = getSupabaseAdmin();
     const cacheKey = generateCacheKey(url);
     
     // Query database
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('rentcast_cache')
       .select('*')
       .eq('cache_key', cacheKey)
@@ -139,7 +140,7 @@ export async function getFromDatabaseCache(url: string): Promise<CacheEntry | nu
     }
     
     // Update hit count and last accessed time
-    await supabaseAdmin
+    await supabase
       .from('rentcast_cache')
       .update({
         hit_count: data.hit_count + 1,
@@ -173,13 +174,14 @@ export async function saveToDatabaseCache(
   statusCode: number = 200
 ): Promise<void> {
   try {
+    const supabase = getSupabaseAdmin();
     const cacheKey = generateCacheKey(url);
     const endpoint = extractEndpoint(url);
     const ttlSeconds = getTTLForEndpoint(endpoint);
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
     
     // Upsert into database
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('rentcast_cache')
       .upsert({
         cache_key: cacheKey,
@@ -264,7 +266,8 @@ export async function setCachedResponse(
  */
 export async function getCacheStats(): Promise<CacheStats | null> {
   try {
-    const { data, error } = await supabaseAdmin
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
       .rpc('get_rentcast_cache_stats');
     
     if (error || !data || data.length === 0) {
@@ -292,7 +295,8 @@ export async function getCacheStats(): Promise<CacheStats | null> {
  */
 export async function getPopularCachedProperties(limit: number = 10): Promise<any[]> {
   try {
-    const { data, error } = await supabaseAdmin
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
       .rpc('get_popular_cached_properties', { limit_count: limit });
     
     if (error || !data) {
@@ -311,7 +315,8 @@ export async function getPopularCachedProperties(limit: number = 10): Promise<an
  */
 export async function cleanupExpiredCache(): Promise<number> {
   try {
-    const { data, error } = await supabaseAdmin
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
       .rpc('cleanup_expired_rentcast_cache');
     
     if (error) {
@@ -333,7 +338,8 @@ export async function cleanupExpiredCache(): Promise<number> {
  */
 export async function getCacheStatsByEndpoint(): Promise<any[]> {
   try {
-    const { data, error } = await supabaseAdmin
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
       .from('rentcast_cache')
       .select('endpoint, hit_count, cost_saved_usd, created_at, expires_at')
       .gt('expires_at', new Date().toISOString());
@@ -372,11 +378,13 @@ export async function getCacheStatsByEndpoint(): Promise<any[]> {
  */
 export async function clearAllCache(): Promise<void> {
   try {
+    const supabase = getSupabaseAdmin();
+    
     // Clear memory cache
     memoryCache.clear();
     
     // Clear database cache
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('rentcast_cache')
       .delete()
       .neq('id', 0); // Delete all rows
