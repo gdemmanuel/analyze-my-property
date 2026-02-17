@@ -111,6 +111,20 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn, on
               </button>
             )}
 
+            {userTier === 'pro' && (
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  // TODO: Implement Stripe Customer Portal redirect
+                  alert('Subscription management coming soon! Contact support@analyzemyproperty.com to cancel.');
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <Settings size={16} />
+                Manage Subscription
+              </button>
+            )}
+
             <div className="border-t border-gray-200 my-1"></div>
 
             <button
