@@ -1520,7 +1520,7 @@ const AdminTab: React.FC = () => {
                     .sort((a, b) => b.totalCalls - a.totalCalls)
                     .slice(0, 10)
                     .map((stat) => {
-                      const user = users.find(u => u.id === stat.userId);
+                      const user = usersData.find(u => u.id === stat.userId);
                       return (
                         <tr key={stat.userId} className="border-b border-slate-50 hover:bg-slate-50">
                           <td className="px-5 py-3">
@@ -1560,7 +1560,7 @@ const AdminTab: React.FC = () => {
               <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-4">Usage by Tier</h3>
               <div className="space-y-3">
                 {['free', 'pro'].map(tier => {
-                  const tierUsers = users.filter(u => u.tier === tier);
+                  const tierUsers = usersData.filter(u => u.tier === tier);
                   const tierCalls = userStats
                     .filter(s => tierUsers.some(u => u.id === s.userId))
                     .reduce((sum, s) => sum + s.totalCalls, 0);
