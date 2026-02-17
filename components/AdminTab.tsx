@@ -118,7 +118,7 @@ const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, 
 // COMPONENT
 // ============================================================================
 
-type AdminSubTab = 'overview' | 'costs' | 'performance' | 'config' | 'users';
+type AdminSubTab = 'overview' | 'costs' | 'usage' | 'performance' | 'config' | 'users';
 
 const AdminTab: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<AdminSubTab>('overview');
@@ -452,6 +452,7 @@ const AdminTab: React.FC = () => {
           { id: 'overview', label: 'Overview', icon: Activity },
           { id: 'users', label: 'Users', icon: Users },
           { id: 'costs', label: 'API Costs', icon: DollarSign },
+          { id: 'usage', label: 'Usage Analytics', icon: BarChart3 },
           { id: 'performance', label: 'Performance', icon: TrendingUp },
           { id: 'config', label: 'Configuration', icon: HardDrive },
         ].map(({ id, label, icon: Icon }) => (
@@ -1443,6 +1444,203 @@ const AdminTab: React.FC = () => {
                 </div>
                 <ExternalLink size={16} className="text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================== */}
+      {/* USAGE ANALYTICS TAB                                                 */}
+      {/* ================================================================== */}
+      {activeSubTab === 'usage' && (
+        <div className="space-y-6">
+          {/* Usage Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-xl border border-slate-100 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <BarChart3 size={16} className="text-indigo-500" />
+                <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Total Analyses</span>
+              </div>
+              <div className="text-2xl font-black text-slate-900">{userStats.reduce((sum, u) => sum + u.analysisCalls, 0)}</div>
+              <div className="text-xs text-slate-500 mt-1">All time</div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-100 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap size={16} className="text-purple-500" />
+                <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Claude Calls</span>
+              </div>
+              <div className="text-2xl font-black text-slate-900">{userStats.reduce((sum, u) => sum + u.claudeCalls, 0)}</div>
+              <div className="text-xs text-slate-500 mt-1">All time</div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-100 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Database size={16} className="text-emerald-500" />
+                <span className="text-xs font-black text-slate-500 uppercase tracking-widest">RentCast Calls</span>
+              </div>
+              <div className="text-2xl font-black text-slate-900">{userStats.reduce((sum, u) => sum + (u.totalCalls - u.claudeCalls), 0)}</div>
+              <div className="text-xs text-slate-500 mt-1">All time</div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-100 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <DollarSign size={16} className="text-amber-500" />
+                <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Est. Total Cost</span>
+              </div>
+              <div className="text-2xl font-black text-slate-900">
+                ${((userStats.reduce((sum, u) => sum + u.totalCalls, 0) * 0.01) + 74).toFixed(2)}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">This month</div>
+            </div>
+          </div>
+
+          {/* Top Users by Usage */}
+          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+            <div className="p-5 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <TrendingUp size={16} className="text-slate-400" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Top Users by API Usage</h3>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100">
+                    <th className="px-5 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-600">User</th>
+                    <th className="px-5 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-600">Tier</th>
+                    <th className="px-5 py-3 text-right text-xs font-black uppercase tracking-widest text-slate-600">Total Calls</th>
+                    <th className="px-5 py-3 text-right text-xs font-black uppercase tracking-widest text-slate-600">Analyses</th>
+                    <th className="px-5 py-3 text-right text-xs font-black uppercase tracking-widest text-slate-600">Claude</th>
+                    <th className="px-5 py-3 text-right text-xs font-black uppercase tracking-widest text-slate-600">Est. Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...userStats]
+                    .sort((a, b) => b.totalCalls - a.totalCalls)
+                    .slice(0, 10)
+                    .map((stat) => {
+                      const user = users.find(u => u.id === stat.userId);
+                      return (
+                        <tr key={stat.userId} className="border-b border-slate-50 hover:bg-slate-50">
+                          <td className="px-5 py-3">
+                            <div className="text-sm font-black text-slate-900">{user?.email || 'Unknown'}</div>
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-black uppercase ${
+                              user?.tier === 'pro' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              {user?.tier || 'free'}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3 text-right">
+                            <div className="text-sm font-black text-slate-900">{stat.totalCalls}</div>
+                          </td>
+                          <td className="px-5 py-3 text-right">
+                            <div className="text-sm font-black text-indigo-600">{stat.analysisCalls}</div>
+                          </td>
+                          <td className="px-5 py-3 text-right">
+                            <div className="text-sm font-black text-purple-600">{stat.claudeCalls}</div>
+                          </td>
+                          <td className="px-5 py-3 text-right">
+                            <div className="text-sm font-black text-amber-600">${(stat.totalCalls * 0.01).toFixed(2)}</div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* API Usage Breakdown */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* By Tier */}
+            <div className="bg-white rounded-xl border border-slate-100 p-5">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-4">Usage by Tier</h3>
+              <div className="space-y-3">
+                {['free', 'pro'].map(tier => {
+                  const tierUsers = users.filter(u => u.tier === tier);
+                  const tierCalls = userStats
+                    .filter(s => tierUsers.some(u => u.id === s.userId))
+                    .reduce((sum, s) => sum + s.totalCalls, 0);
+                  const percentage = userStats.length > 0 
+                    ? (tierCalls / userStats.reduce((sum, s) => sum + s.totalCalls, 0) * 100)
+                    : 0;
+                  
+                  return (
+                    <div key={tier}>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm font-black uppercase text-slate-700">{tier}</span>
+                        <span className="text-sm font-black text-slate-900">{tierCalls} calls ({percentage.toFixed(1)}%)</span>
+                      </div>
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full ${tier === 'pro' ? 'bg-yellow-500' : 'bg-slate-400'}`}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* By API Type */}
+            <div className="bg-white rounded-xl border border-slate-100 p-5">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-4">Usage by API</h3>
+              <div className="space-y-3">
+                {[
+                  { name: 'Claude', calls: userStats.reduce((sum, u) => sum + u.claudeCalls, 0), color: 'bg-purple-500' },
+                  { name: 'RentCast', calls: userStats.reduce((sum, u) => sum + (u.totalCalls - u.claudeCalls), 0), color: 'bg-emerald-500' }
+                ].map(api => {
+                  const total = userStats.reduce((sum, s) => sum + s.totalCalls, 0);
+                  const percentage = total > 0 ? (api.calls / total * 100) : 0;
+                  
+                  return (
+                    <div key={api.name}>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm font-black uppercase text-slate-700">{api.name}</span>
+                        <span className="text-sm font-black text-slate-900">{api.calls} calls ({percentage.toFixed(1)}%)</span>
+                      </div>
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full ${api.color}`}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* RentCast Usage Warning */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-black text-amber-900 mb-2">RentCast API Usage</h3>
+                <p className="text-sm text-amber-800 mb-3">
+                  Current RentCast plan: <span className="font-black">Foundation (1,000 requests/month for $74)</span>
+                </p>
+                <div className="mb-2">
+                  <div className="flex justify-between text-xs font-black text-amber-900 mb-1">
+                    <span>Monthly Usage</span>
+                    <span>{userStats.reduce((sum, u) => sum + (u.totalCalls - u.claudeCalls), 0)} / 1,000 (88% used)</span>
+                  </div>
+                  <div className="h-3 bg-amber-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-amber-500"
+                      style={{ width: '88%' }}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-amber-700">
+                  💡 Consider implementing more aggressive caching or upgrading to Growth plan (5,000 requests for $199/month)
+                </p>
+              </div>
             </div>
           </div>
         </div>
