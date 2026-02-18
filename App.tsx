@@ -43,6 +43,7 @@ const App: React.FC = () => {
   const [userTier, setUserTier] = useState<'free' | 'pro'>('free');
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalInitialMode, setAuthModalInitialMode] = useState<'signin' | 'signup'>('signin');
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   
   const [baseConfig, setBaseConfig] = useState<PropertyConfig>(DEFAULT_CONFIG);
@@ -325,7 +326,7 @@ const App: React.FC = () => {
     rentEstimateQuery.data,
     strData,
     strComps,
-    canAnalyze
+    canAnalyze && !!user // only run analysis when logged in
   );
 
   // Update state when analysis completes OR when cached data is available
@@ -563,12 +564,12 @@ const App: React.FC = () => {
       });
       
       if (!res.ok) {
-        console.error('[App] Failed to check analysis limit:', res.status);
+        if (import.meta.env.DEV) console.error('[App] Failed to check analysis limit:', res.status);
         return { canAnalyze: true }; // Optimistic: allow if check fails
       }
       
       const data = await res.json();
-      console.log('[App] Analysis limit check:', data);
+      if (import.meta.env.DEV) console.log('[App] Analysis limit check:', data);
       
       // Add upgrade link to message if needed
       if (!data.canAnalyze && data.message) {
@@ -577,13 +578,22 @@ const App: React.FC = () => {
       
       return data;
     } catch (error) {
-      console.error('[App] Error checking analysis limit:', error);
+      if (import.meta.env.DEV) console.error('[App] Error checking analysis limit:', error);
       return { canAnalyze: true }; // Optimistic: allow if check fails
     }
   };
 
   // Simplified runAnalysis - just triggers React Query by setting targetAddress
   const runAnalysis = async (selectedAddr?: string) => {
+    // Require sign-in: check session directly so we never run without auth (avoids stale state / deploy lag)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      setAuthModalInitialMode('signup');
+      setShowAuthModal(true);
+      toast.info('Sign up or sign in to run an underwrite.');
+      return;
+    }
+
     // Prevent rapid successive clicks
     if (isAnalyzing) return;
     
@@ -918,7 +928,7 @@ const App: React.FC = () => {
         user={user}
         userTier={userTier}
         isAdmin={isAdmin}
-        onSignIn={() => setShowAuthModal(true)}
+        onSignIn={() => { setAuthModalInitialMode('signin'); setShowAuthModal(true); }}
         onSettingsClick={() => setActiveTab('assumptions')}
         onUpgradeClick={() => {
           toast.info('Pro tier coming soon! Contact support@analyzemyproperty.com for early access.');
@@ -937,6 +947,7 @@ const App: React.FC = () => {
             isUsingWebData={isUsingWebData}
             analysisError={analysisError}
             suggestionRef={suggestionRef as React.RefObject<HTMLDivElement>}
+            isLoggedIn={!!user}
           />
         )}
 
@@ -1169,6 +1180,7 @@ const App: React.FC = () => {
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
+        initialMode={authModalInitialMode}
       />
 
       {/* DATA MIGRATION NOTICE */}

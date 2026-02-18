@@ -26,7 +26,7 @@ export function useDataMigration() {
         }
 
         setMigrationStatus('migrating');
-        console.log('[DataMigration] Starting migration for user:', session.user.id);
+        if (import.meta.env.DEV) console.log('[DataMigration] Starting migration for user:', session.user.id);
 
         // 1. Migrate saved assessments from 'savedAssessments' key
         const savedAssessmentsStr = localStorage.getItem('savedAssessments');
@@ -34,7 +34,7 @@ export function useDataMigration() {
           try {
             const assessments = JSON.parse(savedAssessmentsStr);
             if (Array.isArray(assessments) && assessments.length > 0) {
-              console.log(`[DataMigration] Migrating ${assessments.length} assessments...`);
+              if (import.meta.env.DEV) console.log(`[DataMigration] Migrating ${assessments.length} assessments...`);
               
               for (const assessment of assessments) {
                 await fetch('/api/user/assessments', {
@@ -47,10 +47,10 @@ export function useDataMigration() {
                 });
               }
               
-              console.log('[DataMigration] Assessments migrated successfully');
+              if (import.meta.env.DEV) console.log('[DataMigration] Assessments migrated successfully');
             }
           } catch (err) {
-            console.error('[DataMigration] Failed to migrate assessments:', err);
+            if (import.meta.env.DEV) console.error('[DataMigration] Failed to migrate assessments:', err);
           }
         }
 
@@ -59,7 +59,7 @@ export function useDataMigration() {
         if (globalSettingsStr) {
           try {
             const settings = JSON.parse(globalSettingsStr);
-            console.log('[DataMigration] Migrating global settings...');
+            if (import.meta.env.DEV) console.log('[DataMigration] Migrating global settings...');
             
             await fetch('/api/user/settings', {
               method: 'PUT',
@@ -70,9 +70,9 @@ export function useDataMigration() {
               body: JSON.stringify({ settings_data: settings })
             });
             
-            console.log('[DataMigration] Settings migrated successfully');
+            if (import.meta.env.DEV) console.log('[DataMigration] Settings migrated successfully');
           } catch (err) {
-            console.error('[DataMigration] Failed to migrate settings:', err);
+            if (import.meta.env.DEV) console.error('[DataMigration] Failed to migrate settings:', err);
           }
         }
 
@@ -81,7 +81,7 @@ export function useDataMigration() {
         if (investmentTargetsStr) {
           try {
             const targets = JSON.parse(investmentTargetsStr);
-            console.log('[DataMigration] Migrating investment targets...');
+            if (import.meta.env.DEV) console.log('[DataMigration] Migrating investment targets...');
             
             // Merge with existing settings or create new entry
             const existingSettings = globalSettingsStr ? JSON.parse(globalSettingsStr) : {};
@@ -96,19 +96,19 @@ export function useDataMigration() {
               body: JSON.stringify({ settings_data: mergedSettings })
             });
             
-            console.log('[DataMigration] Investment targets migrated successfully');
+            if (import.meta.env.DEV) console.log('[DataMigration] Investment targets migrated successfully');
           } catch (err) {
-            console.error('[DataMigration] Failed to migrate investment targets:', err);
+            if (import.meta.env.DEV) console.error('[DataMigration] Failed to migrate investment targets:', err);
           }
         }
 
         // Mark migration as complete
         localStorage.setItem(migrationKey, 'true');
         setMigrationStatus('complete');
-        console.log('[DataMigration] Migration complete');
+        if (import.meta.env.DEV) console.log('[DataMigration] Migration complete');
 
       } catch (error: any) {
-        console.error('[DataMigration] Migration failed:', error);
+        if (import.meta.env.DEV) console.error('[DataMigration] Migration failed:', error);
         setMigrationError(error.message || 'Unknown error');
         setMigrationStatus('error');
       }

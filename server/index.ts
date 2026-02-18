@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 import Anthropic from '@anthropic-ai/sdk';
 import { claudeCache, rentcastCache } from './cache.js';
 import { authMiddleware as oldAuthMiddleware, createSession, startSessionCleanup, TIER_LIMITS as OLD_TIER_LIMITS, checkUsageLimits as oldCheckUsageLimits, incrementUsage as oldIncrementUsage } from './auth.js';
-import { authMiddleware, checkUsageLimits, incrementUsage, TIER_LIMITS } from './supabaseAuth.js';
+import { authMiddleware, requireAuth, requireAdmin, checkUsageLimits, incrementUsage, TIER_LIMITS } from './supabaseAuth.js';
 import { metricsMiddleware, metricsStore } from './metrics.js';
 import { claudeQueue } from './claudeQueue.js';
 import { costTracker } from './databaseCostTracker.js';
@@ -117,37 +117,37 @@ const analysisLimiter = rateLimit({
   message: { error: 'You\'ve reached your analysis limit. Upgrade to Pro for unlimited analyses.', retryAfter: 600 },
 });
 
-// Admin routes registered BEFORE rate limiter to avoid any interference
-app.get('/api/admin/metrics', async (_req, res) => {
-  console.log('[Server] Admin metrics requested');
+// Admin routes: require auth + admin (authMiddleware is already global)
+app.get('/api/admin/metrics', requireAuth, requireAdmin, async (_req, res) => {
+  if (isDev) console.log('[Server] Admin metrics requested');
   const snapshot = await metricsStore.getSnapshot();
   res.json(snapshot);
 });
 
-app.get('/api/admin/queue', (_req, res) => {
-  console.log('[Server] Queue stats requested');
+app.get('/api/admin/queue', requireAuth, requireAdmin, (_req, res) => {
+  if (isDev) console.log('[Server] Queue stats requested');
   res.json(claudeQueue.getStats());
 });
 
-app.get('/api/admin/costs', async (_req, res) => {
-  console.log('[Server] Cost stats requested');
+app.get('/api/admin/costs', requireAuth, requireAdmin, async (_req, res) => {
+  if (isDev) console.log('[Server] Cost stats requested');
   const summary = await costTracker.getSummary();
   res.json(summary);
 });
 
-app.get('/api/admin/cost-history', async (_req, res) => {
-  console.log('[Server] Cost history requested');
+app.get('/api/admin/cost-history', requireAuth, requireAdmin, async (_req, res) => {
+  if (isDev) console.log('[Server] Cost history requested');
   const history = await costTracker.getHistory();
   res.json(history);
 });
 
-app.get('/api/admin/user-stats', async (_req, res) => {
-  console.log('[Server] User stats requested');
+app.get('/api/admin/user-stats', requireAuth, requireAdmin, async (_req, res) => {
+  if (isDev) console.log('[Server] User stats requested');
   const stats = await costTracker.getUserCallStats();
   res.json(stats);
 });
 
-app.post('/api/admin/budget', (req, res) => {
+app.post('/api/admin/budget', requireAuth, requireAdmin, (req, res) => {
   const { budget } = req.body;
   if (typeof budget !== 'number' || budget <= 0) {
     return res.status(400).json({ error: 'Invalid budget value' });
@@ -156,11 +156,11 @@ app.post('/api/admin/budget', (req, res) => {
   res.json({ success: true, budget });
 });
 
-app.get('/api/admin/pricing', (_req, res) => {
+app.get('/api/admin/pricing', requireAuth, requireAdmin, (_req, res) => {
   res.json(costTracker.getPricingInfo());
 });
 
-app.post('/api/admin/rentcast-cost', (req, res) => {
+app.post('/api/admin/rentcast-cost', requireAuth, requireAdmin, (req, res) => {
   const { costPerRequest } = req.body;
   if (typeof costPerRequest !== 'number' || costPerRequest < 0) {
     return res.status(400).json({ error: 'Invalid cost per request value' });
@@ -169,30 +169,30 @@ app.post('/api/admin/rentcast-cost', (req, res) => {
   res.json({ success: true, costPerRequest });
 });
 
-app.get('/api/admin/rate-limits', (_req, res) => {
+app.get('/api/admin/rate-limits', requireAuth, requireAdmin, (_req, res) => {
   res.json({ limits: TIER_LIMITS });
 });
 
-app.post('/api/admin/rate-limits', (req, res) => {
+app.post('/api/admin/rate-limits', requireAuth, requireAdmin, (req, res) => {
   const { tier, analysesPerDay, claudeCallsPerHour } = req.body;
-  
+
   if (!tier || !['free', 'pro'].includes(tier)) {
     return res.status(400).json({ error: 'Invalid tier. Must be "free" or "pro"' });
   }
-  
+
   if (typeof analysesPerDay !== 'number' || analysesPerDay < 1) {
     return res.status(400).json({ error: 'Invalid analysesPerDay value' });
   }
-  
+
   if (typeof claudeCallsPerHour !== 'number' || claudeCallsPerHour < 1) {
     return res.status(400).json({ error: 'Invalid claudeCallsPerHour value' });
   }
-  
+
   TIER_LIMITS[tier as 'free' | 'pro'] = {
     analysesPerDay,
     claudeCallsPerHour,
   };
-  
+
   res.json({ success: true, limits: TIER_LIMITS });
 });
 
@@ -213,16 +213,16 @@ app.get('/api/check-analysis-limit', authMiddleware, async (req, res) => {
     // Get user profile and check limits
     const profile = (req as any).userProfile;
     if (!profile) {
-      console.warn('[Server] No profile for user:', userId);
+      if (isDev) console.warn('[Server] No profile for user:', userId);
       return res.json({ canAnalyze: true });
     }
     
-    console.log('[Server] Checking analysis limit for user:', userId, 'tier:', profile.tier);
+    if (isDev) console.log('[Server] Checking analysis limit for user:', userId, 'tier:', profile.tier);
     const check = await checkUsageLimits(userId, 'analysis');
-    console.log('[Server] Usage check result:', check);
+    if (isDev) console.log('[Server] Usage check result:', check);
     
     if (!check.allowed) {
-      console.log('[Server] User at limit:', check);
+      if (isDev) console.log('[Server] User at limit:', check);
       return res.json({
         canAnalyze: false,
         message: `${profile.tier === 'free' ? 'Daily analysis limit reached. <a href="#upgrade" onclick="window.__triggerUpgrade?.();" style="color: #f43f5e; text-decoration: underline;">Upgrade to Pro →</a>' : 'Daily limit: ' + TIER_LIMITS[profile.tier].analysesPerDay + ' analyses'}`,
@@ -235,28 +235,9 @@ app.get('/api/check-analysis-limit', authMiddleware, async (req, res) => {
       usage: check.usage
     });
   } catch (error) {
-    console.error('[Server] Error checking analysis limit:', error);
+    if (isDev) console.error('[Server] Error checking analysis limit:', error);
     res.json({ canAnalyze: true }); // Optimistic: allow if check fails
   }
-});
-
-app.post('/api/admin/rate-limits', (req, res) => {
-  const { tier, analysesPerDay, claudeCallsPerHour } = req.body;
-  
-  if (!tier || !['free', 'pro'].includes(tier)) {
-    return res.status(400).json({ error: 'Invalid tier. Must be "free" or "pro"' });
-  }
-  
-  if (typeof analysesPerDay !== 'number' || analysesPerDay < 1) {
-    return res.status(400).json({ error: 'Invalid analysesPerDay value' });
-  }
-  
-  if (typeof claudeCallsPerHour !== 'number' || claudeCallsPerHour < 1) {
-    return res.status(400).json({ error: 'Invalid claudeCallsPerHour value' });
-  }
-  
-  (TIER_LIMITS as any)[tier] = { analysesPerDay, claudeCallsPerHour };
-  res.json({ success: true, limits: TIER_LIMITS });
 });
 
 app.get('/api/queue/status', (req, res) => {
@@ -273,31 +254,29 @@ app.get('/api/queue/status', (req, res) => {
   });
 });
 
-app.post('/api/admin/cache/clear', async (req, res) => {
+app.post('/api/admin/cache/clear', requireAuth, requireAdmin, async (req, res) => {
   const { target } = req.body || {};
-  
+
   if (target === 'rentcast' || target === 'all') {
-    // Clear database cache
     const { clearAllCache } = await import('./databaseCache.js');
     await clearAllCache();
   }
-  
+
   if (target === 'claude' || target === 'all') {
     claudeCache.clear();
   }
-  
-  res.json({ 
-    success: true, 
-    cleared: target || 'all', 
-    cache: { 
-      claude: claudeCache.size, 
-      rentcast: rentcastCache.size 
-    } 
+
+  res.json({
+    success: true,
+    cleared: target || 'all',
+    cache: {
+      claude: claudeCache.size,
+      rentcast: rentcastCache.size
+    }
   });
 });
 
-// New endpoint: Get RentCast cache statistics
-app.get('/api/admin/cache/stats', async (req, res) => {
+app.get('/api/admin/cache/stats', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { getCacheStats, getCacheStatsByEndpoint, getPopularCachedProperties } = await import('./databaseCache.js');
     
@@ -318,7 +297,7 @@ app.get('/api/admin/cache/stats', async (req, res) => {
       popularProperties,
     });
   } catch (error: any) {
-    console.error('[Admin] Error getting cache stats:', error);
+    if (isDev) console.error('[Admin] Error getting cache stats:', error);
     res.status(500).json({ error: 'Failed to get cache stats' });
   }
 });
@@ -326,9 +305,11 @@ app.get('/api/admin/cache/stats', async (req, res) => {
 app.use('/api', generalLimiter);
 
 // ============================================================================
-// TEST ROUTES (DEV ONLY)
+// TEST ROUTES (DEV ONLY — also disabled if DISABLE_TEST_ROUTES=true)
 // ============================================================================
-app.use('/api/test', testRoutes);
+if (isDev && process.env.DISABLE_TEST_ROUTES !== 'true') {
+  app.use('/api/test', testRoutes);
+}
 
 // ============================================================================
 // USER ROUTES (AUTHENTICATED)
@@ -408,7 +389,7 @@ app.post('/api/claude/messages', authMiddleware, claudeLimiter, async (req, res)
 
     return res.json({ content: result, cached: false });
   } catch (error: any) {
-    console.error('[Server] Claude API error:', error.status || error.message);
+    if (isDev) console.error('[Server] Claude API error:', error.status || error.message);
 
     // Pass through rate limit errors so client can handle countdown
     if (error.status === 429) {
@@ -428,9 +409,9 @@ app.post('/api/claude/messages', authMiddleware, claudeLimiter, async (req, res)
 
 /**
  * POST /api/claude/analysis
- * Stricter rate limit for full property analysis (the most expensive call)
+ * Requires sign-in. Stricter rate limit for full property analysis (the most expensive call).
  */
-app.post('/api/claude/analysis', authMiddleware, analysisLimiter, async (req, res) => {
+app.post('/api/claude/analysis', authMiddleware, requireAuth, analysisLimiter, async (req, res) => {
   try {
     const { model, max_tokens, messages, tools, system } = req.body;
 
@@ -438,29 +419,25 @@ app.post('/api/claude/analysis', authMiddleware, analysisLimiter, async (req, re
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Get user info from auth middleware
-    const userId = (req as any).user?.id || 'anonymous';
+    const userId = (req as any).user.id;
     const tier = (req as any).userProfile?.tier || 'free';
 
-    // Check BOTH analysis AND Claude limits
-    if (userId !== 'anonymous') {
-      const analysisCheck = await checkUsageLimits(userId, 'analysis');
-      if (!analysisCheck.allowed) {
-        return res.status(429).json({
-          error: analysisCheck.message || 'Daily analysis limit exceeded',
-          type: 'usage_limit_exceeded',
-          usage: analysisCheck.usage
-        });
-      }
+    const analysisCheck = await checkUsageLimits(userId, 'analysis');
+    if (!analysisCheck.allowed) {
+      return res.status(429).json({
+        error: analysisCheck.message || 'Daily analysis limit exceeded',
+        type: 'usage_limit_exceeded',
+        usage: analysisCheck.usage
+      });
+    }
 
-      const claudeCheck = await checkUsageLimits(userId, 'claude');
-      if (!claudeCheck.allowed) {
-        return res.status(429).json({
-          error: claudeCheck.message || 'Hourly Claude limit exceeded',
-          type: 'usage_limit_exceeded',
-          usage: claudeCheck.usage
-        });
-      }
+    const claudeCheck = await checkUsageLimits(userId, 'claude');
+    if (!claudeCheck.allowed) {
+      return res.status(429).json({
+        error: claudeCheck.message || 'Hourly Claude limit exceeded',
+        type: 'usage_limit_exceeded',
+        usage: claudeCheck.usage
+      });
     }
 
     // Extract address from messages for better cache key
@@ -493,11 +470,8 @@ app.post('/api/claude/analysis', authMiddleware, analysisLimiter, async (req, re
 
     if (isDev) console.log(`[Server] Cache MISS - Proxying analysis request for: ${addressForCache}`);
 
-    // Increment BOTH counters
-    if (userId !== 'anonymous') {
-      await incrementUsage(userId, 'analysis');
-      await incrementUsage(userId, 'claude');
-    }
+    await incrementUsage(userId, 'analysis');
+    await incrementUsage(userId, 'claude');
 
     // Queue the call
     const result = await claudeQueue.enqueue(userId, tier, async () => {
@@ -522,7 +496,7 @@ app.post('/api/claude/analysis', authMiddleware, analysisLimiter, async (req, re
 
     return res.json({ content: result, cached: false });
   } catch (error: any) {
-    console.error('[Server] Claude analysis error:', error.status || error.message);
+    if (isDev) console.error('[Server] Claude analysis error:', error.status || error.message);
 
     if (error.status === 429) {
       return res.status(429).json({
@@ -578,7 +552,7 @@ app.use('/api/rentcast', authMiddleware, async (req, res) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[Server] RentCast error: ${response.status} - ${errorText}`);
+      if (isDev) console.error(`[Server] RentCast error: ${response.status} - ${errorText}`);
       return res.status(response.status).json({
         error: `RentCast API error: ${response.status}`,
       });
@@ -596,7 +570,7 @@ app.use('/api/rentcast', authMiddleware, async (req, res) => {
 
     return res.json(data);
   } catch (error: any) {
-    console.error('[Server] RentCast proxy error:', error.message);
+    if (isDev) console.error('[Server] RentCast proxy error:', error.message);
     return res.status(500).json({ error: 'RentCast proxy request failed' });
   }
 });
@@ -628,19 +602,17 @@ app.post('/api/auth/session', (req, res) => {
 // ============================================================================
 
 app.get('/api/status', (req, res) => {
-  res.json({
-    status: 'ok',
-    user: (req as any).userId,
-    tier: (req as any).tier,
-    cache: {
-      claude: claudeCache.size,
-      rentcast: rentcastCache.size,
-    },
-    keys: {
-      anthropic: !!ANTHROPIC_API_KEY,
-      rentcast: !!RENTCAST_API_KEY,
-    },
-  });
+  if (isDev) {
+    res.json({
+      status: 'ok',
+      user: (req as any).userId,
+      tier: (req as any).tier,
+      cache: { claude: claudeCache.size, rentcast: rentcastCache.size },
+      keys: { anthropic: !!ANTHROPIC_API_KEY, rentcast: !!RENTCAST_API_KEY },
+    });
+  } else {
+    res.json({ status: 'ok' });
+  }
 });
 
 // ============================================================================
@@ -667,11 +639,13 @@ app.get('/{*splat}', (req, res) => {
 const PORT = parseInt(process.env.PORT || process.env.API_PORT || '3002', 10);
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🚀 Analyze My Property API Server running on http://0.0.0.0:${PORT}`);
-  console.log(`   Claude proxy:   POST http://localhost:${PORT}/api/claude/messages`);
-  console.log(`   Analysis proxy: POST http://localhost:${PORT}/api/claude/analysis`);
-  console.log(`   RentCast proxy: GET  http://localhost:${PORT}/api/rentcast/*`);
-  console.log(`   Admin metrics:  GET  http://localhost:${PORT}/api/admin/metrics`);
-  console.log(`   Health check:   GET  http://localhost:${PORT}/api/health`);
-  console.log(`   Rate limits:    30 req/min general, 10 req/min Claude, 3/10min analysis\n`);
+  if (isDev) {
+    console.log(`\n🚀 Analyze My Property API Server running on http://0.0.0.0:${PORT}`);
+    console.log(`   Claude proxy:   POST http://localhost:${PORT}/api/claude/messages`);
+    console.log(`   Analysis proxy: POST http://localhost:${PORT}/api/claude/analysis`);
+    console.log(`   RentCast proxy: GET  http://localhost:${PORT}/api/rentcast/*`);
+    console.log(`   Admin metrics:  GET  http://localhost:${PORT}/api/admin/metrics`);
+    console.log(`   Health check:   GET  http://localhost:${PORT}/api/health`);
+    console.log(`   Rate limits:    30 req/min general, 10 req/min Claude, 3/10min analysis\n`);
+  }
 });

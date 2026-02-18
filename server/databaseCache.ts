@@ -12,6 +12,8 @@ import { getSupabaseAdmin } from './supabaseAuth.js';
 import { rentcastCache as memoryCache } from './cache.js';
 import crypto from 'crypto';
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 // =============================================================================
 // TTL Configuration by Endpoint Type
 // =============================================================================
@@ -149,7 +151,7 @@ export async function getFromDatabaseCache(url: string): Promise<CacheEntry | nu
       })
       .eq('id', data.id);
     
-    console.log(`[DB Cache HIT] ${extractEndpoint(url)} (hits: ${data.hit_count + 1})`);
+    if (isDev) console.log(`[DB Cache HIT] ${extractEndpoint(url)} (hits: ${data.hit_count + 1})`);
     
     return {
       data: data.response_data,
@@ -160,7 +162,7 @@ export async function getFromDatabaseCache(url: string): Promise<CacheEntry | nu
       fromDatabase: true,
     };
   } catch (error) {
-    console.error('[DB Cache] Error reading from database:', error);
+    if (isDev) console.error('[DB Cache] Error reading from database:', error);
     return null;
   }
 }
@@ -200,13 +202,13 @@ export async function saveToDatabaseCache(
       });
     
     if (error) {
-      console.error('[DB Cache] Error saving to database:', error);
+      if (isDev) console.error('[DB Cache] Error saving to database:', error);
       return;
     }
     
-    console.log(`[DB Cache SAVE] ${endpoint} (TTL: ${ttlSeconds}s = ${Math.round(ttlSeconds / 3600)}h)`);
+    if (isDev) console.log(`[DB Cache SAVE] ${endpoint} (TTL: ${ttlSeconds}s = ${Math.round(ttlSeconds / 3600)}h)`);
   } catch (error) {
-    console.error('[DB Cache] Error saving to database:', error);
+    if (isDev) console.error('[DB Cache] Error saving to database:', error);
   }
 }
 
@@ -217,7 +219,7 @@ export async function getCachedResponse(url: string): Promise<any | null> {
   // 1. Try memory cache first (fastest)
   const memoryCached = memoryCache.get(url);
   if (memoryCached) {
-    console.log(`[Memory Cache HIT] ${extractEndpoint(url)}`);
+    if (isDev) console.log(`[Memory Cache HIT] ${extractEndpoint(url)}`);
     return memoryCached;
   }
   
@@ -233,7 +235,7 @@ export async function getCachedResponse(url: string): Promise<any | null> {
   }
   
   // 3. Cache miss
-  console.log(`[Cache MISS] ${extractEndpoint(url)}`);
+  if (isDev) console.log(`[Cache MISS] ${extractEndpoint(url)}`);
   return null;
 }
 
@@ -253,7 +255,7 @@ export async function setCachedResponse(
   
   // Save to database cache (async, don't wait)
   saveToDatabaseCache(url, data, statusCode).catch(err => {
-    console.error('[DB Cache] Failed to save to database:', err);
+    if (isDev) console.error('[DB Cache] Failed to save to database:', err);
   });
 }
 
@@ -285,7 +287,7 @@ export async function getCacheStats(): Promise<CacheStats | null> {
       avgHitCount: parseFloat(stats.avg_hit_count) || 0,
     };
   } catch (error) {
-    console.error('[DB Cache] Error getting stats:', error);
+    if (isDev) console.error('[DB Cache] Error getting stats:', error);
     return null;
   }
 }
@@ -305,7 +307,7 @@ export async function getPopularCachedProperties(limit: number = 10): Promise<an
     
     return data;
   } catch (error) {
-    console.error('[DB Cache] Error getting popular properties:', error);
+    if (isDev) console.error('[DB Cache] Error getting popular properties:', error);
     return [];
   }
 }
@@ -320,15 +322,15 @@ export async function cleanupExpiredCache(): Promise<number> {
       .rpc('cleanup_expired_rentcast_cache');
     
     if (error) {
-      console.error('[DB Cache] Error cleaning up:', error);
+      if (isDev) console.error('[DB Cache] Error cleaning up:', error);
       return 0;
     }
     
     const deletedCount = data || 0;
-    console.log(`[DB Cache] Cleaned up ${deletedCount} expired entries`);
+    if (isDev) console.log(`[DB Cache] Cleaned up ${deletedCount} expired entries`);
     return deletedCount;
   } catch (error) {
-    console.error('[DB Cache] Error cleaning up:', error);
+    if (isDev) console.error('[DB Cache] Error cleaning up:', error);
     return 0;
   }
 }
@@ -368,7 +370,7 @@ export async function getCacheStatsByEndpoint(): Promise<any[]> {
     
     return Object.values(grouped).sort((a: any, b: any) => b.totalHits - a.totalHits);
   } catch (error) {
-    console.error('[DB Cache] Error getting stats by endpoint:', error);
+    if (isDev) console.error('[DB Cache] Error getting stats by endpoint:', error);
     return [];
   }
 }
@@ -390,12 +392,12 @@ export async function clearAllCache(): Promise<void> {
       .neq('id', 0); // Delete all rows
     
     if (error) {
-      console.error('[DB Cache] Error clearing database:', error);
+      if (isDev) console.error('[DB Cache] Error clearing database:', error);
     } else {
-      console.log('[DB Cache] Cleared all cache entries');
+      if (isDev) console.log('[DB Cache] Cleared all cache entries');
     }
   } catch (error) {
-    console.error('[DB Cache] Error clearing cache:', error);
+    if (isDev) console.error('[DB Cache] Error clearing cache:', error);
   }
 }
 
@@ -407,13 +409,13 @@ export async function clearAllCache(): Promise<void> {
 setInterval(async () => {
   const deleted = await cleanupExpiredCache();
   if (deleted > 0) {
-    console.log(`[DB Cache] Periodic cleanup: removed ${deleted} expired entries`);
+    if (isDev) console.log(`[DB Cache] Periodic cleanup: removed ${deleted} expired entries`);
   }
 }, 6 * 60 * 60 * 1000); // 6 hours
 
 // Run initial cleanup on startup
 setTimeout(() => {
   cleanupExpiredCache().catch(err => {
-    console.error('[DB Cache] Initial cleanup failed:', err);
+    if (isDev) console.error('[DB Cache] Initial cleanup failed:', err);
   });
 }, 5000); // 5 seconds after startup

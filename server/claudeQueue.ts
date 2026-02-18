@@ -8,6 +8,8 @@
  * - Job status tracking
  */
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 interface QueueJob {
   id: string;
   userId: string;
@@ -92,7 +94,7 @@ export class ClaudeQueue {
         return a.addedAt - b.addedAt;
       });
 
-      console.log(`[ClaudeQueue] Job ${job.id} queued for ${userId} (${tier}). Queue size: ${this.queue.length}`);
+      if (isDev) console.log(`[ClaudeQueue] Job ${job.id} queued for ${userId} (${tier}). Queue size: ${this.queue.length}`);
       this.processNext();
     });
   }
@@ -128,7 +130,7 @@ export class ClaudeQueue {
     const waitTime = job.startedAt - job.addedAt;
     this.stats.totalWaitTime += waitTime;
 
-    console.log(`[ClaudeQueue] Processing job ${job.id}. Wait time: ${waitTime}ms. Tokens: ${this.currentTokens}`);
+    if (isDev) console.log(`[ClaudeQueue] Processing job ${job.id}. Wait time: ${waitTime}ms. Tokens: ${this.currentTokens}`);
 
     try {
       const result = await job.fn();
@@ -140,13 +142,13 @@ export class ClaudeQueue {
       job.status = 'completed';
       job.resolve(result);
 
-      console.log(`[ClaudeQueue] Job ${job.id} completed in ${processingTime}ms`);
+      if (isDev) console.log(`[ClaudeQueue] Job ${job.id} completed in ${processingTime}ms`);
     } catch (error) {
       this.stats.failed += 1;
       job.status = 'failed';
       job.reject(error);
 
-      console.error(`[ClaudeQueue] Job ${job.id} failed:`, error);
+      if (isDev) console.error(`[ClaudeQueue] Job ${job.id} failed:`, error);
     } finally {
       this.processing.delete(job.id);
       

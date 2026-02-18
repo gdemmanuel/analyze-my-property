@@ -6,11 +6,18 @@ import { useToast } from './ui/ToastContext';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** When provided, modal opens in this mode (e.g. 'signup' when user must sign up to underwrite) */
+  initialMode?: 'signin' | 'signup' | 'reset';
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'signin' }) => {
   const toast = useToast();
-  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>(initialMode);
+
+  // When modal opens, apply initialMode so e.g. "Underwrite" can open signup directly
+  React.useEffect(() => {
+    if (isOpen) setMode(initialMode);
+  }, [isOpen, initialMode]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

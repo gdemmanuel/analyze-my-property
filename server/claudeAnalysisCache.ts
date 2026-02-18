@@ -13,6 +13,7 @@
 import { getSupabaseAdmin } from './supabaseAuth.js';
 import { claudeCache as memoryCache } from './cache.js';
 
+const isDev = process.env.NODE_ENV !== 'production';
 const TTL_SECONDS = 7 * 24 * 60 * 60;       // 7 days
 const TTL_MS = TTL_SECONDS * 1000;
 const CLAUDE_COST_PER_ANALYSIS = 0.18;       // Approximate Sonnet 4.6 cost per analysis
@@ -48,13 +49,13 @@ export async function getClaudeAnalysisFromDB(cacheKey: string): Promise<any[] |
       })
       .eq('id', data.id)
       .then(({ error: updateError }) => {
-        if (updateError) console.error('[Claude Cache] Hit count update error:', updateError.message);
+        if (updateError && isDev) console.error('[Claude Cache] Hit count update error:', updateError.message);
       });
 
-    console.log(`[Claude DB Cache HIT] ${cacheKey} (hits: ${data.hit_count + 1})`);
+    if (isDev) console.log(`[Claude DB Cache HIT] ${cacheKey} (hits: ${data.hit_count + 1})`);
     return data.response_data as any[];
   } catch (err) {
-    console.error('[Claude Cache] DB read error:', err);
+    if (isDev) console.error('[Claude Cache] DB read error:', err);
     return null;
   }
 }
@@ -89,12 +90,12 @@ export async function saveClaudeAnalysisToDB(
       }, { onConflict: 'cache_key' });
 
     if (error) {
-      console.error('[Claude Cache] DB save error:', error.message);
+      if (isDev) console.error('[Claude Cache] DB save error:', error.message);
     } else {
-      console.log(`[Claude DB Cache SAVE] ${cacheKey} (TTL: 7 days)`);
+      if (isDev) console.log(`[Claude DB Cache SAVE] ${cacheKey} (TTL: 7 days)`);
     }
   } catch (err) {
-    console.error('[Claude Cache] DB save error:', err);
+    if (isDev) console.error('[Claude Cache] DB save error:', err);
   }
 }
 
@@ -110,7 +111,7 @@ export async function getCachedClaudeAnalysis(cacheKey: string): Promise<any[] |
   // 1. Memory cache (instant)
   const memHit = memoryCache.get(cacheKey);
   if (memHit) {
-    console.log(`[Claude Memory Cache HIT] ${cacheKey}`);
+    if (isDev) console.log(`[Claude Memory Cache HIT] ${cacheKey}`);
     return memHit as any[];
   }
 
@@ -122,7 +123,7 @@ export async function getCachedClaudeAnalysis(cacheKey: string): Promise<any[] |
     return dbHit;
   }
 
-  console.log(`[Claude Cache MISS] ${cacheKey}`);
+  if (isDev) console.log(`[Claude Cache MISS] ${cacheKey}`);
   return null;
 }
 
@@ -140,7 +141,7 @@ export async function setCachedClaudeAnalysis(
 
   // Save to DB in background — don't await
   saveClaudeAnalysisToDB(cacheKey, address, model, responseData).catch(err => {
-    console.error('[Claude Cache] Background DB save failed:', err);
+    if (isDev) console.error('[Claude Cache] Background DB save failed:', err);
   });
 }
 
@@ -166,7 +167,7 @@ export async function getClaudeCacheStats(): Promise<{
       totalCostSaved: parseFloat(row.total_cost_saved_usd) || 0,
     };
   } catch (err) {
-    console.error('[Claude Cache] Stats error:', err);
+    if (isDev) console.error('[Claude Cache] Stats error:', err);
     return null;
   }
 }
@@ -179,11 +180,11 @@ async function cleanupExpiredClaudeCache(): Promise<void> {
   try {
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase.rpc('cleanup_expired_claude_cache');
-    if (!error && data > 0) {
+    if (!error && data > 0 && isDev) {
       console.log(`[Claude Cache] Cleanup: removed ${data} expired entries`);
     }
   } catch (err) {
-    console.error('[Claude Cache] Cleanup error:', err);
+    if (isDev) console.error('[Claude Cache] Cleanup error:', err);
   }
 }
 

@@ -8,6 +8,7 @@ import {
 } from 'recharts';
 import ApiCostChart from './ApiCostChart';
 import { useToast } from './ui/ToastContext';
+import { supabase } from '../src/lib/supabase';
 
 // ============================================================================
 // TYPES
@@ -147,10 +148,17 @@ const AdminTab: React.FC = () => {
     proTierCalls: 100,
   });
 
+  const getAdminHeaders = useCallback(async (): Promise<HeadersInit> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return {};
+    return { Authorization: `Bearer ${session.access_token}` };
+  }, []);
+
   const fetchMetrics = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/metrics');
+      const headers = await getAdminHeaders();
+      const res = await fetch('/api/admin/metrics', { headers });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setMetrics(data);
@@ -161,28 +169,30 @@ const AdminTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getAdminHeaders]);
 
   const fetchCosts = useCallback(async () => {
     try {
-      console.log('[AdminTab] Fetching costs from /api/admin/costs...');
-      const res = await fetch('/api/admin/costs');
-      console.log('[AdminTab] Costs response:', res.status, res.ok);
+      if (import.meta.env.DEV) console.log('[AdminTab] Fetching costs from /api/admin/costs...');
+      const headers = await getAdminHeaders();
+      const res = await fetch('/api/admin/costs', { headers });
+      if (import.meta.env.DEV) console.log('[AdminTab] Costs response:', res.status, res.ok);
       if (res.ok) {
         const data = await res.json();
-        console.log('[AdminTab] Costs data received:', data);
+        if (import.meta.env.DEV) console.log('[AdminTab] Costs data received:', data);
         setCostData(data);
       } else {
-        console.error('[AdminTab] Costs fetch failed with status:', res.status);
+        if (import.meta.env.DEV) console.error('[AdminTab] Costs fetch failed with status:', res.status);
       }
     } catch (e) {
       console.error('[AdminTab] Failed to fetch cost data:', e);
     }
-  }, []);
+  }, [getAdminHeaders]);
 
   const fetchCostHistory = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/cost-history');
+      const headers = await getAdminHeaders();
+      const res = await fetch('/api/admin/cost-history', { headers });
       if (res.ok) {
         const data = await res.json();
         setCostHistory(data);
@@ -190,11 +200,12 @@ const AdminTab: React.FC = () => {
     } catch (e) {
       console.error('Failed to fetch cost history:', e);
     }
-  }, []);
+  }, [getAdminHeaders]);
 
   const fetchPricing = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/pricing');
+      const headers = await getAdminHeaders();
+      const res = await fetch('/api/admin/pricing', { headers });
       if (res.ok) {
         const data = await res.json();
         setPricingInfo(data);
@@ -202,11 +213,12 @@ const AdminTab: React.FC = () => {
     } catch (e) {
       console.error('Failed to fetch pricing info:', e);
     }
-  }, []);
+  }, [getAdminHeaders]);
 
   const fetchRateLimits = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/rate-limits');
+      const headers = await getAdminHeaders();
+      const res = await fetch('/api/admin/rate-limits', { headers });
       if (res.ok) {
         const data = await res.json();
         setRateLimits(data.limits);
@@ -222,51 +234,42 @@ const AdminTab: React.FC = () => {
     } catch (e) {
       console.error('Failed to fetch rate limits:', e);
     }
-  }, []);
+  }, [getAdminHeaders]);
 
   const fetchUsers = useCallback(async () => {
     setLoadingUsers(true);
     try {
       // Get session token
-      const { data: { session } } = await (await import('../src/lib/supabase')).supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('[AdminTab] No session found when fetching users');
+        if (import.meta.env.DEV) console.error('[AdminTab] No session found when fetching users');
         return;
       }
 
-      console.log('[AdminTab] Fetching users from /api/user/all...');
-      const res = await fetch('/api/user/all', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
-      
-      console.log('[AdminTab] Users response:', res.status);
-      
+      const authHeaders = { Authorization: `Bearer ${session.access_token}` };
+      if (import.meta.env.DEV) console.log('[AdminTab] Fetching users from /api/user/all...');
+      const res = await fetch('/api/user/all', { headers: authHeaders });
+
       if (res.ok) {
         const data = await res.json();
-        console.log('[AdminTab] Users data received:', data);
+        if (import.meta.env.DEV) console.log('[AdminTab] Users data received:', data);
         setUsersData(data);
       } else {
         const errorText = await res.text();
         console.error('[AdminTab] Failed to fetch users:', res.status, errorText);
       }
-      
-      // Fetch user call statistics
-      console.log('[AdminTab] Fetching user stats from /api/admin/user-stats...');
-      const statsRes = await fetch('/api/admin/user-stats');
+
+      const statsRes = await fetch('/api/admin/user-stats', { headers: authHeaders });
       if (statsRes.ok) {
         const statsData = await statsRes.json();
-        console.log('[AdminTab] User stats received:', statsData);
+        if (import.meta.env.DEV) console.log('[AdminTab] User stats received:', statsData);
         setUserStats(statsData);
       }
-      
-      // Fetch cache stats
-      console.log('[AdminTab] Fetching cache stats from /api/admin/cache/stats...');
-      const cacheRes = await fetch('/api/admin/cache/stats');
+
+      const cacheRes = await fetch('/api/admin/cache/stats', { headers: authHeaders });
       if (cacheRes.ok) {
         const cacheData = await cacheRes.json();
-        console.log('[AdminTab] Cache stats received:', cacheData);
+        if (import.meta.env.DEV) console.log('[AdminTab] Cache stats received:', cacheData);
         setCacheStats(cacheData);
       }
     } catch (e) {
@@ -299,9 +302,10 @@ const AdminTab: React.FC = () => {
   const handleClearCache = async (target: 'claude' | 'rentcast' | 'all') => {
     setClearing(target);
     try {
+      const headers = await getAdminHeaders();
       await fetch('/api/admin/cache/clear', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify({ target }),
       });
       await fetchMetrics();
@@ -314,24 +318,23 @@ const AdminTab: React.FC = () => {
 
   const handleSaveConfig = async () => {
     try {
-      // Update daily budget
+      const headers = { 'Content-Type': 'application/json', ...(await getAdminHeaders()) };
+
       await fetch('/api/admin/budget', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ budget: configForm.dailyBudget }),
       });
 
-      // Update RentCast cost
       await fetch('/api/admin/rentcast-cost', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ costPerRequest: configForm.rentcastCost }),
       });
 
-      // Update free tier limits
       await fetch('/api/admin/rate-limits', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           tier: 'free',
           analysesPerDay: configForm.freeTierAnalyses,
@@ -339,10 +342,9 @@ const AdminTab: React.FC = () => {
         }),
       });
 
-      // Update pro tier limits
       await fetch('/api/admin/rate-limits', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           tier: 'pro',
           analysesPerDay: configForm.proTierAnalyses,

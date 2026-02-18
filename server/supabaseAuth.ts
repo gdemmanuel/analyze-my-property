@@ -5,6 +5,8 @@ import { Request, Response, NextFunction } from 'express';
 // SUPABASE AUTH - Server-side authentication with PostgreSQL persistence
 // ============================================================================
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 // Lazy load environment variables - don't evaluate at import time
 function getSupabaseUrl() {
   const url = process.env.SUPABASE_URL;
@@ -103,7 +105,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     .single();
   
   if (error || !data) {
-    console.error('Error fetching user profile:', error);
+    if (isDev) console.error('Error fetching user profile:', error);
     return null;
   }
   
@@ -135,13 +137,13 @@ async function getUserUsage(userId: string): Promise<UserUsage | null> {
       .single();
     
     if (insertError) {
-      console.error('Error creating user usage:', insertError);
+      if (isDev) console.error('Error creating user usage:', insertError);
       return null;
     }
     
     data = newData;
   } else if (error) {
-    console.error('Error fetching user usage:', error);
+    if (isDev) console.error('Error fetching user usage:', error);
     return null;
   }
   
@@ -293,11 +295,22 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   if (!req.user) {
     return res.status(401).json({ error: 'Authentication required' });
   }
-  
+
   if (!req.userProfile) {
     return res.status(500).json({ error: 'User profile not found' });
   }
-  
+
+  next();
+}
+
+/**
+ * Require admin middleware - BLOCKS non-admin users. Must run after authMiddleware and requireAuth.
+ */
+export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const profile = (req as any).userProfile;
+  if (!profile || !profile.is_admin) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
   next();
 }
 
@@ -311,7 +324,7 @@ export async function getAllUsers() {
     .order('created_at', { ascending: false });
   
   if (error) {
-    console.error('Error fetching users:', error);
+    if (isDev) console.error('Error fetching users:', error);
     return [];
   }
   

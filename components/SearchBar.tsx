@@ -10,13 +10,21 @@ interface SearchBarProps {
   isUsingWebData: boolean;
   analysisError: string | null;
   suggestionRef: React.RefObject<HTMLDivElement>;
+  /** When false, button shows "Sign in to underwrite" and click opens signup */
+  isLoggedIn?: boolean;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
   propertyInput, onInputChange, onSearch,
   isAnalyzing, isFetchingFactual, isUsingWebData,
-  analysisError, suggestionRef
+  analysisError, suggestionRef, isLoggedIn = false
 }) => {
+  const buttonLabel = !isLoggedIn
+    ? 'SIGN IN TO UNDERWRITE'
+    : isFetchingFactual
+      ? 'FETCHING DATA...'
+      : 'UNDERWRITE';
+
   return (
     <div className="max-w-[1600px] mx-auto mb-8 print:hidden relative" ref={suggestionRef}>
       <div className="bg-white p-1 rounded-3xl shadow-xl flex flex-col md:flex-row gap-1 border border-slate-100">
@@ -32,12 +40,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
             )}
           </div>
         </div>
-        <button onClick={onSearch} disabled={isAnalyzing || isFetchingFactual || !propertyInput} className="px-10 py-4 bg-[#0f172a] text-white font-black rounded-2xl hover:bg-black transition-all flex items-center gap-3 uppercase tracking-tighter shadow-xl">
+        <button onClick={onSearch} disabled={isAnalyzing || isFetchingFactual || (isLoggedIn && !propertyInput)} className="px-10 py-4 bg-[#0f172a] text-white font-black rounded-2xl hover:bg-black transition-all flex items-center gap-3 uppercase tracking-tighter shadow-xl">
           {isAnalyzing || isFetchingFactual ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} className="text-[#f43f5e]" />}
-          {isFetchingFactual ? 'FETCHING DATA...' : 'UNDERWRITE'}
+          {buttonLabel}
         </button>
       </div>
-      {analysisError && <div className="mt-4 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-4"><AlertTriangle size={20} className="text-[#f43f5e]" /><p className="text-[10px] font-black uppercase text-[#f43f5e] tracking-widest" dangerouslySetInnerHTML={{ __html: analysisError }}></p></div>}
+      {analysisError && <div className="mt-4 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-4"><AlertTriangle size={20} className="text-[#f43f5e]" /><p className="text-[10px] font-black uppercase text-[#f43f5e] tracking-widest">{analysisError}</p></div>}
     </div>
   );
 };

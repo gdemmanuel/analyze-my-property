@@ -9,6 +9,8 @@
 
 import { getSupabaseAdmin } from './supabaseAuth.js';
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 // Anthropic API pricing (as of Feb 2026)
 const CLAUDE_PRICING = {
   'claude-sonnet-4-6': {
@@ -88,7 +90,7 @@ export class DatabaseCostTracker {
 
     const pricing = CLAUDE_PRICING[normalizedModel as keyof typeof CLAUDE_PRICING];
     if (!pricing) {
-      console.warn(`[CostTracker] Unknown model: ${model}`);
+      if (isDev) console.warn(`[CostTracker] Unknown model: ${model}`);
       return 0;
     }
 
@@ -99,7 +101,7 @@ export class DatabaseCostTracker {
     const supabase = getSupabaseAdmin();
 
     try {
-      console.log(`[CostTracker] Recording Claude call: user=${userId}, model=${normalizedModel}, endpoint=${endpoint}, cost=$${totalCost.toFixed(4)}`);
+      if (isDev) console.log(`[CostTracker] Recording Claude call: user=${userId}, model=${normalizedModel}, endpoint=${endpoint}, cost=$${totalCost.toFixed(4)}`);
       
       // Insert into api_usage_log
       const { error: insertError } = await supabase.from('api_usage_log').insert({
@@ -113,9 +115,9 @@ export class DatabaseCostTracker {
       });
       
       if (insertError) {
-        console.error('[CostTracker] Error inserting into api_usage_log:', insertError);
+        if (isDev) console.error('[CostTracker] Error inserting into api_usage_log:', insertError);
       } else {
-        console.log('[CostTracker] Successfully inserted into api_usage_log');
+        if (isDev) console.log('[CostTracker] Successfully inserted into api_usage_log');
       }
 
       // Update daily aggregate
@@ -128,15 +130,15 @@ export class DatabaseCostTracker {
       });
       
       if (rpcError) {
-        console.error('[CostTracker] Error calling increment_daily_cost:', rpcError);
+        if (isDev) console.error('[CostTracker] Error calling increment_daily_cost:', rpcError);
       } else {
-        console.log('[CostTracker] Successfully updated daily costs');
+        if (isDev) console.log('[CostTracker] Successfully updated daily costs');
       }
 
       await this.checkBudgetAlert();
       return totalCost;
     } catch (error) {
-      console.error('[CostTracker] Error recording Claude usage:', error);
+      if (isDev) console.error('[CostTracker] Error recording Claude usage:', error);
       return totalCost; // Return cost even if DB fails
     }
   }
@@ -168,7 +170,7 @@ export class DatabaseCostTracker {
       await this.checkBudgetAlert();
       return cost;
     } catch (error) {
-      console.error('[CostTracker] Error recording RentCast usage:', error);
+      if (isDev) console.error('[CostTracker] Error recording RentCast usage:', error);
       return cost;
     }
   }
@@ -232,7 +234,7 @@ export class DatabaseCostTracker {
         byRentCastEndpoint: data.by_rentcast_endpoint || {},
       };
     } catch (error) {
-      console.error('[CostTracker] Error fetching today costs:', error);
+      if (isDev) console.error('[CostTracker] Error fetching today costs:', error);
       return {
         date: today,
         totalCost: 0,
@@ -294,7 +296,7 @@ export class DatabaseCostTracker {
         byRentCastEndpoint: row.by_rentcast_endpoint || {},
       }));
     } catch (error) {
-      console.error('[CostTracker] Error fetching history:', error);
+      if (isDev) console.error('[CostTracker] Error fetching history:', error);
       return [];
     }
   }
@@ -353,11 +355,11 @@ export class DatabaseCostTracker {
         .order('created_at', { ascending: false });
       
       if (error) {
-        console.error('[CostTracker] Error fetching user stats:', error);
+        if (isDev) console.error('[CostTracker] Error fetching user stats:', error);
         return [];
       }
       
-      console.log(`[CostTracker] Fetched ${data?.length || 0} API usage log entries`);
+      if (isDev) console.log(`[CostTracker] Fetched ${data?.length || 0} API usage log entries`);
       
       // Aggregate by user
       const userStats = new Map<string, { 
@@ -397,10 +399,10 @@ export class DatabaseCostTracker {
       });
       
       const result = Array.from(userStats.values());
-      console.log(`[CostTracker] Aggregated stats for ${result.length} users:`, result);
+      if (isDev) console.log(`[CostTracker] Aggregated stats for ${result.length} users:`, result);
       return result;
     } catch (error) {
-      console.error('[CostTracker] Error fetching user call stats:', error);
+      if (isDev) console.error('[CostTracker] Error fetching user call stats:', error);
       return [];
     }
   }
