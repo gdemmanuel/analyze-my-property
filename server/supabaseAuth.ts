@@ -52,7 +52,7 @@ export const TIER_LIMITS = {
   pro: { analysesPerDay: 50, claudeCallsPerHour: 100 },
 };
 
-/** Free tier gets Pro-level limits for this many days after signup */
+/** Free tier trial period (first N days after signup); limits stay 3/day */
 export const TRIAL_DAYS = 7;
 
 /**

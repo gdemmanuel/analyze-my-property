@@ -217,13 +217,16 @@ router.get('/settings', requireAuth, async (req: Request, res: Response) => {
         return res.json({ settings_data: {} });
       }
       console.error('Error fetching user settings:', error.code, error.message);
-      return res.json({ settings_data: {} });
+      return res.status(500).json({ error: 'Failed to fetch settings' });
     }
 
-    res.json(data || { settings_data: {} });
+    // Table has default_config + amenities; frontend expects settings_data
+    const settings_data = (data?.default_config && typeof data.default_config === 'object') ? data.default_config : {};
+    if (data?.amenities) settings_data.amenities = data.amenities;
+    res.json({ ...data, settings_data });
   } catch (error: any) {
     console.error('Error fetching user settings:', error?.message || error);
-    res.json({ settings_data: {} });
+    res.status(500).json({ error: 'Failed to fetch settings' });
   }
 });
 
@@ -243,28 +246,33 @@ router.put('/settings', requireAuth, async (req: Request, res: Response) => {
     }
 
     const { supabaseAdmin } = await import('../supabaseAuth');
-    
-    const { data, error} = await supabaseAdmin
+    // user_settings table has default_config + amenities, not settings_data
+    const amenities = Array.isArray(settings_data.amenities) ? settings_data.amenities : [];
+    const default_config = { ...settings_data, amenities };
+
+    const { data, error } = await supabaseAdmin
       .from('user_settings')
       .upsert({
         user_id: req.user.id,
-        settings_data,
+        amenities,
+        default_config,
         updated_at: new Date().toISOString()
-      })
+      }, { onConflict: 'user_id' })
       .select()
       .single();
 
     if (error) {
-      // Table might not exist yet - return success with empty data
       if (error.code === '42P01') {
         console.warn('user_settings table does not exist yet');
-        return res.json({ user_id: req.user.id, settings_data });
+        return res.json({ user_id: req.user.id, settings_data: {} });
       }
       console.error('Error updating user settings:', error.code, error.message);
       return res.status(500).json({ error: 'Failed to update settings' });
     }
 
-    res.json(data);
+    const out = data ? { ...data, settings_data: data.default_config || {} } : { user_id: req.user.id, settings_data };
+    if (data?.amenities) out.settings_data.amenities = data.amenities;
+    res.json(out);
   } catch (error: any) {
     console.error('Error updating user settings:', error?.message || error);
     res.status(500).json({ error: 'Failed to update settings' });

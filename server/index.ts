@@ -468,6 +468,8 @@ app.post('/api/claude/analysis', authMiddleware, requireAuth, analysisLimiter, a
     const cached = await getCachedClaudeAnalysis(cacheKey);
     if (cached) {
       if (isDev) console.log(`[Server] Cache HIT for analysis request: ${addressForCache}`);
+      // Cached responses count toward the 3/day limit
+      await incrementUsage(userId, 'analysis');
       (res as any).__cached = true;
       return res.json({ content: cached, cached: true });
     }
@@ -557,6 +559,10 @@ app.use('/api/rentcast', authMiddleware, async (req, res) => {
     if (!response.ok) {
       const errorText = await response.text();
       if (isDev) console.error(`[Server] RentCast error: ${response.status} - ${errorText}`);
+      // 404 from RentCast (e.g. listings/sale not found): return empty array for list endpoints so app doesn't break
+      if (response.status === 404 && (req.url?.includes('/listings') || req.url?.includes('/listing'))) {
+        return res.json([]);
+      }
       return res.status(response.status).json({
         error: `RentCast API error: ${response.status}`,
       });

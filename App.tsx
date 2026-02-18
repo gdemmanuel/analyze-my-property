@@ -950,7 +950,7 @@ const App: React.FC = () => {
           return (
             <div className="max-w-[1600px] mx-auto mb-4 px-4 py-3 bg-slate-100 border border-slate-200 rounded-2xl flex items-center justify-between gap-4 flex-wrap">
               <p className="text-sm font-bold text-slate-700">
-                You have <span className="text-[#0f172a]">{daysLeft} day{daysLeft !== 1 ? 's' : ''} left</span> in your free trial. Enjoy Pro-level limits during the trial.
+                You have <span className="text-[#0f172a]">{daysLeft} day{daysLeft !== 1 ? 's' : ''} left</span> in your free trial. 3 analyses per day during trial.
               </p>
               <button
                 type="button"
