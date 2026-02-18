@@ -2,7 +2,7 @@
 buildCommand = "npm install && npm run build"
 
 [deploy]
-startCommand = "npm run start"
+startCommand = "npx tsx server/index.ts"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"

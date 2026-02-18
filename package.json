@@ -16,7 +16,7 @@
     "test:stress": "tsx scripts/load-test.ts stress",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "node --import tsx server/index.ts"
+    "start": "tsx server/index.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
