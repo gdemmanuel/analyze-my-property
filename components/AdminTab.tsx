@@ -139,6 +139,7 @@ const AdminTab: React.FC = () => {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [userStats, setUserStats] = useState<any[]>([]);
   const [cacheStats, setCacheStats] = useState<any>(null);
+  const [stripeData, setStripeData] = useState<{ configured: boolean; activeSubscriptions?: number; mrrCents?: number; dashboardUrl?: string | null; error?: string } | null>(null);
   const [configForm, setConfigForm] = useState({
     dailyBudget: 50,
     rentcastCost: 0.03,
@@ -236,6 +237,17 @@ const AdminTab: React.FC = () => {
     }
   }, [getAdminHeaders]);
 
+  const fetchStripe = useCallback(async () => {
+    try {
+      const headers = await getAdminHeaders();
+      const res = await fetch('/api/admin/stripe', { headers });
+      const data = await res.json();
+      setStripeData(data);
+    } catch (e) {
+      setStripeData({ configured: false, error: 'Failed to load' });
+    }
+  }, [getAdminHeaders]);
+
   const fetchUsers = useCallback(async () => {
     setLoadingUsers(true);
     try {
@@ -285,6 +297,7 @@ const AdminTab: React.FC = () => {
     fetchCostHistory();
     fetchPricing();
     fetchRateLimits();
+    fetchStripe();
     if (activeSubTab === 'users') {
       fetchUsers();
     }
@@ -292,12 +305,13 @@ const AdminTab: React.FC = () => {
       fetchMetrics();
       fetchCosts();
       fetchCostHistory();
+      if (activeSubTab === 'overview') fetchStripe();
       if (activeSubTab === 'users') {
         fetchUsers();
       }
     }, 30000);
     return () => clearInterval(interval);
-  }, [fetchMetrics, fetchCosts, fetchCostHistory, fetchPricing, fetchRateLimits, fetchUsers, activeSubTab]);
+  }, [fetchMetrics, fetchCosts, fetchCostHistory, fetchPricing, fetchRateLimits, fetchStripe, fetchUsers, activeSubTab]);
 
   const handleClearCache = async (target: 'claude' | 'rentcast' | 'all') => {
     setClearing(target);
@@ -554,6 +568,45 @@ const AdminTab: React.FC = () => {
           <p className="text-lg font-black text-slate-900">{cacheHitRate}%</p>
           <p className="text-[10px] text-slate-500 mt-1">{cacheHitTotal} hits / {cacheMissTotal} misses</p>
         </div>
+      </div>
+
+      {/* Stripe / Billing */}
+      <div className="bg-white rounded-xl border border-slate-100 p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <DollarSign size={16} className="text-slate-400" />
+          <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Billing (Stripe)</h3>
+          {stripeData?.dashboardUrl && (
+            <a
+              href={stripeData.dashboardUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700"
+            >
+              <ExternalLink size={12} />
+              Open Stripe Dashboard
+            </a>
+          )}
+        </div>
+        {stripeData === null ? (
+          <p className="text-sm text-slate-500">Loading…</p>
+        ) : !stripeData.configured ? (
+          <p className="text-sm text-slate-500">Stripe not configured (STRIPE_SECRET_KEY missing).</p>
+        ) : stripeData.error ? (
+          <p className="text-sm text-amber-600">{stripeData.error}</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Active subscriptions</p>
+              <p className="text-xl font-black text-slate-900">{stripeData.activeSubscriptions ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">MRR</p>
+              <p className="text-xl font-black text-slate-900">
+                ${((stripeData.mrrCents ?? 0) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ================================================================== */}

@@ -17,6 +17,7 @@ import { metricsMiddleware, metricsStore } from './metrics.js';
 import { claudeQueue } from './claudeQueue.js';
 import { costTracker } from './databaseCostTracker.js';
 import { getCachedClaudeAnalysis, setCachedClaudeAnalysis } from './claudeAnalysisCache.js';
+import Stripe from 'stripe';
 import testRoutes from './test-routes.js';
 import userRoutes from './routes/user.js';
 import stripeRoutes from './routes/stripe.js';
@@ -198,6 +199,41 @@ app.post('/api/admin/rate-limits', requireAuth, requireAdmin, (req, res) => {
   };
 
   res.json({ success: true, limits: TIER_LIMITS });
+});
+
+app.get('/api/admin/stripe', requireAuth, requireAdmin, async (_req, res) => {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    return res.json({ configured: false, activeSubscriptions: 0, mrrCents: 0, dashboardUrl: null });
+  }
+  try {
+    const stripe = new Stripe(key);
+    const subs = await stripe.subscriptions.list({ status: 'active', limit: 100 });
+    let mrrCents = 0;
+    for (const sub of subs.data) {
+      const item = sub.items.data[0];
+      if (!item?.price?.recurring) continue;
+      const amount = (item.price.unit_amount ?? 0) * (item.quantity ?? 1);
+      const interval = item.price.recurring.interval;
+      const intervalCount = item.price.recurring.interval_count ?? 1;
+      if (interval === 'month') mrrCents += amount * intervalCount;
+      else if (interval === 'year') mrrCents += (amount * intervalCount) / 12;
+      else if (interval === 'week') mrrCents += (amount * intervalCount * 52) / 12;
+      else if (interval === 'day') mrrCents += (amount * intervalCount * 365) / 12;
+    }
+    const dashboardUrl = key.startsWith('sk_live_')
+      ? 'https://dashboard.stripe.com'
+      : 'https://dashboard.stripe.com/test';
+    res.json({
+      configured: true,
+      activeSubscriptions: subs.data.length,
+      mrrCents: Math.round(mrrCents),
+      dashboardUrl,
+    });
+  } catch (err: any) {
+    if (isDev) console.error('[Admin] Stripe fetch error:', err?.message);
+    res.status(500).json({ configured: true, error: err?.message || 'Stripe API error' });
+  }
 });
 
 /**
