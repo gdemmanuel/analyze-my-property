@@ -24,7 +24,26 @@ function getWebhookSecret(): string {
 }
 
 function getReturnUrl(): string {
-  return process.env.CORS_ORIGIN?.split(',')[0] || 'http://localhost:3001';
+  return process.env.CORS_ORIGIN?.split(',')[0]?.trim() || 'http://localhost:3001';
+}
+
+function getAllowedOrigins(): string[] {
+  if (process.env.CORS_ORIGIN) {
+    return process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean);
+  }
+  return ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://10.1.10.102:3001'];
+}
+
+/** Validate return base URL and return it, or fallback. Ensures redirect stays on allowed origin so session is preserved. */
+function getReturnUrlForSession(returnUrlBase: string | undefined): string {
+  if (!returnUrlBase || typeof returnUrlBase !== 'string') return getReturnUrl();
+  try {
+    const origin = new URL(returnUrlBase).origin;
+    if (getAllowedOrigins().includes(origin)) return origin;
+  } catch {
+    // invalid URL
+  }
+  return getReturnUrl();
 }
 
 // ─── Helper: ensure user has a Stripe customer record ────────────────────────
@@ -93,13 +112,14 @@ router.post('/create-checkout-session', requireAuth, async (req: Request, res: R
       });
     }
 
+    const returnBase = getReturnUrlForSession(req.body?.returnUrlBase);
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       client_reference_id: req.user.id,
       mode: 'subscription',
       line_items: [{ price: getProPriceId(), quantity: 1 }],
-      success_url: `${getReturnUrl()}?upgrade=success`,
-      cancel_url: `${getReturnUrl()}?upgrade=cancelled`,
+      success_url: `${returnBase}?upgrade=success`,
+      cancel_url: `${returnBase}?upgrade=cancelled`,
       subscription_data: {
         metadata: { supabase_user_id: req.user.id },
       },
