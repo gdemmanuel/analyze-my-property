@@ -25,6 +25,9 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Trust proxy (Railway, etc.) so rate limiting and req.ip use X-Forwarded-For correctly
+app.set('trust proxy', 1);
+
 // Health check BEFORE any middleware — Railway probes this
 app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
