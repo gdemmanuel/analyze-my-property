@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 import Anthropic from '@anthropic-ai/sdk';
 import { claudeCache, rentcastCache } from './cache.js';
 import { authMiddleware as oldAuthMiddleware, createSession, startSessionCleanup, TIER_LIMITS as OLD_TIER_LIMITS, checkUsageLimits as oldCheckUsageLimits, incrementUsage as oldIncrementUsage } from './auth.js';
-import { authMiddleware, requireAuth, requireAdmin, checkUsageLimits, incrementUsage, TIER_LIMITS } from './supabaseAuth.js';
+import { authMiddleware, requireAuth, requireAdmin, checkUsageLimits, incrementUsage, TIER_LIMITS, isInTrial } from './supabaseAuth.js';
 import { metricsMiddleware, metricsStore } from './metrics.js';
 import { claudeQueue } from './claudeQueue.js';
 import { costTracker } from './databaseCostTracker.js';
@@ -223,16 +223,20 @@ app.get('/api/check-analysis-limit', authMiddleware, async (req, res) => {
     
     if (!check.allowed) {
       if (isDev) console.log('[Server] User at limit:', check);
+      const upgradeLink = ' <a href="#upgrade" onclick="window.__triggerUpgrade?.();" style="color: #f43f5e; text-decoration: underline;">Upgrade to Pro →</a>';
+      const message = (check.message || 'Daily analysis limit reached.') + (profile.tier === 'free' ? upgradeLink : '');
       return res.json({
         canAnalyze: false,
-        message: `${profile.tier === 'free' ? 'Daily analysis limit reached. <a href="#upgrade" onclick="window.__triggerUpgrade?.();" style="color: #f43f5e; text-decoration: underline;">Upgrade to Pro →</a>' : 'Daily limit: ' + TIER_LIMITS[profile.tier].analysesPerDay + ' analyses'}`,
-        usage: check.usage
+        message,
+        usage: check.usage,
+        inTrial: isInTrial(profile),
       });
     }
     
     return res.json({
       canAnalyze: true,
-      usage: check.usage
+      usage: check.usage,
+      inTrial: isInTrial(profile),
     });
   } catch (error) {
     if (isDev) console.error('[Server] Error checking analysis limit:', error);

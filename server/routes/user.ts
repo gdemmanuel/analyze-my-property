@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, getUserProfile } from '../supabaseAuth';
+import { requireAuth, getUserProfile, isInTrial, getTrialEndsAt } from '../supabaseAuth';
 
 const router = Router();
 
@@ -18,7 +18,12 @@ router.get('/profile', requireAuth, async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
-    res.json(profile);
+    const inTrial = isInTrial(profile);
+    res.json({
+      ...profile,
+      inTrial,
+      trialEndsAt: inTrial ? getTrialEndsAt(profile).toISOString() : null,
+    });
   } catch (error) {
     console.error('Error fetching user profile:', error);
     res.status(500).json({ error: 'Failed to fetch profile' });

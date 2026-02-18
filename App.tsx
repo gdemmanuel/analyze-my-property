@@ -41,6 +41,7 @@ const App: React.FC = () => {
   // Auth state
   const [user, setUser] = useState<User | null>(null);
   const [userTier, setUserTier] = useState<'free' | 'pro'>('free');
+  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalInitialMode, setAuthModalInitialMode] = useState<'signin' | 'signup'>('signin');
@@ -143,6 +144,7 @@ const App: React.FC = () => {
           .then(data => {
             if (data.tier) setUserTier(data.tier);
             if (data.is_admin !== undefined) setIsAdmin(data.is_admin);
+            setTrialEndsAt(data.inTrial && data.trialEndsAt ? data.trialEndsAt : null);
           })
           .catch(err => console.error('Failed to fetch user tier:', err));
       }
@@ -166,11 +168,13 @@ const App: React.FC = () => {
           .then(data => {
             if (data.tier) setUserTier(data.tier);
             if (data.is_admin !== undefined) setIsAdmin(data.is_admin);
+            setTrialEndsAt(data.inTrial && data.trialEndsAt ? data.trialEndsAt : null);
           })
           .catch(err => console.error('Failed to fetch user tier:', err));
       } else {
         setUserTier('free');
         setIsAdmin(false);
+        setTrialEndsAt(null);
       }
     });
 
@@ -937,6 +941,27 @@ const App: React.FC = () => {
 
       {/* Main Content - pt-24 preserves nav spacing (CRITICAL: do not change to p-8) */}
       <main className="flex-1 pt-24 px-4 pb-4 lg:px-8 lg:pb-8 print:pt-0 print:p-0">
+        {/* 7-day trial banner for free tier */}
+        {trialEndsAt && activeTab !== 'admin' && (() => {
+          const end = new Date(trialEndsAt).getTime();
+          const now = Date.now();
+          const daysLeft = Math.max(0, Math.ceil((end - now) / (24 * 60 * 60 * 1000)));
+          if (daysLeft <= 0) return null;
+          return (
+            <div className="max-w-[1600px] mx-auto mb-4 px-4 py-3 bg-slate-100 border border-slate-200 rounded-2xl flex items-center justify-between gap-4 flex-wrap">
+              <p className="text-sm font-bold text-slate-700">
+                You have <span className="text-[#0f172a]">{daysLeft} day{daysLeft !== 1 ? 's' : ''} left</span> in your free trial. Enjoy Pro-level limits during the trial.
+              </p>
+              <button
+                type="button"
+                onClick={() => (window as any).__triggerUpgrade?.()}
+                className="text-sm font-black uppercase tracking-tight text-[#f43f5e] hover:underline"
+              >
+                Upgrade to Pro →
+              </button>
+            </div>
+          );
+        })()}
         {activeTab !== 'admin' && (
           <SearchBar
             propertyInput={propertyInput}

@@ -46,11 +46,34 @@ export const supabaseAdmin = new Proxy({}, {
   }
 });
 
-// Tier limits (same as before)
+// Tier limits
 export const TIER_LIMITS = {
   free: { analysesPerDay: 3, claudeCallsPerHour: 15 },
   pro: { analysesPerDay: 50, claudeCallsPerHour: 100 },
 };
+
+/** Free tier gets Pro-level limits for this many days after signup */
+export const TRIAL_DAYS = 7;
+
+/**
+ * True if user is on free tier and still within the 7-day trial window.
+ */
+export function isInTrial(profile: UserProfile): boolean {
+  if (profile.tier !== 'free') return false;
+  const created = new Date(profile.created_at).getTime();
+  const now = Date.now();
+  const trialMs = TRIAL_DAYS * 24 * 60 * 60 * 1000;
+  return now - created < trialMs;
+}
+
+/**
+ * End of trial (created_at + 7 days). Only meaningful when isInTrial(profile).
+ */
+export function getTrialEndsAt(profile: UserProfile): Date {
+  const d = new Date(profile.created_at);
+  d.setDate(d.getDate() + TRIAL_DAYS);
+  return d;
+}
 
 export interface UserProfile {
   id: string;
@@ -202,12 +225,12 @@ export async function checkUsageLimits(
     usage.claude_calls_this_hour = 0;
   }
   
-  // Check limits
+  // Check limits (free tier: 3/day always, including during 7-day trial)
   if (type === 'analysis') {
     if (usage.analyses_today >= limits.analysesPerDay) {
       return {
         allowed: false,
-        message: `${profile.tier === 'free' ? 'Daily analysis limit reached. Upgrade to Pro for unlimited analyses.' : 'Daily limit: ' + limits.analysesPerDay + ' analyses'}`,
+        message: profile.tier === 'free' ? 'Daily analysis limit reached. Upgrade to Pro for unlimited analyses.' : `Daily limit: ${limits.analysesPerDay} analyses`,
         usage,
       };
     }
