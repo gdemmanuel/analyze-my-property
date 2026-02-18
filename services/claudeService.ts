@@ -30,20 +30,17 @@ import {
 // ============================================================================
 // MODEL SELECTION - HYBRID APPROACH
 // ============================================================================
-// Sonnet 4: Complex financial analysis requiring strong reasoning
-// Haiku: Fast & cheap for conversational/simple tasks
+// Sonnet 4.6: Latest model with improved agentic search and reasoning
+// Haiku 4.5: Fast & cost-effective for simple tasks
 type ModelType = 'complex_analysis' | 'simple_task' | 'premium_analysis';
 
 function getModel(taskType: ModelType): string {
   if (taskType === 'premium_analysis') {
-    // For most complex comparative analyses (market discovery, comp scoring)
-    return 'claude-sonnet-4-20250514';
+    return 'claude-sonnet-4-6';
   } else if (taskType === 'complex_analysis') {
-    // Main property analysis, underwriting, regulations - use Sonnet-4 for depth
-    return 'claude-sonnet-4-20250514';
+    return 'claude-sonnet-4-6';
   } else {
-    // Simple tasks - use Haiku for speed and cost
-    return 'claude-3-5-haiku-20241022';
+    return 'claude-haiku-4-5-20251001';
   }
 }
 

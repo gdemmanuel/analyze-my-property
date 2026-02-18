@@ -11,13 +11,21 @@ import { getSupabaseAdmin } from './supabaseAuth.js';
 
 // Anthropic API pricing (as of Feb 2026)
 const CLAUDE_PRICING = {
-  'claude-sonnet-4': {
+  'claude-sonnet-4-6': {
     inputPerMToken: 3.0,    // $3.00 per 1M input tokens
     outputPerMToken: 15.0,  // $15.00 per 1M output tokens
   },
+  'claude-sonnet-4': {
+    inputPerMToken: 3.0,    // $3.00 per 1M input tokens (legacy)
+    outputPerMToken: 15.0,
+  },
+  'claude-haiku-4-5': {
+    inputPerMToken: 1.0,    // $1.00 per 1M input tokens
+    outputPerMToken: 5.0,   // $5.00 per 1M output tokens
+  },
   'claude-3-5-haiku': {
-    inputPerMToken: 0.8,    // $0.80 per 1M input tokens
-    outputPerMToken: 4.0,   // $4.00 per 1M output tokens
+    inputPerMToken: 0.8,    // $0.80 per 1M input tokens (legacy)
+    outputPerMToken: 4.0,
   },
 } as const;
 
@@ -66,10 +74,14 @@ export class DatabaseCostTracker {
     endpoint: string,
     userId: string
   ): Promise<number> {
-    // Normalize model name
+    // Normalize model name to match pricing keys
     let normalizedModel = model;
-    if (model.includes('claude-sonnet-4')) {
+    if (model.includes('claude-sonnet-4-6')) {
+      normalizedModel = 'claude-sonnet-4-6';
+    } else if (model.includes('claude-sonnet-4')) {
       normalizedModel = 'claude-sonnet-4';
+    } else if (model.includes('claude-haiku-4-5')) {
+      normalizedModel = 'claude-haiku-4-5';
     } else if (model.includes('claude-3-5-haiku')) {
       normalizedModel = 'claude-3-5-haiku';
     }
