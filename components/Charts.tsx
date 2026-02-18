@@ -254,4 +254,4 @@ const Charts: React.FC<ChartProps> = ({ data }) => {
   );
 };
 
-export default Charts;
+export default React.memo(Charts);

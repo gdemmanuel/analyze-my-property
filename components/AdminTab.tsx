@@ -7,6 +7,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import ApiCostChart from './ApiCostChart';
+import { useToast } from './ui/ToastContext';
 
 // ============================================================================
 // TYPES
@@ -121,6 +122,7 @@ const Tooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, 
 type AdminSubTab = 'overview' | 'costs' | 'usage' | 'performance' | 'config' | 'users';
 
 const AdminTab: React.FC = () => {
+  const toast = useToast();
   const [activeSubTab, setActiveSubTab] = useState<AdminSubTab>('overview');
   const [metrics, setMetrics] = useState<MetricsSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -354,7 +356,7 @@ const AdminTab: React.FC = () => {
       setShowConfigModal(false);
     } catch (e) {
       console.error('Failed to save config:', e);
-      alert('Failed to save configuration');
+      toast.error('Failed to save configuration');
     }
   };
 
@@ -376,11 +378,11 @@ const AdminTab: React.FC = () => {
         // Refresh users data
         await fetchUsers();
       } else {
-        alert('Failed to update user');
+        toast.error('Failed to update user');
       }
     } catch (e) {
       console.error('Failed to update user role:', e);
-      alert('Failed to update user');
+      toast.error('Failed to update user');
     }
   };
 

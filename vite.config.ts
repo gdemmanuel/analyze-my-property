@@ -43,5 +43,17 @@ export default defineConfig(({ command, mode }) => {
         '@tanstack/react-query',
       ],
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react: ['react', 'react-dom'],
+            recharts: ['recharts'],
+            supabase: ['@supabase/supabase-js'],
+            query: ['@tanstack/react-query'],
+          },
+        },
+      },
+    },
   };
 });

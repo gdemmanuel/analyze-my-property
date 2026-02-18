@@ -224,4 +224,4 @@ const MarketTrendCharts: React.FC<MarketTrendChartsProps> = ({ saleTrends, renta
   );
 };
 
-export default MarketTrendCharts;
+export default React.memo(MarketTrendCharts);

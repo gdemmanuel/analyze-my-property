@@ -78,4 +78,4 @@ const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, strategy, setS
   );
 };
 
-export default NavBar;
+export default React.memo(NavBar);

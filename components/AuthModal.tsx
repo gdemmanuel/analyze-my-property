@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, User } from 'lucide-react';
 import { supabase } from '../src/lib/supabase';
+import { useToast } from './ui/ToastContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -8,7 +9,8 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const toast = useToast();
+  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -25,6 +27,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setLoading(true);
 
     try {
+      if (mode === 'reset') {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}`,
+        });
+
+        if (resetError) throw resetError;
+
+        setMessage('Check your email for a password reset link!');
+        toast.success('Password reset email sent! Check your inbox.');
+        setEmail('');
+        setLoading(false);
+        return;
+      }
+
       if (mode === 'signup') {
         if (password !== confirmPassword) {
           setError('Passwords do not match');
@@ -105,10 +121,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
-            {mode === 'signin' ? 'Welcome Back' : 'Create Account'}
+            {mode === 'reset' ? 'Reset Password' : mode === 'signin' ? 'Welcome Back' : 'Create Account'}
           </h2>
           <p className="text-gray-600 mt-1">
-            {mode === 'signin'
+            {mode === 'reset'
+              ? 'Enter your email and we\'ll send you a reset link'
+              : mode === 'signin'
               ? 'Sign in to access your saved properties'
               : 'Sign up to save your property analyses'}
           </p>
@@ -149,26 +167,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          {/* Password */}
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="••••••••"
-                disabled={loading}
-              />
+          {/* Password (hidden in reset mode) */}
+          {mode !== 'reset' && (
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="••••••••"
+                  disabled={loading}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Confirm Password (signup only) */}
           {mode === 'signup' && (
@@ -199,18 +219,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             disabled={loading}
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors font-medium"
           >
-            {loading ? 'Loading...' : mode === 'signin' ? 'Sign In' : 'Sign Up'}
+            {loading ? 'Loading...' : mode === 'reset' ? 'Send Reset Link' : mode === 'signin' ? 'Sign In' : 'Sign Up'}
           </button>
         </form>
 
-        {/* Divider */}
+        {/* Divider and Google Sign In (hidden in reset mode) */}
+        {mode !== 'reset' && (
+          <>
         <div className="my-6 flex items-center">
           <div className="flex-1 border-t border-gray-300"></div>
           <span className="px-4 text-sm text-gray-500">or</span>
           <div className="flex-1 border-t border-gray-300"></div>
         </div>
 
-        {/* Google Sign In */}
         <button
           onClick={handleGoogleSignIn}
           disabled={loading}
@@ -236,11 +257,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           </svg>
           Continue with Google
         </button>
+          </>
+        )}
 
         {/* Toggle mode */}
         <div className="mt-6 text-center text-sm">
           <span className="text-gray-600">
-            {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
+            {mode === 'reset' ? 'Remember your password? ' : mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
           </span>
           <button
             type="button"
@@ -251,7 +274,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             }}
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
-            {mode === 'signin' ? 'Sign up' : 'Sign in'}
+            {mode === 'reset' ? 'Sign in' : mode === 'signin' ? 'Sign up' : 'Sign in'}
           </button>
         </div>
 
@@ -261,8 +284,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <button
               type="button"
               onClick={() => {
-                // TODO: Implement password reset
-                alert('Password reset feature coming soon!');
+                setMode('reset');
+                setError(null);
+                setMessage(null);
               }}
               className="text-sm text-gray-600 hover:text-gray-900"
             >

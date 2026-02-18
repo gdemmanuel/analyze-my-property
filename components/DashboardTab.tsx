@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import ErrorBoundary from './ui/ErrorBoundary';
 import InfoTooltip from './InfoTooltip';
+import { useToast } from './ui/ToastContext';
 import BulletContent from './BulletContent';
 import { getAmenityIcon } from './AmenityIcon';
 import SensitivityTable from './SensitivityTable';
@@ -100,6 +101,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   investmentTargets,
   propertyData, marketStats, marketTrends, bedroomStats, rentalListings, rentEstimateData
 }) => {
+  const toast = useToast();
   // State for Pro-only feature access
   const [showProModal, setShowProModal] = React.useState(false);
   const [showingSamplePathToYes, setShowingSamplePathToYes] = React.useState(false);
@@ -604,7 +606,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             <p className="text-sm mb-4 opacity-90">Get real insights for your properties with Pro tier</p>
             <button
               onClick={() => {
-                alert('Pro tier: $29/month\n\n✓ 50 analyses per day\n✓ 100 Claude calls per hour\n✓ Advanced Analysis Tools\n✓ Priority support\n\nStripe payment integration coming in Phase 18!');
+                toast.info('Pro tier coming soon! Contact support@analyzemyproperty.com for early access.');
               }}
               className="px-8 py-3 bg-white text-purple-600 font-black rounded-lg hover:bg-slate-100 transition-all"
             >
@@ -630,7 +632,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             <button
               onClick={() => {
                 setShowProModal(false);
-                alert('Pro tier: $29/month\n\n✓ 50 analyses per day\n✓ 100 Claude calls per hour\n✓ Advanced Analysis Tools\n✓ Priority support\n\nStripe payment integration coming in Phase 18!');
+                toast.info('Pro tier coming soon! Contact support@analyzemyproperty.com for early access.');
               }}
               className="w-full px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black rounded-lg transition-all mb-3"
             >

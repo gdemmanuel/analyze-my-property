@@ -208,4 +208,4 @@ const FinancialTables: React.FC<TableProps> = ({ data, title, isYearly = false }
   );
 };
 
-export default FinancialTables;
+export default React.memo(FinancialTables);

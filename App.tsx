@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, Suspense } from 'react';
 import {
   Search, Loader2, BarChart3, Calendar, TrendingUp
 } from 'lucide-react';
@@ -13,8 +13,8 @@ import { exportUnderwritingReport } from './utils/exportReport';
 import { analyzeProperty, suggestAmenityImpact, searchWebForSTRData, runSensitivityAnalysis, runAmenityROI, calculatePathToYes, generateLenderPacket, onRateLimitCountdown, estimateAmenityCosts, estimateCustomAmenityCost } from './services/claudeService';
 import { SensitivityMatrix, AmenityROIResult, PathToYes, LenderPacket } from './prompts/underwriting';
 import { Save } from 'lucide-react';
-import Charts from './components/Charts';
-import FinancialTables from './components/FinancialTables';
+const Charts = React.lazy(() => import('./components/Charts'));
+const FinancialTables = React.lazy(() => import('./components/FinancialTables'));
 import { fetchPropertyData, fetchMarketStats, fetchRentEstimate, fetchSTRData, fetchSTRComps, RentCastProperty, extractMarketTrends, getBedroomMatchedStats, MarketStats } from './services/rentcastService';
 import { useRentCastData, useWebSTRData, usePropertyAnalysis } from './src/hooks/usePropertyData';
 import { supabase } from './src/lib/supabase';
@@ -24,10 +24,10 @@ import type { User } from '@supabase/supabase-js';
 import NavBar from './components/NavBar';
 import SearchBar from './components/SearchBar';
 import DashboardTab from './components/DashboardTab';
-import RentCastDataTab from './components/RentCastDataTab';
-import AdminTab from './components/AdminTab';
 import SettingsTab from './components/SettingsTab';
-import PortfolioTab from './components/PortfolioTab';
+const RentCastDataTab = React.lazy(() => import('./components/RentCastDataTab'));
+const AdminTab = React.lazy(() => import('./components/AdminTab'));
+const PortfolioTab = React.lazy(() => import('./components/PortfolioTab'));
 import ComparisonModal from './components/ComparisonModal';
 import { AuthModal } from './components/AuthModal';
 import { UserMenu } from './components/UserMenu';
@@ -115,7 +115,7 @@ const App: React.FC = () => {
   // Setup global upgrade handler
   React.useEffect(() => {
     (window as any).__triggerUpgrade = () => {
-      alert('Pro tier: $29/month\n\n✓ 50 analyses per day\n✓ 100 Claude calls per hour\n✓ Priority support\n\nStripe payment integration coming in Phase 18!');
+      toast.info('Pro tier coming soon! Contact support@analyzemyproperty.com for early access.');
     };
   }, []);
 
@@ -921,9 +921,7 @@ const App: React.FC = () => {
         onSignIn={() => setShowAuthModal(true)}
         onSettingsClick={() => setActiveTab('assumptions')}
         onUpgradeClick={() => {
-          // For now, just show an informative message
-          // In Phase 18, this will open a Stripe checkout
-          alert('Pro tier: $29/month\n\n✓ 50 analyses per day\n✓ 100 Claude calls per hour\n✓ Priority support\n\nStripe payment integration coming in Phase 18!');
+          toast.info('Pro tier coming soon! Contact support@analyzemyproperty.com for early access.');
         }}
       />
 
@@ -1017,13 +1015,15 @@ const App: React.FC = () => {
 
         {/* RENTCAST DATA TAB */}
         {activeTab === 'rentcast' && (
-          <RentCastDataTab
-            propertyData={propertyQuery.data || null}
-            marketStats={(marketStatsQuery.data as MarketStats) || null}
-            marketTrends={marketTrends}
-            bedroomStats={bedroomStats}
-            rentalListings={rentalListingsQuery.data || null}
-          />
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="animate-spin text-slate-400" size={32} /></div>}>
+            <RentCastDataTab
+              propertyData={propertyQuery.data || null}
+              marketStats={(marketStatsQuery.data as MarketStats) || null}
+              marketTrends={marketTrends}
+              bedroomStats={bedroomStats}
+              rentalListings={rentalListingsQuery.data || null}
+            />
+          </Suspense>
         )}
 
         {/* ANALYTICS TAB (Performance) */}
@@ -1031,7 +1031,9 @@ const App: React.FC = () => {
           <div className="max-w-[1600px] mx-auto">
             {monthlyData && monthlyData.length > 0 ? (
               <ErrorBoundary>
-                <Charts data={monthlyData} />
+                <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="animate-spin text-slate-400" size={32} /></div>}>
+                  <Charts data={monthlyData} />
+                </Suspense>
               </ErrorBoundary>
             ) : (
               <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
@@ -1050,7 +1052,9 @@ const App: React.FC = () => {
         {activeTab === 'monthly' && (
           <div className="max-w-[1600px] mx-auto">
             {monthlyData && monthlyData.length > 0 ? (
-              <FinancialTables data={monthlyData} title={`${strategy} Monthly Cash Flow`} />
+              <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="animate-spin text-slate-400" size={32} /></div>}>
+                <FinancialTables data={monthlyData} title={`${strategy} Monthly Cash Flow`} />
+              </Suspense>
             ) : (
               <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
                 <Calendar size={48} className="mx-auto mb-4 text-slate-600" />
@@ -1068,7 +1072,9 @@ const App: React.FC = () => {
         {activeTab === 'yearly' && (
           <div className="max-w-[1600px] mx-auto">
             {yearlyData && yearlyData.length > 0 ? (
-              <FinancialTables data={yearlyData} title={`${strategy} Yearly Cash Flow`} isYearly />
+              <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="animate-spin text-slate-400" size={32} /></div>}>
+                <FinancialTables data={yearlyData} title={`${strategy} Yearly Cash Flow`} isYearly />
+              </Suspense>
             ) : (
               <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
                 <TrendingUp size={48} className="mx-auto mb-4 text-slate-600" />
@@ -1108,6 +1114,7 @@ const App: React.FC = () => {
 
         {/* PORTFOLIO TAB */}
         {activeTab === 'portfolio' && (
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="animate-spin text-slate-400" size={32} /></div>}>
           <PortfolioTab
             savedAssessments={savedAssessments}
             comparisonMode={comparisonMode}
@@ -1124,11 +1131,14 @@ const App: React.FC = () => {
             setInsight={setInsight}
             setActiveTab={setActiveTab}
           />
+          </Suspense>
         )}
 
         {/* ADMIN TAB */}
         {activeTab === 'admin' && (
-          <AdminTab />
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="animate-spin text-slate-400" size={32} /></div>}>
+            <AdminTab />
+          </Suspense>
         )}
 
         {/* EMPTY STATE */}

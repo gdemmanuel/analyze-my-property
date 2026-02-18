@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { User, LogOut, Settings, ChevronDown } from 'lucide-react';
 import { supabase } from '../src/lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { useToast } from './ui/ToastContext';
 
 interface UserMenuProps {
   user: SupabaseUser | null;
@@ -12,6 +13,7 @@ interface UserMenuProps {
 }
 
 export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn, onSettingsClick, onUpgradeClick }) => {
+  const toast = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -115,8 +117,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn, on
               <button
                 onClick={() => {
                   setIsOpen(false);
-                  // TODO: Implement Stripe Customer Portal redirect
-                  alert('Subscription management coming soon! Contact support@analyzemyproperty.com to cancel.');
+                  toast.info('Subscription management coming soon! Contact support@analyzemyproperty.com for help.');
                 }}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
               >

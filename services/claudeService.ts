@@ -558,10 +558,6 @@ ${factualData.ownerOccupied !== undefined ? `- Owner Occupied: ${factualData.own
       }
     }
 
-    // Add delay before making API call to avoid rate limiting
-    // On cache hits, React Query will skip this entire function, so repeat searches stay instant
-    await sleep(5000);
-
     const content = await withRetry(() => claudeProxy({
       model: getModel('complex_analysis'),
       max_tokens: 4096,

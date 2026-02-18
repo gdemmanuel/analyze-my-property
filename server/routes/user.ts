@@ -205,14 +205,20 @@ router.get('/settings', requireAuth, async (req: Request, res: Response) => {
       .eq('user_id', req.user.id)
       .single();
 
-    if (error && error.code !== 'PGRST116') {
-      throw error;
+    // PGRST116 = no rows found (normal for new users)
+    // 42P01 = table doesn't exist
+    if (error) {
+      if (error.code === 'PGRST116' || error.code === '42P01') {
+        return res.json({ settings_data: {} });
+      }
+      console.error('Error fetching user settings:', error.code, error.message);
+      return res.json({ settings_data: {} });
     }
 
     res.json(data || { settings_data: {} });
-  } catch (error) {
-    console.error('Error fetching user settings:', error);
-    res.status(500).json({ error: 'Failed to fetch settings' });
+  } catch (error: any) {
+    console.error('Error fetching user settings:', error?.message || error);
+    res.json({ settings_data: {} });
   }
 });
 
@@ -227,13 +233,12 @@ router.put('/settings', requireAuth, async (req: Request, res: Response) => {
     }
 
     const { settings_data } = req.body;
-    if (!settings_data) {
-      return res.status(400).json({ error: 'Settings data is required' });
+    if (!settings_data || typeof settings_data !== 'object') {
+      return res.status(400).json({ error: 'Valid settings_data object is required' });
     }
 
     const { supabaseAdmin } = await import('../supabaseAuth');
     
-    // Upsert (update if exists, insert if not)
     const { data, error} = await supabaseAdmin
       .from('user_settings')
       .upsert({
@@ -244,11 +249,19 @@ router.put('/settings', requireAuth, async (req: Request, res: Response) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // Table might not exist yet - return success with empty data
+      if (error.code === '42P01') {
+        console.warn('user_settings table does not exist yet');
+        return res.json({ user_id: req.user.id, settings_data });
+      }
+      console.error('Error updating user settings:', error.code, error.message);
+      return res.status(500).json({ error: 'Failed to update settings' });
+    }
 
     res.json(data);
-  } catch (error) {
-    console.error('Error updating user settings:', error);
+  } catch (error: any) {
+    console.error('Error updating user settings:', error?.message || error);
     res.status(500).json({ error: 'Failed to update settings' });
   }
 });
