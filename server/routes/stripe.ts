@@ -35,20 +35,20 @@ async function getOrCreateStripeCustomer(userId: string, email: string): Promise
 
   if (profile?.stripe_customer_id) {
     try {
-      await stripe.customers.retrieve(profile.stripe_customer_id);
-      return profile.stripe_customer_id;
-    } catch (err: any) {
-      // Customer was deleted in Stripe (e.g. after deleting subscriptions/test data) — clear and create new
-      const isNoSuchCustomer = err?.code === 'resource_missing' || err?.code === 'resource_missing_no_connection' || /no such customer/i.test(err?.message || '');
-      if (isNoSuchCustomer) {
-        await supabaseAdmin
-          .from('user_profiles')
-          .update({ stripe_customer_id: null })
-          .eq('id', userId);
-      } else {
-        throw err;
+      const existing = await stripe.customers.retrieve(profile.stripe_customer_id);
+      // Stripe returns deleted customers with deleted: true instead of throwing — can't use for new subscriptions
+      if (!(existing as Stripe.Customer & { deleted?: boolean }).deleted) {
+        return profile.stripe_customer_id;
       }
+    } catch (err: any) {
+      // Customer doesn't exist in Stripe — clear and create new
+      const isNoSuchCustomer = err?.code === 'resource_missing' || err?.code === 'resource_missing_no_connection' || /no such customer/i.test(err?.message || '');
+      if (!isNoSuchCustomer) throw err;
     }
+    await supabaseAdmin
+      .from('user_profiles')
+      .update({ stripe_customer_id: null })
+      .eq('id', userId);
   }
 
   const customer = await stripe.customers.create({
