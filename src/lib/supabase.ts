@@ -19,6 +19,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export type UserProfile = {
   id: string;
   tier: 'free' | 'pro';
+  stripe_customer_id: string | null;
   created_at: string;
   updated_at: string;
 };

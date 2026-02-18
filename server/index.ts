@@ -19,6 +19,7 @@ import { costTracker } from './databaseCostTracker.js';
 import { getCachedClaudeAnalysis, setCachedClaudeAnalysis } from './claudeAnalysisCache.js';
 import testRoutes from './test-routes.js';
 import userRoutes from './routes/user.js';
+import stripeRoutes from './routes/stripe.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,6 +33,9 @@ app.set('trust proxy', 1);
 app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
+
+// Stripe webhook needs raw body for signature verification — must come before express.json()
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json({ limit: '10mb' }));
 
@@ -319,6 +323,11 @@ if (isDev && process.env.DISABLE_TEST_ROUTES !== 'true') {
 // USER ROUTES (AUTHENTICATED)
 // ============================================================================
 app.use('/api/user', userRoutes);
+
+// ============================================================================
+// STRIPE ROUTES (PAYMENTS)
+// ============================================================================
+app.use('/api/stripe', stripeRoutes);
 
 // ============================================================================
 // CLAUDE PROXY ROUTES

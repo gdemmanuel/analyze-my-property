@@ -10,9 +10,10 @@ interface UserMenuProps {
   onSignIn: () => void;
   onSettingsClick?: () => void;
   onUpgradeClick?: () => void;
+  onManageSubscription?: () => void;
 }
 
-export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn, onSettingsClick, onUpgradeClick }) => {
+export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn, onSettingsClick, onUpgradeClick, onManageSubscription }) => {
   const toast = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -113,11 +114,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn, on
               </button>
             )}
 
-            {userTier === 'pro' && (
+            {userTier === 'pro' && onManageSubscription && (
               <button
                 onClick={() => {
                   setIsOpen(false);
-                  toast.info('Subscription management coming soon! Contact support@analyzemyproperty.com for help.');
+                  onManageSubscription();
                 }}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
               >

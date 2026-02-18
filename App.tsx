@@ -114,16 +114,81 @@ const App: React.FC = () => {
   // Rate Limit Countdown State
   const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
 
-  // Setup global upgrade handler
+  // Stripe upgrade handler — redirect to Stripe Checkout
+  const handleUpgrade = React.useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      setAuthModalInitialMode('signup');
+      setShowAuthModal(true);
+      toast.info('Sign in first to upgrade to Pro.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to start checkout');
+        return;
+      }
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      toast.error('Unable to connect to payment service. Please try again.');
+    }
+  }, [toast]);
+
+  // Stripe portal handler — redirect to Stripe Customer Portal
+  const handleManageSubscription = React.useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return;
+    try {
+      const res = await fetch('/api/stripe/create-portal-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to open subscription portal');
+        return;
+      }
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      toast.error('Unable to connect to payment service. Please try again.');
+    }
+  }, [toast]);
+
+  // Expose globally so server-side upgrade links can trigger it
   React.useEffect(() => {
-    (window as any).__triggerUpgrade = () => {
-      toast.info('Pro tier coming soon! Contact support@analyzemyproperty.com for early access.');
-    };
-  }, []);
+    (window as any).__triggerUpgrade = handleUpgrade;
+  }, [handleUpgrade]);
 
   // ============================================================================
   // EFFECTS
   // ============================================================================
+
+  // Handle Stripe checkout return
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('upgrade') === 'success') {
+      toast.success('Welcome to Pro! Your upgrade is active.');
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (params.get('upgrade') === 'cancelled') {
+      toast.info('Upgrade cancelled. You can upgrade anytime from your profile.');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   // Auth: Check for active session and listen for auth changes
   useEffect(() => {
@@ -934,9 +999,8 @@ const App: React.FC = () => {
         isAdmin={isAdmin}
         onSignIn={() => { setAuthModalInitialMode('signin'); setShowAuthModal(true); }}
         onSettingsClick={() => setActiveTab('assumptions')}
-        onUpgradeClick={() => {
-          toast.info('Pro tier coming soon! Contact support@analyzemyproperty.com for early access.');
-        }}
+        onUpgradeClick={handleUpgrade}
+        onManageSubscription={handleManageSubscription}
       />
 
       {/* Main Content - pt-24 preserves nav spacing (CRITICAL: do not change to p-8) */}
@@ -1046,6 +1110,7 @@ const App: React.FC = () => {
             bedroomStats={bedroomStats}
             rentalListings={rentalListingsQuery.data || null}
             rentEstimateData={rentEstimateQuery.data}
+            onUpgrade={handleUpgrade}
           />
         )}
 

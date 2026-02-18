@@ -83,6 +83,7 @@ interface DashboardTabProps {
   bedroomStats: { sale?: any; rental?: any };
   rentalListings: RentalListing[] | null;
   rentEstimateData: any;
+  onUpgrade?: () => void;
 }
 
 const DashboardTab: React.FC<DashboardTabProps> = ({
@@ -99,7 +100,8 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   isLoadingSensitivity, isLoadingAmenityROI, isLoadingPathToYes, isLoadingLenderPacket,
   handleRunSensitivity, handleRunAmenityROI, handleRunPathToYes, handleGenerateLenderPacket,
   investmentTargets,
-  propertyData, marketStats, marketTrends, bedroomStats, rentalListings, rentEstimateData
+  propertyData, marketStats, marketTrends, bedroomStats, rentalListings, rentEstimateData,
+  onUpgrade
 }) => {
   const toast = useToast();
   // State for Pro-only feature access
@@ -605,9 +607,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             <h3 className="text-lg font-black uppercase tracking-tight mb-2">Unlock Advanced Analysis</h3>
             <p className="text-sm mb-4 opacity-90">Get real insights for your properties with Pro tier</p>
             <button
-              onClick={() => {
-                toast.info('Pro tier coming soon! Contact support@analyzemyproperty.com for early access.');
-              }}
+              onClick={() => onUpgrade?.()}
               className="px-8 py-3 bg-white text-purple-600 font-black rounded-lg hover:bg-slate-100 transition-all"
             >
               UPGRADE TO PRO
@@ -632,7 +632,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             <button
               onClick={() => {
                 setShowProModal(false);
-                toast.info('Pro tier coming soon! Contact support@analyzemyproperty.com for early access.');
+                onUpgrade?.();
               }}
               className="w-full px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black rounded-lg transition-all mb-3"
             >

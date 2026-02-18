@@ -79,6 +79,7 @@ export interface UserProfile {
   id: string;
   tier: 'free' | 'pro';
   is_admin: boolean;
+  stripe_customer_id: string | null;
   created_at: string;
   updated_at: string;
 }
