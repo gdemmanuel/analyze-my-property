@@ -23,6 +23,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Health check BEFORE any middleware — Railway probes this
+app.get('/api/health', (_req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.use(express.json({ limit: '10mb' }));
 
 // Security headers
@@ -614,7 +620,7 @@ app.post('/api/auth/session', (req, res) => {
 // HEALTH & STATUS
 // ============================================================================
 
-app.get('/api/health', (req, res) => {
+app.get('/api/status', (req, res) => {
   res.json({
     status: 'ok',
     user: (req as any).userId,
