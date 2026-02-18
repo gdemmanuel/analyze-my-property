@@ -1,7 +1,22 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, getUserProfile, isInTrial, getTrialEndsAt } from '../supabaseAuth';
+import Stripe from 'stripe';
+import { requireAuth, getUserProfile, isInTrial, getTrialEndsAt, supabaseAdmin } from '../supabaseAuth';
 
 const router = Router();
+
+/** If user has stripe_customer_id but tier is free, check Stripe and repair tier to pro if they have an active subscription */
+async function repairTierFromStripe(userId: string, profile: { tier: string; stripe_customer_id: string | null }): Promise<void> {
+  if (profile.tier !== 'free' || !profile.stripe_customer_id || !process.env.STRIPE_SECRET_KEY) return;
+  try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const subs = await stripe.subscriptions.list({ customer: profile.stripe_customer_id, status: 'active', limit: 1 });
+    if (subs.data.length > 0) {
+      await supabaseAdmin.from('user_profiles').update({ tier: 'pro', updated_at: new Date().toISOString() }).eq('id', userId);
+    }
+  } catch {
+    // ignore Stripe errors; profile will stay as-is
+  }
+}
 
 /**
  * GET /api/user/profile
@@ -13,10 +28,13 @@ router.get('/profile', requireAuth, async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const profile = await getUserProfile(req.user.id);
+    let profile = await getUserProfile(req.user.id);
     if (!profile) {
       return res.status(404).json({ error: 'Profile not found' });
     }
+
+    await repairTierFromStripe(req.user.id, profile);
+    profile = (await getUserProfile(req.user.id)) || profile;
 
     const inTrial = isInTrial(profile);
     res.json({

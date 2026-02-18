@@ -31,9 +31,26 @@ function getReturnUrl(): string {
 
 async function getOrCreateStripeCustomer(userId: string, email: string): Promise<string> {
   const profile = await getUserProfile(userId);
-  if (profile?.stripe_customer_id) return profile.stripe_customer_id;
-
   const stripe = getStripe();
+
+  if (profile?.stripe_customer_id) {
+    try {
+      await stripe.customers.retrieve(profile.stripe_customer_id);
+      return profile.stripe_customer_id;
+    } catch (err: any) {
+      // Customer was deleted in Stripe (e.g. after deleting subscriptions/test data) — clear and create new
+      const isNoSuchCustomer = err?.code === 'resource_missing' || err?.code === 'resource_missing_no_connection' || /no such customer/i.test(err?.message || '');
+      if (isNoSuchCustomer) {
+        await supabaseAdmin
+          .from('user_profiles')
+          .update({ stripe_customer_id: null })
+          .eq('id', userId);
+      } else {
+        throw err;
+      }
+    }
+  }
+
   const customer = await stripe.customers.create({
     email,
     metadata: { supabase_user_id: userId },
@@ -64,6 +81,18 @@ router.post('/create-checkout-session', requireAuth, async (req: Request, res: R
     const customerId = await getOrCreateStripeCustomer(req.user.id, authUser.email);
     const stripe = getStripe();
 
+    // Prevent duplicate subscriptions: if Stripe already has an active subscription for this customer, don't create another
+    const existingSubs = await stripe.subscriptions.list({
+      customer: customerId,
+      status: 'active',
+      limit: 1,
+    });
+    if (existingSubs.data.length > 0) {
+      return res.status(400).json({
+        error: 'You already have an active Pro subscription. Use "Manage Subscription" to view or cancel it.',
+      });
+    }
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       client_reference_id: req.user.id,
@@ -78,8 +107,46 @@ router.post('/create-checkout-session', requireAuth, async (req: Request, res: R
 
     res.json({ url: session.url });
   } catch (error: any) {
-    console.error('[Stripe] Checkout session error:', error.message);
+    const msg = error?.message || String(error);
+    console.error('[Stripe] Checkout session error:', msg);
+    if (process.env.NODE_ENV !== 'production') console.error('[Stripe] Stack:', error?.stack);
     res.status(500).json({ error: 'Failed to create checkout session' });
+  }
+});
+
+// ─── POST /sync-subscription ───────────────────────────────────────────────────
+// Call after return from Stripe Checkout (?upgrade=success) to grant Pro if
+// Stripe has an active subscription (fallback when webhook hasn't run yet).
+
+router.post('/sync-subscription', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) return res.status(401).json({ error: 'Unauthorized' });
+
+    const profile = await getUserProfile(req.user.id);
+    if (!profile?.stripe_customer_id) {
+      return res.json({ tier: profile?.tier ?? 'free', updated: false });
+    }
+
+    const stripe = getStripe();
+    const subscriptions = await stripe.subscriptions.list({
+      customer: profile.stripe_customer_id,
+      status: 'active',
+      limit: 1,
+    });
+
+    if (subscriptions.data.length > 0) {
+      await supabaseAdmin
+        .from('user_profiles')
+        .update({ tier: 'pro', updated_at: new Date().toISOString() })
+        .eq('id', req.user.id);
+      if (isDev) console.log(`[Stripe] Synced tier to Pro for user ${req.user.id}`);
+      return res.json({ tier: 'pro', updated: true });
+    }
+
+    res.json({ tier: profile.tier, updated: false });
+  } catch (error: any) {
+    console.error('[Stripe] Sync subscription error:', error?.message);
+    res.status(500).json({ error: 'Failed to sync subscription' });
   }
 });
 

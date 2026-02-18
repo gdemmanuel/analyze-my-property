@@ -178,12 +178,27 @@ const App: React.FC = () => {
   // EFFECTS
   // ============================================================================
 
-  // Handle Stripe checkout return
+  // Handle Stripe checkout return: sync tier from Stripe (fallback if webhook missed)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('upgrade') === 'success') {
-      toast.success('Welcome to Pro! Your upgrade is active.');
       window.history.replaceState({}, '', window.location.pathname);
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.access_token) {
+          fetch('/api/stripe/sync-subscription', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.updated || data.tier === 'pro') setUserTier('pro');
+              toast.success('Welcome to Pro! Your upgrade is active.');
+            })
+            .catch(() => toast.success('Welcome to Pro! Your upgrade is active.'));
+        } else {
+          toast.success('Payment received. Sign in to see your Pro subscription.');
+        }
+      });
     } else if (params.get('upgrade') === 'cancelled') {
       toast.info('Upgrade cancelled. You can upgrade anytime from your profile.');
       window.history.replaceState({}, '', window.location.pathname);
