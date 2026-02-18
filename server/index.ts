@@ -16,6 +16,7 @@ import { authMiddleware, checkUsageLimits, incrementUsage, TIER_LIMITS } from '.
 import { metricsMiddleware, metricsStore } from './metrics.js';
 import { claudeQueue } from './claudeQueue.js';
 import { costTracker } from './databaseCostTracker.js';
+import { getCachedClaudeAnalysis, setCachedClaudeAnalysis } from './claudeAnalysisCache.js';
 import testRoutes from './test-routes.js';
 import userRoutes from './routes/user.js';
 
@@ -476,9 +477,11 @@ app.post('/api/claude/analysis', authMiddleware, analysisLimiter, async (req, re
       addressForCache = 'fallback';
     }
 
-    // Build cache key using normalized address + strategy
+    // Build cache key using normalized address + model
     const cacheKey = `analysis:${addressForCache}:${model}`;
-    const cached = claudeCache.get(cacheKey);
+
+    // Check two-tier cache: memory first, then database (survives restarts)
+    const cached = await getCachedClaudeAnalysis(cacheKey);
     if (cached) {
       if (isDev) console.log(`[Server] Cache HIT for analysis request: ${addressForCache}`);
       (res as any).__cached = true;
@@ -511,7 +514,8 @@ app.post('/api/claude/analysis', authMiddleware, analysisLimiter, async (req, re
       return response.content;
     });
 
-    claudeCache.set(cacheKey, result);
+    // Save to both memory and database (database persists across restarts)
+    await setCachedClaudeAnalysis(cacheKey, addressForCache, model, result);
 
     return res.json({ content: result, cached: false });
   } catch (error: any) {
