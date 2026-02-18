@@ -653,8 +653,8 @@ app.get('/{*splat}', (req, res) => {
 
 const PORT = parseInt(process.env.PORT || process.env.API_PORT || '3002', 10);
 
-app.listen(PORT, () => {
-  console.log(`\n🚀 Analyze My Property API Server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n🚀 Analyze My Property API Server running on http://0.0.0.0:${PORT}`);
   console.log(`   Claude proxy:   POST http://localhost:${PORT}/api/claude/messages`);
   console.log(`   Analysis proxy: POST http://localhost:${PORT}/api/claude/analysis`);
   console.log(`   RentCast proxy: GET  http://localhost:${PORT}/api/rentcast/*`);
