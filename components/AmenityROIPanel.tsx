@@ -124,7 +124,7 @@ const AmenityROIPanel: React.FC<AmenityROIPanelProps> = ({ data, isLoading, onRe
                         <div className="mt-2">
                             <div className="flex justify-between text-[9px] font-bold text-slate-600 mb-1">
                                 <span>{amenity.confidenceRange.low} mo</span>
-                                <span className="text-slate-600">90% Confidence Range</span>
+                                <span className="text-slate-600">{amenity.confidenceLevel || 90}% Confidence Range</span>
                                 <span>{amenity.confidenceRange.high} mo</span>
                             </div>
                             <div className="h-2 bg-slate-100 rounded-full overflow-hidden relative">

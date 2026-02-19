@@ -178,7 +178,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
               {isSuggestingAmenity ? 'Adding...' : 'Add'}
             </button>
           </div>
-          <p className="text-[8px] font-black text-rose-700 uppercase tracking-widest">Claude auto-calculates cost & ADR impact</p>
+          <p className="text-[8px] font-black text-rose-700 uppercase tracking-widest">AI auto-calculates cost & revenue impact</p>
         </div>
 
         {/* Amenities List - Compact Table View */}

@@ -457,7 +457,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           </div>
           <div className="flex gap-4 text-sm font-black uppercase items-center">
             <div className="flex items-center gap-1.5">
-              <span className="text-[#f43f5e] text-base">{strategy === 'STR' ? 'ADR' : 'AMR'}: {formatCurrency(currentRateValue)}</span>
+              <span className="text-[#f43f5e] text-base">{strategy === 'STR' ? 'ADR' : 'Monthly Rent'}: {formatCurrency(currentRateValue)}</span>
               {insight?.dataSource?.adrSource && (
                 <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${insight.dataSource.adrSource === 'RentCast' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
                   {insight.dataSource.adrSource === 'RentCast' ? '✓ RC' : 'AI'}

@@ -356,7 +356,6 @@ const LenderPacketExport: React.FC<LenderPacketExportProps> = ({ packet, isLoadi
     return (
       <div className="bg-white rounded-2xl border-2 border-slate-200 p-12 shadow-lg">
         <PanelLoadingState message="Generating Professional Lender Packet..." color="indigo" />
-        <p className="text-slate-500 text-xs mt-2 text-center">This may take 10-15 seconds</p>
       </div>
     );
   }
