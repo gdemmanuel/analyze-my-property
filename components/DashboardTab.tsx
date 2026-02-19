@@ -102,7 +102,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   handleRunSensitivity, handleRunAmenityROI, handleRunPathToYes, handleGenerateLenderPacket,
   investmentTargets,
   propertyData, marketStats, marketTrends, bedroomStats, rentalListings, rentEstimateData,
-  onUpgrade
+  onUpgrade, onSettingsClick
 }) => {
   const toast = useToast();
   // State for Pro-only feature access
@@ -538,9 +538,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <div className="relative">
             {/* Sample watermark for Path to Yes */}
             {userTier === 'free' && showingSamplePathToYes && (
-              <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
-                <div className="absolute top-1/3 -left-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
-                <div className="absolute bottom-1/3 -right-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
+              <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-center">
+                <div className="text-8xl font-black text-slate-400 opacity-15 -rotate-45 absolute" style={{top: '33%'}}>SAMPLE</div>
+                <div className="text-8xl font-black text-slate-400 opacity-15 -rotate-45 absolute" style={{top: '67%'}}>SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
@@ -558,9 +558,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <div className="relative">
             {/* Sample watermark for Amenity ROI */}
             {userTier === 'free' && showingSampleAmenityROI && (
-              <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
-                <div className="absolute top-1/3 -left-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
-                <div className="absolute bottom-1/3 -right-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
+              <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-center">
+                <div className="text-8xl font-black text-slate-400 opacity-15 -rotate-45 absolute" style={{top: '33%'}}>SAMPLE</div>
+                <div className="text-8xl font-black text-slate-400 opacity-15 -rotate-45 absolute" style={{top: '67%'}}>SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
@@ -578,9 +578,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <div className="relative">
             {/* Sample watermark for Sensitivity */}
             {userTier === 'free' && showingSampleSensitivity && (
-              <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
-                <div className="absolute top-1/3 -left-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
-                <div className="absolute bottom-1/3 -right-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
+              <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-center">
+                <div className="text-8xl font-black text-slate-400 opacity-15 -rotate-45 absolute" style={{top: '33%'}}>SAMPLE</div>
+                <div className="text-8xl font-black text-slate-400 opacity-15 -rotate-45 absolute" style={{top: '67%'}}>SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
@@ -596,9 +596,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <div className="relative">
             {/* Sample watermark for Lender Packet */}
             {userTier === 'free' && showingSampleLenderPacket && (
-              <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
-                <div className="absolute top-1/3 -left-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
-                <div className="absolute bottom-1/3 -right-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
+              <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-center">
+                <div className="text-8xl font-black text-slate-400 opacity-15 -rotate-45 absolute" style={{top: '33%'}}>SAMPLE</div>
+                <div className="text-8xl font-black text-slate-400 opacity-15 -rotate-45 absolute" style={{top: '67%'}}>SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
