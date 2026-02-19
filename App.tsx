@@ -591,7 +591,7 @@ const App: React.FC = () => {
   const totalAnnualDebtService = annualDebtService + annualHelocInterest;
   const totalDscr = totalAnnualDebtService > 0 ? annualNoi / totalAnnualDebtService : 0;
 
-  const currentRateValue = strategy === 'STR' ? finalConfig.adr : (strategy === 'MTR' ? finalConfig.mtrMonthlyRent / 30 : finalConfig.ltrMonthlyRent / 30);
+  const currentRateValue = strategy === 'STR' ? finalConfig.adr : (strategy === 'MTR' ? finalConfig.mtrMonthlyRent : finalConfig.ltrMonthlyRent);
 
   // ============================================================================
   // HANDLERS
@@ -1123,6 +1123,7 @@ const App: React.FC = () => {
             rentalListings={rentalListingsQuery.data || null}
             rentEstimateData={rentEstimateQuery.data}
             onUpgrade={handleUpgrade}
+            onSettingsClick={() => setActiveTab('assumptions')}
           />
         )}
 

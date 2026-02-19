@@ -84,6 +84,7 @@ interface DashboardTabProps {
   rentalListings: RentalListing[] | null;
   rentEstimateData: any;
   onUpgrade?: () => void;
+  onSettingsClick?: () => void;
 }
 
 const DashboardTab: React.FC<DashboardTabProps> = ({
@@ -415,7 +416,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
               )}
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
             <div className="p-4 bg-white/5 rounded-xl border border-white/5"><div className="flex items-center gap-1.5 mb-1.5"><p className="text-[9px] font-black text-[#f43f5e] uppercase tracking-widest">CAP RATE</p><InfoTooltip content="Capitalization Rate: Annual NOI divided by purchase price. Measures return independent of financing. Higher = better." align="left" /></div><p className="text-2xl font-black tracking-tighter text-white">{capRate.toFixed(2)}%</p></div>
             <div className="p-4 bg-white/5 rounded-xl border border-white/5"><div className="flex items-center gap-1.5 mb-1.5"><p className="text-[9px] font-black text-[#10b981] uppercase tracking-widest">CASH-ON-CASH</p><InfoTooltip content="Cash-on-Cash Return: Annual cash flow divided by total cash invested (down payment + closing costs). Measures return on YOUR money." /></div><p className="text-2xl font-black tracking-tighter text-white">{cashPortion >= 1000 ? `${cashOnCash.toFixed(2)}%` : 'N/A'}</p>{cashPortion < 1000 && <p className="text-[8px] text-slate-500 mt-1">Minimal cash invested</p>}</div>
             <div className="p-4 bg-white/5 rounded-xl border border-white/5"><div className="flex items-center gap-1.5 mb-1.5"><p className="text-[9px] font-black text-[#818cf8] uppercase tracking-widest">NET NOI</p><InfoTooltip content="Net Operating Income: Total rental revenue minus all operating expenses (utilities, management, maintenance, taxes, insurance). Does not include mortgage payments." /></div><p className="text-2xl font-black tracking-tighter text-white">${(annualNoi / 1000).toFixed(1)}k</p></div>
@@ -446,8 +447,13 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
       <div className="p-4 bg-white rounded-xl border border-slate-100 mb-3">
         <div className="flex justify-between items-center mb-3">
           <div>
-            <h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest">REVENUE AMENITIES</h4>
-            <p className="text-[8px] font-medium text-slate-400 mt-1">💡 Go to Settings to add custom amenities</p>
+            <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">REVENUE AMENITIES</h4>
+            <button
+              onClick={() => onSettingsClick?.()}
+              className="text-[10px] font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+            >
+              💡 Go to Settings to add custom amenities →
+            </button>
           </div>
           <div className="flex gap-4 text-sm font-black uppercase items-center">
             <div className="flex items-center gap-1.5">
