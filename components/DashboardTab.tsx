@@ -531,9 +531,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <div className="relative">
             {/* Sample watermark for Path to Yes */}
             {userTier === 'free' && showingSamplePathToYes && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <div className="text-9xl font-black text-slate-500 opacity-40 transform -rotate-12">SAMPLE</div>
-                <div className="absolute text-8xl font-black text-slate-500 opacity-25 transform rotate-[8deg] translate-y-4 translate-x-2">SAMPLE</div>
+              <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between">
+                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2">SAMPLE</div>
+                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2 text-right">SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
@@ -551,9 +551,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <div className="relative">
             {/* Sample watermark for Amenity ROI */}
             {userTier === 'free' && showingSampleAmenityROI && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <div className="text-9xl font-black text-slate-500 opacity-40 transform -rotate-12">SAMPLE</div>
-                <div className="absolute text-8xl font-black text-slate-500 opacity-25 transform rotate-[8deg] translate-y-4 translate-x-2">SAMPLE</div>
+              <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between">
+                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2">SAMPLE</div>
+                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2 text-right">SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
@@ -571,9 +571,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <div className="relative">
             {/* Sample watermark for Sensitivity */}
             {userTier === 'free' && showingSampleSensitivity && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <div className="text-9xl font-black text-slate-500 opacity-40 transform -rotate-12">SAMPLE</div>
-                <div className="absolute text-8xl font-black text-slate-500 opacity-25 transform rotate-[8deg] translate-y-4 translate-x-2">SAMPLE</div>
+              <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between">
+                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2">SAMPLE</div>
+                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2 text-right">SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
@@ -589,9 +589,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <div className="relative">
             {/* Sample watermark for Lender Packet */}
             {userTier === 'free' && showingSampleLenderPacket && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <div className="text-9xl font-black text-slate-500 opacity-40 transform -rotate-12">SAMPLE</div>
-                <div className="absolute text-8xl font-black text-slate-500 opacity-25 transform rotate-[8deg] translate-y-4 translate-x-2">SAMPLE</div>
+              <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between">
+                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2">SAMPLE</div>
+                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2 text-right">SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
