@@ -1,3 +1,4 @@
+import { jsonrepair } from "jsonrepair";
 import { MarketInsight, Amenity, PropertyConfig } from "../types";
 import { RentCastProperty } from "./rentcastService";
 import {
@@ -180,22 +181,43 @@ function extractText(content: { type: string; text: string }[]): string {
   return block.text;
 }
 
-// Helper to parse JSON from Claude responses
+// Helper to parse JSON from Claude responses (handles markdown wrappers and truncated/malformed JSON)
 const parseJSON = (text: string): any => {
-  try {
-    const cleanText = text.trim();
-    if (cleanText.startsWith('{')) return JSON.parse(cleanText);
+  const extractCandidates = (raw: string): string[] => {
+    const trimmed = raw.trim();
+    const candidates: string[] = [];
+    const codeBlock = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlock) candidates.push(codeBlock[1].trim());
+    const braceMatch = trimmed.match(/\{[\s\S]*\}/);
+    if (braceMatch) candidates.push(braceMatch[0]);
+    if (trimmed.startsWith('{')) candidates.push(trimmed);
+    return candidates;
+  };
 
-    const match = cleanText.match(/\{[\s\S]*\}/);
-    if (match) return JSON.parse(match[0]);
-
-    return JSON.parse(cleanText);
-  } catch (e) {
-    const match = text.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-    if (match) {
-      return JSON.parse(match[1]);
+  const tryParse = (str: string): any => {
+    try {
+      return JSON.parse(str);
+    } catch {
+      return undefined;
     }
-    console.error("JSON Parsing failed for text:", text);
+  };
+
+  for (const candidate of extractCandidates(text)) {
+    const parsed = tryParse(candidate);
+    if (parsed !== undefined) return parsed;
+  }
+
+  for (const candidate of extractCandidates(text)) {
+    try {
+      return JSON.parse(jsonrepair(candidate));
+    } catch {
+      continue;
+    }
+  }
+  try {
+    return JSON.parse(jsonrepair(text.trim()));
+  } catch (e) {
+    console.error("JSON Parsing failed for text:", text?.slice?.(0, 500) + (text?.length > 500 ? '…' : ''));
     throw e;
   }
 };
@@ -557,7 +579,7 @@ ${factualData.ownerOccupied !== undefined ? `- Owner Occupied: ${factualData.own
 
     const content = await withRetry(() => claudeProxy({
       model: getModel('complex_analysis'),
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [{
         role: 'user',
         content: `Act as an expert real estate underwriter. Perform a multi-strategy audit for: ${query}. 
