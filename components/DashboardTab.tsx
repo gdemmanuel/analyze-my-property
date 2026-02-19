@@ -455,7 +455,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
               💡 Go to Settings to add custom amenities →
             </button>
           </div>
-          <div className="flex gap-4 text-sm font-black uppercase items-center">
+          <div className="flex gap-4 text-sm font-black uppercase items-center justify-center">
             <div className="flex items-center gap-1.5">
               <span className="text-[#f43f5e] text-base">{strategy === 'STR' ? 'ADR' : 'Monthly Rent'}: {formatCurrency(currentRateValue)}</span>
               {insight?.dataSource?.adrSource && (
