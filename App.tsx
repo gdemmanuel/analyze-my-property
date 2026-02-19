@@ -468,6 +468,17 @@ const App: React.FC = () => {
         mtrMonthlyRent: result.suggestedMTRRent || prev.mtrMonthlyRent,
         ltrMonthlyRent: result.suggestedLTRRent || prev.ltrMonthlyRent
       }));
+      
+      // Debug logging to see which ADR source is being used
+      if (import.meta.env.DEV) {
+        const selectedAdr = strData?.rent || result.proFormaScenarios?.[1]?.adr || result.suggestedADR || prev.adr;
+        console.log('[App] ADR Sources:', {
+          'strData.rent (Web Search)': strData?.rent,
+          'proFormaScenarios[1].adr': result.proFormaScenarios?.[1]?.adr,
+          'suggestedADR (Claude)': result.suggestedADR,
+          'Final Selected ADR': selectedAdr
+        });
+      }
       setActiveTab('dashboard');
       setIsAnalyzing(false);
       setAnalysisError(null);
