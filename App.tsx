@@ -254,6 +254,11 @@ const App: React.FC = () => {
           })
           .catch(err => console.error('Failed to fetch user tier:', err));
       } else {
+        // User signed out - clear local storage for privacy
+        localStorage.removeItem('airroi_v40');
+        localStorage.removeItem('investmentTargets');
+        localStorage.removeItem('airroi_global_settings');
+        
         setUserTier('free');
         setIsAdmin(false);
         setTrialEndsAt(null);
@@ -1136,6 +1141,15 @@ const App: React.FC = () => {
               marketTrends={marketTrends}
               bedroomStats={bedroomStats}
               rentalListings={rentalListingsQuery.data || null}
+              onRefreshData={() => {
+                // Re-fetch RentCast data for the displayed address
+                if (displayedAddress) {
+                  propertyQuery.refetch();
+                  marketStatsQuery.refetch();
+                  rentEstimateQuery.refetch();
+                  rentalListingsQuery.refetch();
+                }
+              }}
             />
           </Suspense>
         )}

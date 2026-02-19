@@ -13,6 +13,7 @@ interface RentCastDataTabProps {
   marketTrends: { saleTrends: MarketTrendEntry[]; rentalTrends: MarketTrendEntry[] };
   bedroomStats: { sale?: any; rental?: any };
   rentalListings: RentalListing[] | null;
+  onRefreshData?: () => void;
 }
 
 const RentCastDataTab: React.FC<RentCastDataTabProps> = ({
@@ -20,7 +21,8 @@ const RentCastDataTab: React.FC<RentCastDataTabProps> = ({
   marketStats,
   marketTrends,
   bedroomStats,
-  rentalListings
+  rentalListings,
+  onRefreshData
 }) => {
   const [expandedSection, setExpandedSection] = React.useState<string | null>('health');
 
@@ -364,7 +366,15 @@ const RentCastDataTab: React.FC<RentCastDataTabProps> = ({
         <div className="bg-white rounded-xl border border-slate-100 p-12 text-center">
           <BarChart3 size={48} className="mx-auto mb-4 text-slate-400" />
           <p className="text-base font-black text-slate-600 uppercase tracking-widest mb-2">No RentCast Data Available</p>
-          <p className="text-slate-500 text-sm">Run an underwriting analysis to view RentCast market data</p>
+          <p className="text-slate-500 text-sm mb-6">Run an underwriting analysis to view RentCast market data</p>
+          {onRefreshData && (
+            <button
+              onClick={onRefreshData}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
+            >
+              Refresh Market Data
+            </button>
+          )}
         </div>
       )}
     </div>
