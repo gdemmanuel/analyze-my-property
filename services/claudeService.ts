@@ -349,10 +349,12 @@ export const searchWebForSTRData = async (address: string, bedrooms?: number, ba
         role: 'user',
         content: `Search the web for short-term rental (Airbnb/Vrbo) market data for: ${address}${bedrooms ? `, ${bedrooms} bed` : ''}${bathrooms ? `, ${bathrooms} bath` : ''}
 
-Find the average daily rate (ADR) in USD and annual occupancy percentage.
+Find the average DAILY rate (ADR - not monthly rent) in USD and annual occupancy percentage.
+ADR = Average Daily Rate per night on platforms like Airbnb/VRBO. This is typically $100-$400 per night.
+DO NOT return monthly rent (which would be $1000+). Return the nightly rate only.
 
 IMPORTANT: Respond with ONLY valid JSON, no explanation or other text.
-Format: {"adr": <number>, "occupancy": <number>}
+Format: {"adr": <daily_rate_number>, "occupancy": <annual_occupancy_percentage>}
 Example: {"adr": 185, "occupancy": 68}
 Default if no data: {"adr": 120, "occupancy": 50}`
       }]
@@ -381,8 +383,19 @@ Default if no data: {"adr": 120, "occupancy": 50}`
 
     if (result && typeof result.adr === 'number' && typeof result.occupancy === 'number') {
       if (result.adr > 0 && result.occupancy > 0 && result.occupancy <= 100) {
-        if (import.meta.env.DEV) console.log(`[Claude] ✅ Found STR data - ADR: $${result.adr}, Occ: ${result.occupancy}%`);
-        return { adr: result.adr, occupancy: result.occupancy };
+        // Check if Claude returned a monthly rent value instead of daily ADR
+        // Typical daily ADR ranges from $100-$500 for most residential properties
+        // If the value is > $500, it's likely monthly rent - convert to daily
+        let finalAdr = result.adr;
+        if (result.adr > 500 && result.adr < 3000) {
+          // Likely monthly rent, convert to estimated daily ADR
+          // Assuming 365 days/year, but only ~75% occupancy typical for STR
+          finalAdr = Math.round(result.adr / 25); // Rough conversion: monthly / 25 ≈ daily
+          if (import.meta.env.DEV) console.log(`[Claude] ⚠️ Converting likely monthly rent ($${result.adr}) to daily ADR ($${finalAdr})`);
+        }
+        
+        if (import.meta.env.DEV) console.log(`[Claude] ✅ Found STR data - ADR: $${finalAdr}, Occ: ${result.occupancy}%`);
+        return { adr: finalAdr, occupancy: result.occupancy };
       }
     }
 
