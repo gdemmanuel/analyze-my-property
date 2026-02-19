@@ -450,7 +450,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">REVENUE AMENITIES</h4>
             <button
               onClick={() => onSettingsClick?.()}
-              className="text-[10px] font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+              className="text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors bg-blue-50 px-2 py-1 rounded hover:bg-blue-100"
             >
               💡 Go to Settings to add custom amenities →
             </button>
@@ -538,9 +538,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <div className="relative">
             {/* Sample watermark for Path to Yes */}
             {userTier === 'free' && showingSamplePathToYes && (
-              <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between">
-                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2">SAMPLE</div>
-                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2 text-right">SAMPLE</div>
+              <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+                <div className="absolute top-1/3 -left-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
+                <div className="absolute bottom-1/3 -right-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
@@ -558,9 +558,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <div className="relative">
             {/* Sample watermark for Amenity ROI */}
             {userTier === 'free' && showingSampleAmenityROI && (
-              <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between">
-                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2">SAMPLE</div>
-                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2 text-right">SAMPLE</div>
+              <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+                <div className="absolute top-1/3 -left-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
+                <div className="absolute bottom-1/3 -right-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
@@ -578,9 +578,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <div className="relative">
             {/* Sample watermark for Sensitivity */}
             {userTier === 'free' && showingSampleSensitivity && (
-              <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between">
-                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2">SAMPLE</div>
-                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2 text-right">SAMPLE</div>
+              <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+                <div className="absolute top-1/3 -left-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
+                <div className="absolute bottom-1/3 -right-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
@@ -596,9 +596,9 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <div className="relative">
             {/* Sample watermark for Lender Packet */}
             {userTier === 'free' && showingSampleLenderPacket && (
-              <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between">
-                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2">SAMPLE</div>
-                <div className="text-7xl font-black text-slate-500 opacity-30 leading-none py-2 text-right">SAMPLE</div>
+              <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+                <div className="absolute top-1/3 -left-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
+                <div className="absolute bottom-1/3 -right-12 text-6xl font-black text-slate-400 opacity-20 -rotate-45">SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
