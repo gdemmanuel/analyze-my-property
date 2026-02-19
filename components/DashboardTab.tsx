@@ -418,7 +418,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div className="p-4 bg-white/5 rounded-xl border border-white/5"><div className="flex items-center gap-1.5 mb-1.5"><p className="text-[9px] font-black text-[#f43f5e] uppercase tracking-widest">CAP RATE</p><InfoTooltip content="Capitalization Rate: Annual NOI divided by purchase price. Measures return independent of financing. Higher = better." /></div><p className="text-2xl font-black tracking-tighter text-white">{capRate.toFixed(2)}%</p></div>
+            <div className="p-4 bg-white/5 rounded-xl border border-white/5"><div className="flex items-center gap-1.5 mb-1.5"><p className="text-[9px] font-black text-[#f43f5e] uppercase tracking-widest">CAP RATE</p><InfoTooltip content="Capitalization Rate: Annual NOI divided by purchase price. Measures return independent of financing. Higher = better." align="left" /></div><p className="text-2xl font-black tracking-tighter text-white">{capRate.toFixed(2)}%</p></div>
             <div className="p-4 bg-white/5 rounded-xl border border-white/5"><div className="flex items-center gap-1.5 mb-1.5"><p className="text-[9px] font-black text-[#10b981] uppercase tracking-widest">CASH-ON-CASH</p><InfoTooltip content="Cash-on-Cash Return: Annual cash flow divided by total cash invested (down payment + closing costs). Measures return on YOUR money." /></div><p className="text-2xl font-black tracking-tighter text-white">{cashPortion >= 1000 ? `${cashOnCash.toFixed(2)}%` : 'N/A'}</p>{cashPortion < 1000 && <p className="text-[8px] text-slate-500 mt-1">Minimal cash invested</p>}</div>
             <div className="p-4 bg-white/5 rounded-xl border border-white/5"><div className="flex items-center gap-1.5 mb-1.5"><p className="text-[9px] font-black text-[#818cf8] uppercase tracking-widest">NET NOI</p><InfoTooltip content="Net Operating Income: Total rental revenue minus all operating expenses (utilities, management, maintenance, taxes, insurance). Does not include mortgage payments." /></div><p className="text-2xl font-black tracking-tighter text-white">${(annualNoi / 1000).toFixed(1)}k</p></div>
             <div className="p-4 bg-white/5 rounded-xl border border-white/5"><div className="flex items-center gap-1.5 mb-1.5"><p className="text-[9px] font-black text-[#f59e0b] uppercase tracking-widest">GROSS YIELD</p><InfoTooltip content="Gross Rental Yield: Annual gross rental income divided by purchase price. Quick comparison metric before expenses." /></div><p className="text-2xl font-black tracking-tighter text-white">{grossYield.toFixed(2)}%</p></div>
@@ -437,8 +437,8 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <input type="range" min="0" max="100" value={baseConfig.helocFundingPercent} onChange={(e) => handleInputChange('helocFundingPercent', e.target.value)} className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#f43f5e] mt-2" />
         </div>
         <div className="p-3 bg-white rounded-xl border border-slate-100 flex flex-col justify-between min-h-[100px]">
-          <div><div className="flex justify-between items-center mb-2"><h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest">MGMT MODE</h4><div className="p-0.5 bg-indigo-500/20 rounded-full text-[#818cf8]"><ShieldPlus size={10} /></div></div><div className="space-y-1"><div className="flex justify-between text-[10px] font-black"><span className="text-slate-600">SELECTION</span><span className="text-slate-900">{getManagementLabel(baseConfig.mgmtFeePercent).split(' ')[0]}</span></div><div className="flex justify-between text-[10px] font-black"><span className="text-slate-600">EST. COST</span><span className="text-[#818cf8]">{formatCurrency(year1Data?.mgmtFee || 0)}</span></div></div></div>
-          <input type="range" min="0" max="2" step="1" value={getManagementIndex(baseConfig.mgmtFeePercent)} onChange={handleManagementSliderChange} className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#818cf8] mt-2" />
+          <div><div className="flex justify-between items-center mb-2"><h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">MGMT MODE <InfoTooltip content="Property management level: Self (0% fee), Partial (~10%), or Full (~25%). Affects your Year 1 profit and owner surplus. Use the slider to compare scenarios." direction="down" /></h4><div className="p-0.5 bg-indigo-500/20 rounded-full text-[#818cf8]"><ShieldPlus size={10} /></div></div><div className="space-y-1"><div className="flex justify-between text-[10px] font-black"><span className="text-slate-600">SELECTION</span><span className="text-slate-900">{getManagementLabel(baseConfig.mgmtFeePercent).split(' ')[0]}</span></div><div className="flex justify-between text-[10px] font-black"><span className="text-slate-600">EST. COST</span><span className="text-[#818cf8]">{formatCurrency(year1Data?.mgmtFee || 0)}</span></div></div></div>
+          <input type="range" min="0" max="2" step="1" value={getManagementIndex(baseConfig.mgmtFeePercent)} onChange={handleManagementSliderChange} className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#818cf8] mt-2 touch-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#818cf8] [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#818cf8] [&::-moz-range-thumb]:border-0" />
         </div>
         <div className="p-3 bg-white rounded-xl border border-slate-100 flex flex-col items-center justify-center text-center min-h-[100px]"><div className="flex items-center gap-1 mb-1"><p className="text-[8px] font-black text-[#10b981] uppercase tracking-widest">PROFIT (Y1)</p></div><p className={`text-xl font-black tracking-tighter leading-none ${annualProfit < 0 ? 'text-[#f43f5e]' : 'text-[#10b981]'}`}>{formatCurrency(annualProfit)}</p></div>
         <div className="p-3 bg-white rounded-xl border border-slate-100 flex flex-col items-center justify-center text-center min-h-[100px]"><div className="flex items-center gap-1 mb-1"><p className="text-[8px] font-black text-[#818cf8] uppercase tracking-widest">OWNER SURPLUS</p></div><p className={`text-xl font-black tracking-tighter leading-none ${annualSurplus < 0 ? 'text-[#f43f5e]' : 'text-slate-900'}`}>{formatCurrency(annualSurplus)}</p></div>
@@ -446,21 +446,21 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
 
       {/* Amenities */}
       <div className="p-4 bg-white rounded-xl border border-slate-100 mb-3">
-        <div className="flex justify-between items-center mb-3">
+        <div className="flex justify-between items-center mb-2">
           <h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest">REVENUE AMENITIES</h4>
-          <div className="flex gap-3 text-[12px] font-black uppercase items-center">
-            <div className="flex items-center gap-1">
-              <span className="text-[#f43f5e]">ADR: {formatCurrency(currentRateValue)}</span>
+          <div className="flex gap-4 text-sm font-black uppercase items-center">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#f43f5e] text-base">ADR: {formatCurrency(currentRateValue)}</span>
               {insight?.dataSource?.adrSource && (
-                <span className={`text-[7px] font-black px-1.5 py-0.5 rounded-full ${insight.dataSource.adrSource === 'RentCast' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${insight.dataSource.adrSource === 'RentCast' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
                   {insight.dataSource.adrSource === 'RentCast' ? '✓ RC' : 'AI'}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-1">
-              <span className="text-[#10b981]">OCC: {year1Data?.occupancy.toFixed(0)}%</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#10b981] text-base">OCC: {year1Data?.occupancy.toFixed(0)}%</span>
               {insight?.dataSource?.occupancySource && (
-                <span className={`text-[7px] font-black px-1.5 py-0.5 rounded-full ${insight.dataSource.occupancySource === 'RentCast' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${insight.dataSource.occupancySource === 'RentCast' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
                   {insight.dataSource.occupancySource === 'RentCast' ? '✓ RC' : 'AI'}
                 </span>
               )}
@@ -470,10 +470,10 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
           {amenities.filter(a => a.active).map(am => (
             <div key={am.id} className="relative">
-              <button onClick={() => toggleAmenity(am.id)} className={`w-full p-2 rounded-lg border transition-all flex flex-col gap-1 text-left text-[7px] ${selectedAmenityIds.includes(am.id) ? 'bg-[#f43f5e] border-[#fb7185] text-white shadow-lg' : 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800'}`}>
+              <button onClick={() => toggleAmenity(am.id)} className={`w-full py-2 px-2.5 rounded-lg border transition-all flex flex-col gap-0.5 text-left text-[10px] min-h-0 ${selectedAmenityIds.includes(am.id) ? 'bg-[#f43f5e] border-[#fb7185] text-white shadow-lg' : 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800'}`}>
                 <div className="flex items-center gap-1">
                   <span className={selectedAmenityIds.includes(am.id) ? 'text-white' : 'text-rose-400'}>{getAmenityIcon(am.icon)}</span>
-                  <span className="font-black uppercase truncate">{am.name}</span>
+                  <span className="font-black uppercase truncate text-[10px]">{am.name}</span>
                   {am.id === 'furnishings' && (
                     <span
                       onClick={(e) => { e.stopPropagation(); setShowFurnishingDropdown(!showFurnishingDropdown); }}
@@ -483,7 +483,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                     </span>
                   )}
                 </div>
-                <span className={`font-black ${selectedAmenityIds.includes(am.id) ? 'text-white' : 'text-yellow-300'}`}>${am.cost.toLocaleString()}</span>
+                <span className={`font-black text-[11px] ${selectedAmenityIds.includes(am.id) ? 'text-white' : 'text-yellow-300'}`}>${am.cost.toLocaleString()}</span>
               </button>
             </div>
           ))}
@@ -532,7 +532,8 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             {/* Sample watermark for Path to Yes */}
             {userTier === 'free' && showingSamplePathToYes && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <div className="text-9xl font-black text-slate-300 opacity-20 transform -rotate-12">SAMPLE</div>
+                <div className="text-9xl font-black text-slate-500 opacity-40 transform -rotate-12">SAMPLE</div>
+                <div className="absolute text-8xl font-black text-slate-500 opacity-25 transform rotate-[8deg] translate-y-4 translate-x-2">SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
@@ -551,7 +552,8 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             {/* Sample watermark for Amenity ROI */}
             {userTier === 'free' && showingSampleAmenityROI && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <div className="text-9xl font-black text-slate-300 opacity-20 transform -rotate-12">SAMPLE</div>
+                <div className="text-9xl font-black text-slate-500 opacity-40 transform -rotate-12">SAMPLE</div>
+                <div className="absolute text-8xl font-black text-slate-500 opacity-25 transform rotate-[8deg] translate-y-4 translate-x-2">SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
@@ -570,7 +572,8 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             {/* Sample watermark for Sensitivity */}
             {userTier === 'free' && showingSampleSensitivity && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <div className="text-9xl font-black text-slate-300 opacity-20 transform -rotate-12">SAMPLE</div>
+                <div className="text-9xl font-black text-slate-500 opacity-40 transform -rotate-12">SAMPLE</div>
+                <div className="absolute text-8xl font-black text-slate-500 opacity-25 transform rotate-[8deg] translate-y-4 translate-x-2">SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
@@ -587,7 +590,8 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             {/* Sample watermark for Lender Packet */}
             {userTier === 'free' && showingSampleLenderPacket && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <div className="text-9xl font-black text-slate-300 opacity-20 transform -rotate-12">SAMPLE</div>
+                <div className="text-9xl font-black text-slate-500 opacity-40 transform -rotate-12">SAMPLE</div>
+                <div className="absolute text-8xl font-black text-slate-500 opacity-25 transform rotate-[8deg] translate-y-4 translate-x-2">SAMPLE</div>
               </div>
             )}
             <ErrorBoundary>
