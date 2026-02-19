@@ -57,6 +57,7 @@ const App: React.FC = () => {
   const [targetAddress, setTargetAddress] = useState(''); // Address to analyze (triggers React Query)
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisErrorShowUpgrade, setAnalysisErrorShowUpgrade] = useState(false);
   const [insight, setInsight] = useState<MarketInsight | null>(null);
   const [savedAssessments, setSavedAssessments] = useState<SavedAssessment[]>([]);
   const [showSaveToast, setShowSaveToast] = useState(false);
@@ -452,6 +453,7 @@ const App: React.FC = () => {
       setActiveTab('dashboard');
       setIsAnalyzing(false);
       setAnalysisError(null);
+      setAnalysisErrorShowUpgrade(false);
       progress.reset();
       
       // Clear advanced analysis when new property is analyzed
@@ -488,6 +490,7 @@ const App: React.FC = () => {
       const error = analysisQuery.error as any;
       console.error("Full analysis error:", error);
       setAnalysisError(error.message?.includes("429") ? "AI capacity exceeded. Please retry in 60 seconds." : `Underwriting failed: ${error.message || "Please check the address."}`);
+      setAnalysisErrorShowUpgrade(false);
       setIsAnalyzing(false);
       progress.reset();
     }
@@ -633,38 +636,23 @@ const App: React.FC = () => {
   const analysisTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Check if user can run an analysis BEFORE making API calls
-  const checkCanAnalyze = async (): Promise<{ canAnalyze: boolean; message?: string }> => {
+  const checkCanAnalyze = async (): Promise<{ canAnalyze: boolean; message?: string; showUpgradeLink?: boolean }> => {
     try {
-      // Get session token
       const { data: { session } } = await supabase.auth.getSession();
-      
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-      
-      const res = await fetch('/api/check-analysis-limit', {
-        method: 'GET',
-        headers
-      });
-      
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+
+      const res = await fetch('/api/check-analysis-limit', { method: 'GET', headers });
       if (!res.ok) {
         if (import.meta.env.DEV) console.error('[App] Failed to check analysis limit:', res.status);
-        return { canAnalyze: true }; // Optimistic: allow if check fails
+        return { canAnalyze: true };
       }
-      
       const data = await res.json();
       if (import.meta.env.DEV) console.log('[App] Analysis limit check:', data);
-      
-      // Add upgrade link to message if needed
-      if (!data.canAnalyze && data.message) {
-        data.message += ' <a href="#upgrade" onclick="window.__triggerUpgrade?.()">Upgrade to Pro →</a>';
-      }
-      
       return data;
     } catch (error) {
       if (import.meta.env.DEV) console.error('[App] Error checking analysis limit:', error);
-      return { canAnalyze: true }; // Optimistic: allow if check fails
+      return { canAnalyze: true };
     }
   };
 
@@ -685,16 +673,18 @@ const App: React.FC = () => {
     const target = selectedAddr || propertyInput;
     if (!target) return;
     
-    // CHECK LIMITS BEFORE MAKING ANY API CALLS
     const limitCheck = await checkCanAnalyze();
     if (!limitCheck.canAnalyze) {
       setAnalysisError(limitCheck.message || 'Unable to run analysis at this time');
+      setAnalysisErrorShowUpgrade(!!limitCheck.showUpgradeLink);
       return;
     }
+    setAnalysisErrorShowUpgrade(false);
     
     const normalizedAddress = normalizeAddress(target);
     
     setAnalysisError(null);
+    setAnalysisErrorShowUpgrade(false);
     setPropertyInput('');
     isSelectingRef.current = true;
     setIsAnalyzing(true);
@@ -1029,13 +1019,18 @@ const App: React.FC = () => {
           if (daysLeft <= 0) return null;
           return (
             <div className="max-w-[1600px] mx-auto mb-4 px-4 py-3 bg-slate-100 border border-slate-200 rounded-2xl flex items-center justify-between gap-4 flex-wrap">
-              <p className="text-sm font-bold text-slate-700">
-                You have <span className="text-[#0f172a]">{daysLeft} day{daysLeft !== 1 ? 's' : ''} left</span> in your free trial. 3 analyses per day during trial.
-              </p>
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-bold text-slate-900">
+                  Free Trial · <span className="text-[#0f172a]">{daysLeft} day{daysLeft !== 1 ? 's' : ''} remaining</span>
+                </p>
+                <p className="text-xs font-medium text-slate-600">
+                  You have 3 analyses per day. Cached properties don't count toward your limit.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => (window as any).__triggerUpgrade?.()}
-                className="text-sm font-black uppercase tracking-tight text-[#f43f5e] hover:underline"
+                className="text-sm font-black uppercase tracking-tight text-[#f43f5e] hover:underline whitespace-nowrap"
               >
                 Upgrade to Pro →
               </button>
@@ -1051,6 +1046,7 @@ const App: React.FC = () => {
             isFetchingFactual={isFetchingFactual}
             isUsingWebData={isUsingWebData}
             analysisError={analysisError}
+            analysisErrorShowUpgrade={analysisErrorShowUpgrade}
             suggestionRef={suggestionRef as React.RefObject<HTMLDivElement>}
             isLoggedIn={!!user}
           />
