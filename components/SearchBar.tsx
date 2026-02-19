@@ -9,6 +9,8 @@ interface SearchBarProps {
   isFetchingFactual: boolean;
   isUsingWebData: boolean;
   analysisError: string | null;
+  /** When true, show an "Upgrade to Pro" link after the error (for limit messages) */
+  analysisErrorShowUpgrade?: boolean;
   suggestionRef: React.RefObject<HTMLDivElement>;
   /** When false, button shows "Sign in to underwrite" and click opens signup */
   isLoggedIn?: boolean;
@@ -17,7 +19,7 @@ interface SearchBarProps {
 const SearchBar: React.FC<SearchBarProps> = ({
   propertyInput, onInputChange, onSearch,
   isAnalyzing, isFetchingFactual, isUsingWebData,
-  analysisError, suggestionRef, isLoggedIn = false
+  analysisError, analysisErrorShowUpgrade = false, suggestionRef, isLoggedIn = false
 }) => {
   const buttonLabel = !isLoggedIn
     ? 'SIGN IN TO UNDERWRITE'
@@ -45,7 +47,22 @@ const SearchBar: React.FC<SearchBarProps> = ({
           {buttonLabel}
         </button>
       </div>
-      {analysisError && <div className="mt-4 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-4"><AlertTriangle size={20} className="text-[#f43f5e]" /><p className="text-[10px] font-black uppercase text-[#f43f5e] tracking-widest">{analysisError}</p></div>}
+      {analysisError && (
+        <div className="mt-4 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-4">
+          <AlertTriangle size={20} className="text-[#f43f5e]" />
+          <div className="text-[10px] font-black uppercase text-[#f43f5e] tracking-widest">
+            <span>{analysisError}</span>
+            {analysisErrorShowUpgrade && (
+              <span className="ml-1">
+                {' '}
+                <button type="button" onClick={() => (window as any).__triggerUpgrade?.()} className="underline hover:no-underline">
+                  Upgrade to Pro →
+                </button>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -263,11 +263,10 @@ app.get('/api/check-analysis-limit', authMiddleware, async (req, res) => {
     
     if (!check.allowed) {
       if (isDev) console.log('[Server] User at limit:', check);
-      const upgradeLink = ' <a href="#upgrade" onclick="window.__triggerUpgrade?.();" style="color: #f43f5e; text-decoration: underline;">Upgrade to Pro →</a>';
-      const message = (check.message || 'Daily analysis limit reached.') + (profile.tier === 'free' ? upgradeLink : '');
       return res.json({
         canAnalyze: false,
-        message,
+        message: check.message || 'Daily analysis limit reached.',
+        showUpgradeLink: profile.tier === 'free',
         usage: check.usage,
         inTrial: isInTrial(profile),
       });
@@ -471,6 +470,29 @@ app.post('/api/claude/analysis', authMiddleware, requireAuth, analysisLimiter, a
     const userId = (req as any).user.id;
     const tier = (req as any).userProfile?.tier || 'free';
 
+    // Extract address from messages for cache key (before any limit checks)
+    let addressForCache = 'unknown';
+    try {
+      const userMessage = messages.find((m: any) => m.role === 'user');
+      if (userMessage && userMessage.content) {
+        const addressMatch = userMessage.content.match(/address[:\s]+([^\n,]+)/i);
+        if (addressMatch) {
+          addressForCache = addressMatch[1].trim().toLowerCase().replace(/\s+/g, ' ');
+        }
+      }
+    } catch (e) {
+      addressForCache = 'fallback';
+    }
+
+    const cacheKey = `analysis:${addressForCache}:${model}`;
+    const cached = await getCachedClaudeAnalysis(cacheKey);
+    if (cached) {
+      if (isDev) console.log(`[Server] Cache HIT for analysis request: ${addressForCache}`);
+      (res as any).__cached = true;
+      return res.json({ content: cached, cached: true });
+    }
+
+    // Only enforce limits when we're about to run a new (non-cached) analysis
     const analysisCheck = await checkUsageLimits(userId, 'analysis');
     if (!analysisCheck.allowed) {
       return res.status(429).json({
@@ -487,36 +509,6 @@ app.post('/api/claude/analysis', authMiddleware, requireAuth, analysisLimiter, a
         type: 'usage_limit_exceeded',
         usage: claudeCheck.usage
       });
-    }
-
-    // Extract address from messages for better cache key
-    let addressForCache = 'unknown';
-    try {
-      const userMessage = messages.find((m: any) => m.role === 'user');
-      if (userMessage && userMessage.content) {
-        // Look for address in the message content
-        const addressMatch = userMessage.content.match(/address[:\s]+([^\n,]+)/i);
-        if (addressMatch) {
-          // Normalize address: lowercase, trim, remove extra spaces
-          addressForCache = addressMatch[1].trim().toLowerCase().replace(/\s+/g, ' ');
-        }
-      }
-    } catch (e) {
-      // Fallback to full stringify if address extraction fails
-      addressForCache = 'fallback';
-    }
-
-    // Build cache key using normalized address + model
-    const cacheKey = `analysis:${addressForCache}:${model}`;
-
-    // Check two-tier cache: memory first, then database (survives restarts)
-    const cached = await getCachedClaudeAnalysis(cacheKey);
-    if (cached) {
-      if (isDev) console.log(`[Server] Cache HIT for analysis request: ${addressForCache}`);
-      // Cached responses count toward the 3/day limit
-      await incrementUsage(userId, 'analysis');
-      (res as any).__cached = true;
-      return res.json({ content: cached, cached: true });
     }
 
     if (isDev) console.log(`[Server] Cache MISS - Proxying analysis request for: ${addressForCache}`);
