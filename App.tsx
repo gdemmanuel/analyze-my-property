@@ -253,12 +253,25 @@ const App: React.FC = () => {
             setTrialEndsAt(data.inTrial && data.trialEndsAt ? data.trialEndsAt : null);
           })
           .catch(err => console.error('Failed to fetch user tier:', err));
+        
+        // Load saved assessments from database
+        fetch('/api/user/assessments', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (Array.isArray(data)) {
+              setSavedAssessments(data);
+            }
+          })
+          .catch(err => console.error('Failed to fetch assessments:', err));
       } else {
         // User signed out - clear local storage for privacy
         localStorage.removeItem('airroi_v40');
         localStorage.removeItem('investmentTargets');
         localStorage.removeItem('airroi_global_settings');
         
+        setSavedAssessments([]);
         setUserTier('free');
         setIsAdmin(false);
         setTrialEndsAt(null);
@@ -702,7 +715,7 @@ const App: React.FC = () => {
     }
   };
 
-  const saveAssessment = () => {
+  const saveAssessment = async () => {
     if (!insight) return;
     const newSave: SavedAssessment = {
       id: Date.now().toString(),
@@ -717,13 +730,62 @@ const App: React.FC = () => {
       price: finalConfig.price,
       annualNoi: annualNoi
     };
+    
     setSavedAssessments([newSave, ...savedAssessments].slice(0, 30));
     setShowSaveToast(true);
     setTimeout(() => setShowSaveToast(false), 4000);
+    
+    // Also save to database if user is logged in
+    if (user) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          await fetch('/api/user/assessments', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              address: newSave.address,
+              config: newSave.config,
+              insight: newSave.insight,
+              selectedAmenities: newSave.selectedAmenities,
+              strategy: newSave.strategy,
+              capRate: newSave.capRate,
+              cashOnCash: newSave.cashOnCash,
+              price: newSave.price,
+              annualNoi: newSave.annualNoi
+            })
+          });
+        }
+      } catch (err) {
+        console.error('Failed to save assessment to database:', err);
+        // Silently fail - data is still in localStorage
+      }
+    }
   };
 
-  const deleteSaved = (id: string) => {
+  const deleteSaved = async (id: string) => {
     setSavedAssessments(prev => prev.filter(a => a.id !== id));
+    
+    // Also delete from database if user is logged in
+    if (user) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          await fetch(`/api/user/assessments/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to delete assessment from database:', err);
+        // Silently fail - deletion is still in localStorage
+      }
+    }
   };
 
   const toggleComparisonMode = () => {

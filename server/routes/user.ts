@@ -139,7 +139,22 @@ router.get('/assessments', requireAuth, async (req: Request, res: Response) => {
 
     if (error) throw error;
 
-    res.json(data || []);
+    // Transform database format to match SavedAssessment type
+    const assessments = (data || []).map((a: any) => ({
+      id: a.id,
+      address: a.address,
+      config: a.config,
+      insight: a.insight,
+      selectedAmenities: a.selected_amenities || [],
+      timestamp: new Date(a.created_at).getTime(),
+      strategy: a.strategy,
+      capRate: a.cap_rate,
+      cashOnCash: a.cash_on_cash,
+      price: a.price,
+      annualNoi: a.annual_noi
+    }));
+
+    res.json(assessments);
   } catch (error) {
     console.error('Error fetching assessments:', error);
     res.status(500).json({ error: 'Failed to fetch assessments' });
@@ -156,9 +171,10 @@ router.post('/assessments', requireAuth, async (req: Request, res: Response) => 
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { assessment_data } = req.body;
-    if (!assessment_data) {
-      return res.status(400).json({ error: 'Assessment data is required' });
+    const { address, config, insight, selectedAmenities, strategy, capRate, cashOnCash, price, annualNoi } = req.body;
+    
+    if (!address || !config || !insight) {
+      return res.status(400).json({ error: 'Address, config, and insight are required' });
     }
 
     const { supabaseAdmin } = await import('../supabaseAuth');
@@ -167,7 +183,15 @@ router.post('/assessments', requireAuth, async (req: Request, res: Response) => 
       .from('assessments')
       .insert({
         user_id: req.user.id,
-        assessment_data
+        address,
+        config,
+        insight,
+        selected_amenities: selectedAmenities,
+        strategy,
+        cap_rate: capRate,
+        cash_on_cash: cashOnCash,
+        price,
+        annual_noi: annualNoi
       })
       .select()
       .single();
