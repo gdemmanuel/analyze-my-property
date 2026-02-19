@@ -1142,12 +1142,9 @@ const App: React.FC = () => {
               bedroomStats={bedroomStats}
               rentalListings={rentalListingsQuery.data || null}
               onRefreshData={() => {
-                // Re-fetch RentCast data for the displayed address
+                // Re-fetch RentCast data by setting targetAddress (which triggers React Query)
                 if (displayedAddress) {
-                  propertyQuery.refetch();
-                  marketStatsQuery.refetch();
-                  rentEstimateQuery.refetch();
-                  rentalListingsQuery.refetch();
+                  setTargetAddress(normalizeAddress(displayedAddress));
                 }
               }}
             />
