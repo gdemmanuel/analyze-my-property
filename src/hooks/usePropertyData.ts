@@ -92,9 +92,9 @@ export const useWebSTRData = (
     queryKey: ['webSTRData', address, bedrooms, bathrooms],
     queryFn: () => searchWebForSTRData(address, bedrooms, bathrooms),
     enabled: enabled && !!address,
-    staleTime: 2 * 60 * 60 * 1000, // 2 hours (increased for production)
+    staleTime: 0, // Always refetch to get fresh STR data (Claude web search is fast)
     retry: 1, // Only retry once for Claude calls
-    refetchOnMount: false, // Use cache on repeat searches
+    refetchOnMount: true, // Always refetch when component mounts to ensure fresh data
   });
 };
 
