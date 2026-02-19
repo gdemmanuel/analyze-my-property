@@ -360,32 +360,35 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
       <div className="rounded-3xl bg-[#0f172a] shadow-2xl relative overflow-hidden border border-white/5 min-h-[300px]">
         <div className="p-4 lg:p-6 relative z-10 flex flex-col justify-between h-full">
           <div>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-[#f43f5e] font-black text-[9px] uppercase tracking-[0.3em]">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#f43f5e] animate-pulse" />
                 {strategy} AUDIT • REAL-TIME DATA
               </div>
+              {/* Strategy Toggle - Large and Prominent */}
+              <div className="flex items-center gap-2 bg-[#1e293b]/50 rounded-lg p-2 border border-white/10">
+                {[
+                  { id: 'STR', label: 'STR', color: 'bg-[#f43f5e]' },
+                  { id: 'MTR', label: 'MTR', color: 'bg-blue-500' },
+                  { id: 'LTR', label: 'LTR', color: 'bg-[#10b981]' }
+                ].map((s: any) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setStrategy?.(s.id as RentalStrategy)}
+                    className={`px-5 py-2 rounded-lg text-sm font-black uppercase tracking-wider transition-all ${strategy === s.id ? `${s.color} text-white shadow-lg scale-110` : 'text-slate-400 hover:text-white hover:scale-105'}`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between mb-4">
+              <div></div>
               <div className="flex flex-col gap-2 items-end">
                 {/* Export PDF and Save buttons */}
                 <div className="flex gap-2">
                   <button onClick={onExportReport} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 border border-indigo-400 rounded-lg text-[9px] font-black uppercase tracking-widest text-white shadow-lg"><Printer size={12} /> EXPORT PDF</button>
                   <button onClick={onSaveAssessment} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f43f5e] hover:bg-[#e11d48] rounded-lg text-[9px] font-black uppercase tracking-widest shadow-xl"><Save size={12} /> SAVE</button>
-                </div>
-                {/* Strategy Toggle Below */}
-                <div className="flex items-center gap-1 bg-[#1e293b]/50 rounded-lg p-1 border border-white/5">
-                  {[
-                    { id: 'STR', label: 'STR', color: 'bg-[#f43f5e]' },
-                    { id: 'MTR', label: 'MTR', color: 'bg-blue-500' },
-                    { id: 'LTR', label: 'LTR', color: 'bg-[#10b981]' }
-                  ].map((s: any) => (
-                    <button
-                      key={s.id}
-                      onClick={() => setStrategy?.(s.id as RentalStrategy)}
-                      className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all ${strategy === s.id ? `${s.color} text-white shadow-lg` : 'text-slate-400 hover:text-white'}`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
                 </div>
               </div>
             </div>

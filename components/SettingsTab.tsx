@@ -145,6 +145,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
               <div className="p-2 bg-rose-50 rounded-lg text-[#f43f5e]"><Sparkles size={18} /></div> 
               Property Amenities
             </h2>
+            <p className="text-[9px] font-medium text-slate-500 mt-1">💡 Add custom amenities to boost ADR and occupancy</p>
             {isEstimatingAmenityCosts && <span className="text-[9px] font-black text-slate-500 animate-pulse">Estimating costs...</span>}
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
