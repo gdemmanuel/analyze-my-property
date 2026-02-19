@@ -357,67 +357,62 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   return (
     <div className="space-y-3 animate-in fade-in duration-700 max-w-[1600px] mx-auto">
       {/* Hero Card */}
-      <div className="rounded-3xl bg-[#0f172a] shadow-2xl relative overflow-hidden border border-white/5 min-h-[300px]">
-        <div className="p-4 lg:p-6 relative z-10 flex flex-col justify-between h-full">
+      <div className="rounded-3xl bg-[#0f172a] shadow-2xl relative overflow-hidden border border-white/5">
+        <div className="p-4 lg:p-6 relative z-10 flex flex-col">
+          {/* Top Row: Status, Strategy Toggle, Actions */}
+          <div className="flex items-center justify-between mb-3 gap-4">
+            <div className="flex items-center gap-2 text-[#f43f5e] font-black text-[9px] uppercase tracking-[0.3em]">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#f43f5e] animate-pulse" />
+              {strategy} AUDIT • REAL-TIME DATA
+            </div>
+            {/* Strategy Toggle - Large and Prominent */}
+            <div className="flex items-center gap-2 bg-[#1e293b]/50 rounded-lg p-2 border border-white/10">
+              {[
+                { id: 'STR', label: 'STR', color: 'bg-[#f43f5e]' },
+                { id: 'MTR', label: 'MTR', color: 'bg-blue-500' },
+                { id: 'LTR', label: 'LTR', color: 'bg-[#10b981]' }
+              ].map((s: any) => (
+                <button
+                  key={s.id}
+                  onClick={() => setStrategy?.(s.id as RentalStrategy)}
+                  className={`px-5 py-2 rounded-lg text-sm font-black uppercase tracking-wider transition-all ${strategy === s.id ? `${s.color} text-white shadow-lg scale-110` : 'text-slate-400 hover:text-white hover:scale-105'}`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            {/* Export PDF and Save buttons */}
+            <div className="flex gap-2">
+              <button onClick={onExportReport} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 border border-indigo-400 rounded-lg text-[9px] font-black uppercase tracking-widest text-white shadow-lg"><Printer size={12} /> EXPORT PDF</button>
+              <button onClick={onSaveAssessment} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f43f5e] hover:bg-[#e11d48] rounded-lg text-[9px] font-black uppercase tracking-widest shadow-xl"><Save size={12} /> SAVE</button>
+            </div>
+          </div>
+          
+          {/* Address and Property Info Row */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 text-[#f43f5e] font-black text-[9px] uppercase tracking-[0.3em]">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#f43f5e] animate-pulse" />
-                {strategy} AUDIT • REAL-TIME DATA
-              </div>
-              {/* Strategy Toggle - Large and Prominent */}
-              <div className="flex items-center gap-2 bg-[#1e293b]/50 rounded-lg p-2 border border-white/10">
-                {[
-                  { id: 'STR', label: 'STR', color: 'bg-[#f43f5e]' },
-                  { id: 'MTR', label: 'MTR', color: 'bg-blue-500' },
-                  { id: 'LTR', label: 'LTR', color: 'bg-[#10b981]' }
-                ].map((s: any) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setStrategy?.(s.id as RentalStrategy)}
-                    className={`px-5 py-2 rounded-lg text-sm font-black uppercase tracking-wider transition-all ${strategy === s.id ? `${s.color} text-white shadow-lg scale-110` : 'text-slate-400 hover:text-white hover:scale-105'}`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center justify-between mb-4">
-              <div></div>
-              <div className="flex flex-col gap-2 items-end">
-                {/* Export PDF and Save buttons */}
-                <div className="flex gap-2">
-                  <button onClick={onExportReport} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 border border-indigo-400 rounded-lg text-[9px] font-black uppercase tracking-widest text-white shadow-lg"><Printer size={12} /> EXPORT PDF</button>
-                  <button onClick={onSaveAssessment} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f43f5e] hover:bg-[#e11d48] rounded-lg text-[9px] font-black uppercase tracking-widest shadow-xl"><Save size={12} /> SAVE</button>
-                </div>
-              </div>
-            </div>
-            <div className="mb-4">
-              {/* Address Row */}
-              <div className="flex items-center gap-3 group mb-1">
+            <div className="flex items-center gap-3 group mb-2">
                 <h2 className="text-2xl lg:text-3xl font-black tracking-tighter leading-none text-white">{displayedAddress}</h2>
                 <a href={`https://www.zillow.com/homes/for_sale/${encodeURIComponent(displayedAddress)}_rb/`} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 hover:bg-[#f43f5e] hover:scale-110 rounded-full transition-all text-white"><Map size={14} /></a>
+            </div>
+            {/* Property info row with badges in center */}
+            <div className="flex items-center gap-6">
+              {/* Beds/Baths/SQFT on left */}
+              <div className="flex gap-4 text-slate-600 text-[10px] font-black uppercase tracking-[0.25em]">
+                <span className="flex gap-2 items-center"><Home size={14} className="text-[#f43f5e]" /> {insight.beds} BEDS</span>
+                <span className="flex gap-2 items-center"><Layers size={14} className="text-[#3b82f6]" /> {insight.baths} BATHS</span>
+                <span className="flex gap-2 items-center"><Ruler size={14} className="text-[#10b981]" /> {insight.sqft.toLocaleString()} SQFT</span>
               </div>
-              {/* Property info row with badges in center */}
-              <div className="flex items-center gap-6">
-                {/* Beds/Baths/SQFT on left */}
-                <div className="flex gap-4 text-slate-600 text-[10px] font-black uppercase tracking-[0.25em]">
-                  <span className="flex gap-2 items-center"><Home size={14} className="text-[#f43f5e]" /> {insight.beds} BEDS</span>
-                  <span className="flex gap-2 items-center"><Layers size={14} className="text-[#3b82f6]" /> {insight.baths} BATHS</span>
-                  <span className="flex gap-2 items-center"><Ruler size={14} className="text-[#10b981]" /> {insight.sqft.toLocaleString()} SQFT</span>
+              {/* Property Features Badges in center/middle */}
+              {propertyData?.features && Object.values(propertyData.features).some(v => v != null) && (
+                <div className="flex flex-wrap gap-2">
+                  {propertyData.features.fireplace && <span className="px-3 py-1.5 bg-orange-500/20 text-orange-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Flame size={12} /> Fireplace</span>}
+                  {propertyData.features.coolingType && <span className="px-3 py-1.5 bg-cyan-500/20 text-cyan-200 rounded text-[9px] font-black whitespace-nowrap">AC: {propertyData.features.coolingType}</span>}
+                  {propertyData.features.heatingType && <span className="px-3 py-1.5 bg-red-500/20 text-red-200 rounded text-[9px] font-black whitespace-nowrap">Heat: {propertyData.features.heatingType}</span>}
+                  {propertyData.zoning && <span className="px-3 py-1.5 bg-amber-500/20 text-amber-200 rounded text-[9px] font-black whitespace-nowrap">Zone: {propertyData.zoning}</span>}
+                  {propertyData.features.pool && <span className="px-3 py-1.5 bg-blue-500/20 text-blue-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Droplets size={12} /> Pool</span>}
+                  {propertyData.features.garage && <span className="px-3 py-1.5 bg-slate-500/20 text-slate-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Car size={12} /> {propertyData.features.garageSpaces || '?'}-Car</span>}
                 </div>
-                {/* Property Features Badges in center/middle */}
-                {propertyData?.features && Object.values(propertyData.features).some(v => v != null) && (
-                  <div className="flex flex-wrap gap-2">
-                    {propertyData.features.fireplace && <span className="px-3 py-1.5 bg-orange-500/20 text-orange-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Flame size={12} /> Fireplace</span>}
-                    {propertyData.features.coolingType && <span className="px-3 py-1.5 bg-cyan-500/20 text-cyan-200 rounded text-[9px] font-black whitespace-nowrap">AC: {propertyData.features.coolingType}</span>}
-                    {propertyData.features.heatingType && <span className="px-3 py-1.5 bg-red-500/20 text-red-200 rounded text-[9px] font-black whitespace-nowrap">Heat: {propertyData.features.heatingType}</span>}
-                    {propertyData.zoning && <span className="px-3 py-1.5 bg-amber-500/20 text-amber-200 rounded text-[9px] font-black whitespace-nowrap">Zone: {propertyData.zoning}</span>}
-                    {propertyData.features.pool && <span className="px-3 py-1.5 bg-blue-500/20 text-blue-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Droplets size={12} /> Pool</span>}
-                    {propertyData.features.garage && <span className="px-3 py-1.5 bg-slate-500/20 text-slate-200 rounded text-[9px] font-black flex items-center gap-1 whitespace-nowrap"><Car size={12} /> {propertyData.features.garageSpaces || '?'}-Car</span>}
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -449,11 +444,14 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
 
       {/* Amenities */}
       <div className="p-4 bg-white rounded-xl border border-slate-100 mb-3">
-        <div className="flex justify-between items-center mb-2">
-          <h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest">REVENUE AMENITIES</h4>
+        <div className="flex justify-between items-center mb-3">
+          <div>
+            <h4 className="text-[8px] font-black text-slate-500 uppercase tracking-widest">REVENUE AMENITIES</h4>
+            <p className="text-[8px] font-medium text-slate-400 mt-1">💡 Go to Settings to add custom amenities</p>
+          </div>
           <div className="flex gap-4 text-sm font-black uppercase items-center">
             <div className="flex items-center gap-1.5">
-              <span className="text-[#f43f5e] text-base">ADR: {formatCurrency(currentRateValue)}</span>
+              <span className="text-[#f43f5e] text-base">{strategy === 'STR' ? 'ADR' : 'AMR'}: {formatCurrency(currentRateValue)}</span>
               {insight?.dataSource?.adrSource && (
                 <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${insight.dataSource.adrSource === 'RentCast' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
                   {insight.dataSource.adrSource === 'RentCast' ? '✓ RC' : 'AI'}
