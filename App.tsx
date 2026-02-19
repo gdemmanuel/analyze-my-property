@@ -1024,7 +1024,7 @@ const App: React.FC = () => {
                   Free Trial · <span className="text-[#0f172a]">{daysLeft} day{daysLeft !== 1 ? 's' : ''} remaining</span>
                 </p>
                 <p className="text-xs font-medium text-slate-600">
-                  You have 3 analyses per day. Cached properties don't count toward your limit.
+                  Free trial provides you with 3 property analyses per day.
                 </p>
               </div>
               <button

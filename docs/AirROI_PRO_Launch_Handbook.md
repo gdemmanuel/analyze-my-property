@@ -796,25 +796,31 @@ settings/
   - `PHASE_17_TESTING.md` (testing checklist) — ✅ DONE
   - `PHASE_17_PROGRESS.md` (implementation log) — ✅ DONE
 
-**Phase 18: Map Integration**
+**Phase 19: UI Polish & Trial Messaging** ✅ COMPLETE
+- Improved trial banner messaging (professional, clearer language) — ✅ DONE
+- Fixed SAMPLE watermarks on Pro analysis panels (top/bottom instead of overlapping) — ✅ DONE
+- Trial banner now displays: "Free Trial · X days remaining" with clear subtitle — ✅ DONE
+- Cached properties correctly excluded from analysis count (no message needed) — ✅ DONE
+
+**Phase 20: Map Integration**
 - Google Maps API key already in .env
 - Show property + AVM comps + rental listings on interactive map
 - Use latitude/longitude from RentCast data
 - Click-to-zoom comp details
 
-**Phase 19: Performance Optimization**
+**Phase 21: Performance Optimization**
 - Code splitting with `manualChunks` (vendor, react-query, recharts)
 - Lazy-load heavy components (Charts, FinancialTables, MarketTrendCharts)
 - `React.memo` and `useCallback` for render optimization
 - Reduce/remove 5s pre-analysis delay if rate limiting is stable
 
-**Phase 20: Payments (Stripe)**
+**Phase 22: Payments (Stripe)**
 - Stripe integration for subscription billing
 - Free/Pro/Team/Enterprise tier enforcement
 - Usage tracking and overage handling
 - Billing portal and invoice management
 
-**Phase 21: Testing & CI/CD**
+**Phase 23: Testing & CI/CD**
 - Unit tests (Vitest) for financial logic and services
 - E2E tests (Playwright) for critical user flows
 - GitHub Actions pipeline for build/test/deploy
@@ -843,5 +849,5 @@ settings/
 ---
 
 **Document prepared for Analyze My Property Launch**
-**Last Updated:** February 14, 2026
-**Version:** 2.3
+**Last Updated:** February 19, 2026
+**Version:** 2.4
