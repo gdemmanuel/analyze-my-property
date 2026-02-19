@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 import Anthropic from '@anthropic-ai/sdk';
 import { claudeCache, rentcastCache } from './cache.js';
 import { authMiddleware as oldAuthMiddleware, createSession, startSessionCleanup, TIER_LIMITS as OLD_TIER_LIMITS, checkUsageLimits as oldCheckUsageLimits, incrementUsage as oldIncrementUsage } from './auth.js';
-import { authMiddleware, requireAuth, requireAdmin, checkUsageLimits, incrementUsage, TIER_LIMITS, isInTrial } from './supabaseAuth.js';
+import { authMiddleware, requireAuth, requireAdmin, checkUsageLimits, incrementUsage, TIER_LIMITS, isInTrial, loadTierLimitsFromDatabase, saveTierLimitsToDatabase } from './supabaseAuth.js';
 import { metricsMiddleware, metricsStore } from './metrics.js';
 import { claudeQueue } from './claudeQueue.js';
 import { costTracker } from './databaseCostTracker.js';
@@ -178,7 +178,7 @@ app.get('/api/admin/rate-limits', requireAuth, requireAdmin, (_req, res) => {
   res.json({ limits: TIER_LIMITS });
 });
 
-app.post('/api/admin/rate-limits', requireAuth, requireAdmin, (req, res) => {
+app.post('/api/admin/rate-limits', requireAuth, requireAdmin, async (req, res) => {
   const { tier, analysesPerDay, claudeCallsPerHour } = req.body;
 
   if (!tier || !['free', 'pro'].includes(tier)) {
@@ -197,6 +197,9 @@ app.post('/api/admin/rate-limits', requireAuth, requireAdmin, (req, res) => {
     analysesPerDay,
     claudeCallsPerHour,
   };
+
+  // Persist to database so limits survive server restart
+  await saveTierLimitsToDatabase(TIER_LIMITS);
 
   res.json({ success: true, limits: TIER_LIMITS });
 });
@@ -685,7 +688,10 @@ app.get('/{*splat}', (req, res) => {
 
 const PORT = parseInt(process.env.PORT || process.env.API_PORT || '3002', 10);
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
+  // Load admin settings from database on startup
+  await loadTierLimitsFromDatabase();
+  
   if (isDev) {
     console.log(`\n🚀 Analyze My Property API Server running on http://0.0.0.0:${PORT}`);
     console.log(`   Claude proxy:   POST http://localhost:${PORT}/api/claude/messages`);

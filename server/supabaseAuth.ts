@@ -46,11 +46,57 @@ export const supabaseAdmin = new Proxy({}, {
   }
 });
 
-// Tier limits
-export const TIER_LIMITS = {
+// Tier limits - loaded from database on startup
+export let TIER_LIMITS = {
   free: { analysesPerDay: 3, claudeCallsPerHour: 15 },
   pro: { analysesPerDay: 50, claudeCallsPerHour: 100 },
 };
+
+/** Load admin tier limits from database (if they exist) */
+export async function loadTierLimitsFromDatabase() {
+  try {
+    const client = getSupabaseAdmin();
+    const { data, error } = await client
+      .from('admin_settings')
+      .select('tier_limits')
+      .eq('id', 'tier_limits')
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 = not found, which is okay on first run
+      console.warn('[Auth] Failed to load tier limits from database:', error.message);
+      return;
+    }
+    
+    if (data && data.tier_limits) {
+      TIER_LIMITS = data.tier_limits;
+      console.log('[Auth] ✅ Loaded tier limits from database:', TIER_LIMITS);
+    }
+  } catch (err: any) {
+    console.error('[Auth] Error loading tier limits:', err.message);
+  }
+}
+
+/** Save admin tier limits to database */
+export async function saveTierLimitsToDatabase(limits: typeof TIER_LIMITS) {
+  try {
+    const client = getSupabaseAdmin();
+    const { error } = await client
+      .from('admin_settings')
+      .upsert({ id: 'tier_limits', tier_limits: limits }, { onConflict: 'id' });
+    
+    if (error) {
+      console.error('[Auth] Failed to save tier limits to database:', error.message);
+      return false;
+    }
+    
+    console.log('[Auth] ✅ Saved tier limits to database:', limits);
+    return true;
+  } catch (err: any) {
+    console.error('[Auth] Error saving tier limits:', err.message);
+    return false;
+  }
+}
 
 /** Free tier trial period (first N days after signup); limits stay 3/day */
 export const TRIAL_DAYS = 7;
