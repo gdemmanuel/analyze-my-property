@@ -438,13 +438,24 @@ const App: React.FC = () => {
   // This handles cached analysis hits where the analysis useEffect doesn't re-run
   useEffect(() => {
     if (!strData?.rent || !insight) return;
-    console.log('[App] Fresh web STR data arrived, overriding ADR to $' + strData.rent);
+    console.log('[AirROI] Fresh web STR data arrived, overriding ADR to $' + strData.rent);
     setBaseConfig(prev => ({
       ...prev,
       adr: strData.rent,
       occupancyPercent: strData.occupancy ? Math.round(strData.occupancy * 100) : prev.occupancyPercent,
     }));
   }, [strData]);
+
+  // Always log web search query state so we can debug ADR issues in prod
+  useEffect(() => {
+    console.log('[AirROI] webSTRQuery state:', {
+      status: webSTRQuery.status,
+      data: webSTRQuery.data,
+      error: webSTRQuery.error,
+      isFetching: webSTRQuery.isFetching,
+      strDataRent: strData?.rent
+    });
+  }, [webSTRQuery.status, webSTRQuery.data, webSTRQuery.isFetching]);
 
   useEffect(() => {
     if (!isAnalyzing) return;
