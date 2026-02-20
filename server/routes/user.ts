@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { requireAuth, getUserProfile, isInTrial, getTrialEndsAt, supabaseAdmin } from '../supabaseAuth';
+import { sendWelcomeEmail } from '../emailService';
 
 const router = Router();
 
@@ -35,6 +36,16 @@ router.get('/profile', requireAuth, async (req: Request, res: Response) => {
 
     await repairTierFromStripe(req.user.id, profile);
     profile = (await getUserProfile(req.user.id)) || profile;
+
+    // Send welcome email once for new users (profile created in the last 10 minutes)
+    const profileAgeMs = Date.now() - new Date(profile.created_at).getTime();
+    if (profileAgeMs < 10 * 60 * 1000) {
+      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(req.user.id);
+      if (authUser?.user?.email) {
+        const name = authUser.user.user_metadata?.full_name || authUser.user.user_metadata?.name;
+        sendWelcomeEmail(authUser.user.email, name).catch(() => {});
+      }
+    }
 
     const inTrial = isInTrial(profile);
     res.json({

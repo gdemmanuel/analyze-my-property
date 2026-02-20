@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { requireAuth, getUserProfile, supabaseAdmin } from '../supabaseAuth.js';
+import { sendUpgradeConfirmationEmail } from '../emailService.js';
 
 const router = Router();
 const isDev = process.env.NODE_ENV !== 'production';
@@ -155,11 +156,24 @@ router.post('/sync-subscription', requireAuth, async (req: Request, res: Respons
     });
 
     if (subscriptions.data.length > 0) {
+      const wasAlreadyPro = profile.tier === 'pro';
       await supabaseAdmin
         .from('user_profiles')
         .update({ tier: 'pro', updated_at: new Date().toISOString() })
         .eq('id', req.user.id);
       if (isDev) console.log(`[Stripe] Synced tier to Pro for user ${req.user.id}`);
+
+      // Send upgrade confirmation email only if this is a new upgrade (not already Pro)
+      if (!wasAlreadyPro) {
+        try {
+          const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(req.user.id);
+          if (authUser?.user?.email) {
+            const name = authUser.user.user_metadata?.full_name || authUser.user.user_metadata?.name;
+            sendUpgradeConfirmationEmail(authUser.user.email, name).catch(() => {});
+          }
+        } catch { /* non-critical */ }
+      }
+
       return res.json({ tier: 'pro', updated: true });
     }
 
@@ -225,6 +239,15 @@ router.post('/webhook', async (req: Request, res: Response) => {
           .update({ tier: 'pro', updated_at: new Date().toISOString() })
           .eq('id', userId);
         if (isDev) console.log(`[Stripe] User ${userId} upgraded to Pro`);
+
+        // Send upgrade confirmation email
+        try {
+          const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+          if (authUser?.user?.email) {
+            const name = authUser.user.user_metadata?.full_name || authUser.user.user_metadata?.name;
+            sendUpgradeConfirmationEmail(authUser.user.email, name).catch(() => {});
+          }
+        } catch { /* non-critical — don't fail the webhook */ }
         break;
       }
 
