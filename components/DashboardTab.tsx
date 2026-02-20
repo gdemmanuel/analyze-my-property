@@ -445,7 +445,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
 
       {/* Amenities */}
       <div className="p-4 bg-white rounded-xl border border-slate-100 mb-3">
-        <div className="flex flex-col items-center gap-3 mb-3">
+        <div className="flex justify-between items-start gap-4 mb-3">
           <div>
             <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">REVENUE AMENITIES</h4>
             <button

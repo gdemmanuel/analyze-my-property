@@ -472,11 +472,12 @@ const App: React.FC = () => {
       // Debug logging to see which ADR source is being used
       if (import.meta.env.DEV) {
         const selectedAdr = strData?.rent || result.proFormaScenarios?.[1]?.adr || result.suggestedADR || prev.adr;
-        console.log('[App] ADR Sources:', {
-          'strData.rent (Web Search)': strData?.rent,
-          'proFormaScenarios[1].adr': result.proFormaScenarios?.[1]?.adr,
-          'suggestedADR (Claude)': result.suggestedADR,
-          'Final Selected ADR': selectedAdr
+        console.log('[App] ADR Source Prioritization:', {
+          'strData (Web Search)': strData?.rent ? `✅ $${strData.rent}` : '❌ null/undefined',
+          'proFormaScenarios[1]': result.proFormaScenarios?.[1]?.adr ? `$${result.proFormaScenarios[1].adr}` : 'undefined',
+          'suggestedADR (Claude)': result.suggestedADR ? `$${result.suggestedADR}` : 'undefined',
+          'SELECTED': `$${selectedAdr}`,
+          'strData full object': strData
         });
       }
       setActiveTab('dashboard');
