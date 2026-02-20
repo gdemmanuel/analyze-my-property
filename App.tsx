@@ -33,6 +33,7 @@ import { AuthModal } from './components/AuthModal';
 import { UserMenu } from './components/UserMenu';
 import { DataMigrationNotice } from './components/DataMigration';
 import HelpModal from './components/HelpModal';
+import UpgradeNudge from './components/UpgradeNudge';
 
 
 const App: React.FC = () => {
@@ -48,6 +49,7 @@ const App: React.FC = () => {
   const [authModalInitialMode, setAuthModalInitialMode] = useState<'signin' | 'signup'>('signin');
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [analysesUsedToday, setAnalysesUsedToday] = useState(0);
   
   const [baseConfig, setBaseConfig] = useState<PropertyConfig>(DEFAULT_CONFIG);
   const [amenities, setAmenities] = useState<Amenity[]>(AMENITIES);
@@ -239,6 +241,18 @@ const App: React.FC = () => {
             setTrialEndsAt(data.inTrial && data.trialEndsAt ? data.trialEndsAt : null);
           })
           .catch(err => console.error('Failed to fetch user tier:', err));
+
+        // Fetch today's usage for upgrade nudge
+        fetch('/api/check-analysis-limit', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.usage?.analyses_today !== undefined) {
+              setAnalysesUsedToday(data.usage.analyses_today);
+            }
+          })
+          .catch(() => {});
       }
     });
 
@@ -264,6 +278,18 @@ const App: React.FC = () => {
           })
           .catch(err => console.error('Failed to fetch user tier:', err));
         
+        // Fetch today's usage for upgrade nudge
+        fetch('/api/check-analysis-limit', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.usage?.analyses_today !== undefined) {
+              setAnalysesUsedToday(data.usage.analyses_today);
+            }
+          })
+          .catch(() => {});
+
         // Load saved assessments from database
         fetch('/api/user/assessments', {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
@@ -285,6 +311,7 @@ const App: React.FC = () => {
         setUserTier('free');
         setIsAdmin(false);
         setTrialEndsAt(null);
+        setAnalysesUsedToday(0);
       }
     });
 
@@ -496,6 +523,22 @@ const App: React.FC = () => {
       setAnalysisError(null);
       setAnalysisErrorShowUpgrade(false);
       progress.reset();
+
+      // Refresh usage counter after successful analysis
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.access_token) {
+          fetch('/api/check-analysis-limit', {
+            headers: { 'Authorization': `Bearer ${session.access_token}` }
+          })
+            .then(res => res.json())
+            .then(data => {
+              if (data.usage?.analyses_today !== undefined) {
+                setAnalysesUsedToday(data.usage.analyses_today);
+              }
+            })
+            .catch(() => {});
+        }
+      });
       
       // Clear advanced analysis when new property is analyzed
       setSensitivityData(null);
@@ -1102,6 +1145,8 @@ const App: React.FC = () => {
 
       {/* Main Content - pt-24 preserves nav spacing (CRITICAL: do not change to p-8) */}
       <main className="flex-1 pt-24 px-4 pb-4 lg:px-8 lg:pb-8 print:pt-0 print:p-0">
+        {/* Upgrade nudge sidebar wrapper — only wraps tab content, not the global trial banner/searchbar */}
+        {/* The flex row is always rendered but sidebar only shows for free tier xl+ */}
         {/* 7-day trial banner for free tier */}
         {trialEndsAt && activeTab !== 'admin' && (() => {
           const end = new Date(trialEndsAt).getTime();
@@ -1142,6 +1187,10 @@ const App: React.FC = () => {
             isLoggedIn={!!user}
           />
         )}
+
+        {/* Tab content + upgrade nudge sidebar */}
+        <div className="flex gap-4 items-start">
+          <div className="flex-1 min-w-0">
 
         {/* Progress Indicator - shown during long-running analysis */}
         {progress.isVisible && (
@@ -1360,6 +1409,20 @@ const App: React.FC = () => {
             <p className="text-slate-500 text-sm font-bold uppercase tracking-[0.3em] max-w-2xl text-center mb-16">Enter an address above to generate a professional-grade underwrite audit in seconds.</p>
           </div>
         )}
+
+          </div>{/* end flex-1 min-w-0 */}
+
+          {/* Upgrade nudge sidebar — free users only, xl+ screens, no print */}
+          {userTier === 'free' && activeTab !== 'admin' && activeTab !== 'assumptions' && (
+            <aside className="hidden xl:block w-[210px] shrink-0 sticky top-28 print:hidden">
+              <UpgradeNudge
+                analysesUsed={analysesUsedToday}
+                analysesLimit={3}
+                onUpgrade={handleUpgrade}
+              />
+            </aside>
+          )}
+        </div>{/* end flex row */}
       </main>
 
       {/* COMPARISON MODAL */}
