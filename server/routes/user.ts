@@ -37,9 +37,9 @@ router.get('/profile', requireAuth, async (req: Request, res: Response) => {
     await repairTierFromStripe(req.user.id, profile);
     profile = (await getUserProfile(req.user.id)) || profile;
 
-    // Send welcome email once for new users (profile created in the last 10 minutes)
+    // Send welcome email once for new users (profile created in the last 30 minutes)
     const profileAgeMs = Date.now() - new Date(profile.created_at).getTime();
-    if (profileAgeMs < 10 * 60 * 1000) {
+    if (profileAgeMs < 30 * 60 * 1000) {
       const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(req.user.id);
       if (authUser?.user?.email) {
         const name = authUser.user.user_metadata?.full_name || authUser.user.user_metadata?.name;
