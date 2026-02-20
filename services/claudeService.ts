@@ -343,71 +343,70 @@ export const searchWebForSTRData = async (address: string, bedrooms?: number, ba
 
     const content = await claudeProxy({
       model: getModel('complex_analysis'),
-      max_tokens: 2048,
+      max_tokens: 4096,
       tools: [{ type: "web_search_20250305", name: "web_search" }],
       messages: [{
         role: 'user',
-        content: `Search the web for CURRENT short-term rental (Airbnb/Vrbo) market rates for: ${address}${bedrooms ? `, ${bedrooms} bed` : ''}${bathrooms ? `, ${bathrooms} bath` : ''}
+        content: `Search the web for short-term rental (Airbnb/Vrbo) market data for this property: ${address}${bedrooms ? `, ${bedrooms} bedrooms` : ''}${bathrooms ? `, ${bathrooms} bathrooms` : ''}
 
-CRITICAL: Return the average NIGHTLY rate (per night on Airbnb/VRBO), NOT monthly rent.
-- Nightly rates are typically $100-400 per night
-- Monthly rent would be $1000-3000+ (DO NOT return this)
-- Look for phrases like "per night", "per evening", "nightly rate", "$XXX/night"
+Find the Average Daily Rate (ADR) - the nightly rate guests pay on Airbnb/VRBO - and the typical annual occupancy rate for this area.
 
-If you find market data, provide ONLY the nightly ADR and occupancy.
+After searching, extract and return the data in this exact JSON format on the LAST line of your response:
+{"adr": <average_nightly_rate>, "occupancy": <annual_occupancy_percentage>}
 
-IMPORTANT: Respond with ONLY valid JSON, no explanation or other text.
-Format: {"adr": <nightly_rate_number>, "occupancy": <annual_occupancy_percentage>}
-Example: {"adr": 185, "occupancy": 68}
-Default if no data: {"adr": 120, "occupancy": 50}`
+For example, if you find ADR of $350/night and 38% occupancy, return:
+{"adr": 350, "occupancy": 38}`
       }]
     });
 
     const resultText = extractText(content);
     const rawText = resultText.trim();
-    if (import.meta.env.DEV) console.log('[Claude] Raw response:', rawText.substring(0, 200));
+    if (import.meta.env.DEV) console.log('[Claude] Raw response length:', rawText.length, 'chars');
+    if (import.meta.env.DEV) console.log('[Claude] Raw response (last 300 chars):', rawText.slice(-300));
 
-    // Extract JSON from the response - try multiple patterns
-    let jsonText = rawText;
+    // Look for JSON in the response - check the end first since we asked for it on the last line
+    let jsonText = null;
     
-    // Pattern 1: Direct JSON object with adr and occupancy
-    const jsonMatch = rawText.match(/\{[^{}]*"adr"[^{}]*"occupancy"[^{}]*\}|\{[^{}]*"occupancy"[^{}]*"adr"[^{}]*\}/);
-    if (jsonMatch) {
-      jsonText = jsonMatch[0];
-    } else {
-      // Pattern 2: Any JSON object with curly braces
-      const broadMatch = rawText.match(/\{[\s\S]*?\}/);
-      if (broadMatch) {
-        jsonText = broadMatch[0];
-      }
+    // Pattern 1: Look for JSON with adr and occupancy keys anywhere in response
+    const jsonMatches = rawText.match(/\{[^{}]*"adr"\s*:\s*\d+[^{}]*"occupancy"\s*:\s*\d+[^{}]*\}/g) ||
+                        rawText.match(/\{[^{}]*"occupancy"\s*:\s*\d+[^{}]*"adr"\s*:\s*\d+[^{}]*\}/g);
+    
+    if (jsonMatches && jsonMatches.length > 0) {
+      // Use the last match (most likely to be the final extracted data)
+      jsonText = jsonMatches[jsonMatches.length - 1];
+      if (import.meta.env.DEV) console.log('[Claude] Found JSON match:', jsonText);
     }
-
-    const result = parseJSON(jsonText);
-
-    if (result && typeof result.adr === 'number' && typeof result.occupancy === 'number') {
-      if (result.adr > 0 && result.occupancy > 0 && result.occupancy <= 100) {
-        // Sanity check: ADR for residential STR typically ranges from $80-$500
-        // If Claude returns something outside this range, it's likely an error
-        let finalAdr = result.adr;
-        
-        if (result.adr < 50) {
-          // Too low - probably needs multiplication or is missing a digit
-          if (import.meta.env.DEV) console.log(`[Claude] ⚠️ ADR too low ($${result.adr}), likely data error`);
-          return null; // Reject this value
-        } else if (result.adr > 500) {
-          // Too high - likely monthly rent instead of daily ADR
-          // Convert monthly to daily: ~$650/month ÷ 30 days ≈ $22/night (seems low but possible)
-          // Better approach: if > 500 and looks like monthly, divide by ~20-30
-          finalAdr = Math.round(result.adr / 25);
-          if (import.meta.env.DEV) console.log(`[Claude] ⚠️ Converting likely monthly rate ($${result.adr}) to daily ADR ($${finalAdr})`);
+    
+    // Pattern 2: Try to extract numbers directly if JSON parsing fails
+    if (!jsonText) {
+      // Look for ADR patterns like "$350/night", "ADR: $350", "$350 per night"
+      const adrMatch = rawText.match(/(?:ADR|average daily rate|nightly rate)[:\s]*\$?(\d{2,3})/i) ||
+                       rawText.match(/\$(\d{2,3})(?:\s*[-–]\s*\$?\d+)?\s*(?:\/night|per night|nightly)/i);
+      const occMatch = rawText.match(/(?:occupancy)[:\s]*(\d{1,2})%/i) ||
+                       rawText.match(/(\d{1,2})%\s*(?:occupancy|occ)/i);
+      
+      if (adrMatch && occMatch) {
+        const adr = parseInt(adrMatch[1]);
+        const occ = parseInt(occMatch[1]);
+        if (adr >= 50 && adr <= 1000 && occ > 0 && occ <= 100) {
+          if (import.meta.env.DEV) console.log(`[Claude] ✅ Extracted from text - ADR: $${adr}, Occ: ${occ}%`);
+          return { adr, occupancy: occ };
         }
-        
-        if (import.meta.env.DEV) console.log(`[Claude] ✅ Found STR data - ADR: $${finalAdr}, Occ: ${result.occupancy}%`);
-        return { adr: finalAdr, occupancy: result.occupancy };
       }
     }
 
-    if (import.meta.env.DEV) console.log('[Claude] ⚠️ Could not parse STR data, using defaults');
+    if (jsonText) {
+      const result = parseJSON(jsonText);
+      
+      if (result && typeof result.adr === 'number' && typeof result.occupancy === 'number') {
+        if (result.adr >= 50 && result.adr <= 1000 && result.occupancy > 0 && result.occupancy <= 100) {
+          if (import.meta.env.DEV) console.log(`[Claude] ✅ Found STR data - ADR: $${result.adr}, Occ: ${result.occupancy}%`);
+          return { adr: result.adr, occupancy: result.occupancy };
+        }
+      }
+    }
+
+    if (import.meta.env.DEV) console.log('[Claude] ⚠️ Could not parse STR data from response');
     return null;
   } catch (e: any) {
     console.error("❌ Web search for STR data failed:", e.message || e);
