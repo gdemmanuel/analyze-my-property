@@ -45,12 +45,13 @@ router.get('/profile', requireAuth, async (req: Request, res: Response) => {
       if (authUser?.user?.email) {
         // Check if welcome email was already sent
         const metadata = authUser.user.user_metadata || {};
+        
+        // Only send if flag is NOT set
         if (!metadata.welcome_email_sent) {
           const name = authUser.user.user_metadata?.full_name || authUser.user.user_metadata?.name;
-          const sent = await sendWelcomeEmail(authUser.user.email, name);
           
-          // Mark as sent in user metadata to prevent duplicates
-          if (sent) {
+          try {
+            // Set the flag BEFORE sending to prevent race conditions
             await supabaseAdmin.auth.admin.updateUserById(req.user.id, {
               user_metadata: {
                 ...metadata,
@@ -58,6 +59,13 @@ router.get('/profile', requireAuth, async (req: Request, res: Response) => {
                 welcome_email_sent_at: new Date().toISOString()
               }
             });
+            
+            // Now send the email
+            await sendWelcomeEmail(authUser.user.email, name);
+            console.log(`[Email] Welcome email sent to ${authUser.user.email}`);
+          } catch (err: any) {
+            console.error('[Email] Error sending welcome email:', err.message);
+            // Don't throw — this is non-critical
           }
         }
       }
