@@ -38,12 +38,28 @@ router.get('/profile', requireAuth, async (req: Request, res: Response) => {
     profile = (await getUserProfile(req.user.id)) || profile;
 
     // Send welcome email once for new users (profile created in the last 30 minutes)
+    // But only if we haven't already sent it (check a flag in user_metadata)
     const profileAgeMs = Date.now() - new Date(profile.created_at).getTime();
     if (profileAgeMs < 30 * 60 * 1000) {
       const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(req.user.id);
       if (authUser?.user?.email) {
-        const name = authUser.user.user_metadata?.full_name || authUser.user.user_metadata?.name;
-        sendWelcomeEmail(authUser.user.email, name).catch(() => {});
+        // Check if welcome email was already sent
+        const metadata = authUser.user.user_metadata || {};
+        if (!metadata.welcome_email_sent) {
+          const name = authUser.user.user_metadata?.full_name || authUser.user.user_metadata?.name;
+          const sent = await sendWelcomeEmail(authUser.user.email, name);
+          
+          // Mark as sent in user metadata to prevent duplicates
+          if (sent) {
+            await supabaseAdmin.auth.admin.updateUserById(req.user.id, {
+              user_metadata: {
+                ...metadata,
+                welcome_email_sent: true,
+                welcome_email_sent_at: new Date().toISOString()
+              }
+            });
+          }
+        }
       }
     }
 
