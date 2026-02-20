@@ -445,7 +445,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
 
       {/* Amenities */}
       <div className="p-4 bg-white rounded-xl border border-slate-100 mb-3">
-        <div className="flex justify-between items-center mb-3">
+        <div className="flex flex-col items-center gap-3 mb-3">
           <div>
             <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">REVENUE AMENITIES</h4>
             <button
@@ -455,7 +455,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
               💡 Go to Settings to add custom amenities →
             </button>
           </div>
-          <div className="flex gap-4 text-sm font-black uppercase items-center justify-center">
+          <div className="flex gap-6 text-sm font-black uppercase items-center">
             <div className="flex items-center gap-1.5">
               <span className="text-[#f43f5e] text-base">{strategy === 'STR' ? 'ADR' : 'Monthly Rent'}: {formatCurrency(currentRateValue)}</span>
               {insight?.dataSource?.adrSource && (
