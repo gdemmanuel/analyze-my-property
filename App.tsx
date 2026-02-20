@@ -420,8 +420,8 @@ const App: React.FC = () => {
     propertyQuery.isSuccess && 
     marketStatsQuery.isSuccess && 
     rentEstimateQuery.isSuccess && 
-    webSTRQuery.isSuccess &&
-    !!strData;
+    (webSTRQuery.isSuccess || webSTRQuery.isError) && // Allow if either success or failed
+    (strData !== undefined); // strData can be null (failed web search) but should be defined
   
   const analysisQuery = usePropertyAnalysis(
     targetAddress,
