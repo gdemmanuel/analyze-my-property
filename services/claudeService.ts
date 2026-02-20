@@ -350,14 +350,19 @@ export const searchWebForSTRData = async (address: string, bedrooms?: number, ba
       tools: [{ type: "web_search_20250305", name: "web_search" }],
       messages: [{
         role: 'user',
-        content: `Search the web for short-term rental (Airbnb/Vrbo) market data for this property: ${address}${bedrooms ? `, ${bedrooms} bedrooms` : ''}${bathrooms ? `, ${bathrooms} bathrooms` : ''}
+        content: `Search the web for short-term rental (Airbnb/Vrbo) market data for this area: ${address}${bedrooms ? `, ${bedrooms} bedrooms` : ''}${bathrooms ? `, ${bathrooms} bathrooms` : ''}
 
-Find the Average Daily Rate (ADR) - the nightly rate guests pay on Airbnb/VRBO - and the typical annual occupancy rate for this area.
+Find the ACTUAL average nightly rate (ADR) and occupancy rate from real market data sources like AirDNA, Mashvisor, Rabbu, or similar STR analytics tools.
+
+IMPORTANT RULES:
+- Use the market average ADR from the data source DIRECTLY. Do NOT apply your own adjustments or premiums.
+- Report what the data says, not what you think it should be.
+- ADR should be the market average for comparable properties in that area, not a theoretical maximum.
 
 After searching, extract and return the data in this exact JSON format on the LAST line of your response:
-{"adr": <average_nightly_rate>, "occupancy": <annual_occupancy_percentage>}
+{"adr": <market_average_nightly_rate>, "occupancy": <annual_occupancy_percentage>}
 
-For example, if you find ADR of $350/night and 38% occupancy, return:
+For example, if AirDNA shows $350/night average ADR and 38% occupancy, return:
 {"adr": 350, "occupancy": 38}`
       }]
     });
