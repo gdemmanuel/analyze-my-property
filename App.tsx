@@ -434,6 +434,18 @@ const App: React.FC = () => {
   );
 
   // Update state when analysis completes OR when cached data is available
+  // Whenever fresh web search STR data arrives, override ADR immediately
+  // This handles cached analysis hits where the analysis useEffect doesn't re-run
+  useEffect(() => {
+    if (!strData?.rent || !insight) return;
+    console.log('[App] Fresh web STR data arrived, overriding ADR to $' + strData.rent);
+    setBaseConfig(prev => ({
+      ...prev,
+      adr: strData.rent,
+      occupancyPercent: strData.occupancy ? Math.round(strData.occupancy * 100) : prev.occupancyPercent,
+    }));
+  }, [strData]);
+
   useEffect(() => {
     if (!isAnalyzing) return;
     if (!analysisQuery.isSuccess || !analysisQuery.data) return;
