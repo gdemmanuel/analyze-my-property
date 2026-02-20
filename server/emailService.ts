@@ -145,7 +145,7 @@ export async function sendWelcomeEmail(email: string, name?: string): Promise<bo
         <td style="padding:16px 18px;">
           <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#0f172a;">Ready to go further?</p>
           <p style="margin:0 0 10px;font-size:13px;color:#475569;line-height:1.5;">Upgrade to Pro for 50 analyses/day, Sensitivity Analysis, Amenity ROI, and full lender packet exports — everything you need to underwrite deals like a professional.</p>
-          <a href="${APP_URL}?upgrade=true" style="font-size:13px;font-weight:700;color:#4CAF50;text-decoration:none;">Upgrade to Pro →</a>
+          <a href="${APP_URL}/?upgrade=true" style="font-size:13px;font-weight:700;color:#4CAF50;text-decoration:none;">Upgrade to Pro →</a>
         </td>
       </tr>
     </table>
@@ -179,7 +179,7 @@ export async function sendTrialExpiryEmail(email: string, daysLeft: number): Pro
       <li>Sensitivity analysis and Amenity ROI panels</li>
       <li>Professional lender packet exports</li>
     </ul>
-    ${btn('Upgrade to Pro', `${APP_URL}?upgrade=true`, '#f43f5e')}
+    ${btn('Upgrade to Pro', `${APP_URL}/?upgrade=true`, '#f43f5e')}
     <p style="margin:0;font-size:13px;color:#94a3b8;">
       You can continue using the free plan after your trial — no action needed if you'd like to stay on free.
     </p>
@@ -201,7 +201,7 @@ export async function sendTrialExpiredEmail(email: string): Promise<boolean> {
     <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6;">
       Upgrade to Pro for unlimited analyses and full access to all underwriting tools.
     </p>
-    ${btn('Upgrade to Pro', `${APP_URL}?upgrade=true`, '#f43f5e')}
+    ${btn('Upgrade to Pro', `${APP_URL}/?upgrade=true`, '#f43f5e')}
     <p style="margin:0;font-size:13px;color:#94a3b8;">
       Thanks for trying Analyze My Property. We hope it helped with your investment research.
     </p>
