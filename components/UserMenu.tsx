@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { User, LogOut, Settings, ChevronDown, HelpCircle } from 'lucide-react';
 import { supabase } from '../src/lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { useToast } from './ui/ToastContext';
@@ -11,9 +11,10 @@ interface UserMenuProps {
   onSettingsClick?: () => void;
   onUpgradeClick?: () => void;
   onManageSubscription?: () => void;
+  onHelpClick?: () => void;
 }
 
-export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn, onSettingsClick, onUpgradeClick, onManageSubscription }) => {
+export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn, onSettingsClick, onUpgradeClick, onManageSubscription, onHelpClick }) => {
   const toast = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -124,6 +125,16 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, userTier, onSignIn, on
               >
                 <Settings size={16} />
                 Manage Subscription
+              </button>
+            )}
+
+            {onHelpClick && (
+              <button
+                onClick={() => { setIsOpen(false); onHelpClick(); }}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <HelpCircle size={16} />
+                Help & Guide
               </button>
             )}
 

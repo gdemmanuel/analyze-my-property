@@ -20,9 +20,10 @@ interface NavBarProps {
   onSettingsClick?: () => void;
   onUpgradeClick?: () => void;
   onManageSubscription?: () => void;
+  onHelpClick?: () => void;
 }
 
-const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, strategy, setStrategy, savedCount, user, userTier, isAdmin, onSignIn, onSettingsClick, onUpgradeClick, onManageSubscription }) => {
+const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, strategy, setStrategy, savedCount, user, userTier, isAdmin, onSignIn, onSettingsClick, onUpgradeClick, onManageSubscription, onHelpClick }) => {
   // Define all possible tabs
   const allTabs = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Audit' },
@@ -74,6 +75,7 @@ const NavBar: React.FC<NavBarProps> = ({ activeTab, setActiveTab, strategy, setS
           onSettingsClick={onSettingsClick}
           onUpgradeClick={onUpgradeClick}
           onManageSubscription={onManageSubscription}
+          onHelpClick={onHelpClick}
         />
       </div>
     </nav>

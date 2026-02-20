@@ -32,6 +32,7 @@ import ComparisonModal from './components/ComparisonModal';
 import { AuthModal } from './components/AuthModal';
 import { UserMenu } from './components/UserMenu';
 import { DataMigrationNotice } from './components/DataMigration';
+import HelpModal from './components/HelpModal';
 
 
 const App: React.FC = () => {
@@ -45,6 +46,7 @@ const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalInitialMode, setAuthModalInitialMode] = useState<'signin' | 'signup'>('signin');
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   
   const [baseConfig, setBaseConfig] = useState<PropertyConfig>(DEFAULT_CONFIG);
@@ -1087,6 +1089,7 @@ const App: React.FC = () => {
         onSettingsClick={() => setActiveTab('assumptions')}
         onUpgradeClick={handleUpgrade}
         onManageSubscription={handleManageSubscription}
+        onHelpClick={() => setShowHelpModal(true)}
       />
 
       {/* Main Content - pt-24 preserves nav spacing (CRITICAL: do not change to p-8) */}
@@ -1370,6 +1373,12 @@ const App: React.FC = () => {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         initialMode={authModalInitialMode}
+      />
+
+      {/* HELP MODAL */}
+      <HelpModal
+        isOpen={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
       />
 
       {/* DATA MIGRATION NOTICE */}
