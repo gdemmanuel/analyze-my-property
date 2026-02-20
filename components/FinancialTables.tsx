@@ -79,7 +79,7 @@ const FinancialTables: React.FC<TableProps> = ({ data, title, isYearly = false }
         </div>
       </div>
 
-      <div className="relative overflow-x-auto h-fit max-h-[calc(100vh-200px)] overflow-y-auto">
+      <div className="relative overflow-x-auto">
         <table className="w-full text-left text-[10px] border-separate border-spacing-0">
           <thead className="sticky top-0 z-40 bg-slate-900 shadow-md">
             <tr className="text-white font-black uppercase tracking-widest">
