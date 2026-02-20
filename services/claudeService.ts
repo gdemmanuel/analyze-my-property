@@ -174,11 +174,14 @@ async function claudeProxy(params: {
 
 /** Extract first text block from Claude response content array */
 function extractText(content: { type: string; text: string }[]): string {
-  const block = content.find((c: any) => c.type === 'text');
-  if (!block || block.type !== 'text') {
+  // Find ALL text blocks - with tool use, Claude returns multiple text blocks:
+  // block 1: "I'll search..." (preamble), block 2: actual analysis with ADR data
+  const textBlocks = content.filter((c: any) => c.type === 'text');
+  if (textBlocks.length === 0) {
     throw new Error('No text response from Claude');
   }
-  return block.text;
+  // Join all text blocks so we capture the final analysis after tool results
+  return textBlocks.map((b: any) => b.text).join('\n');
 }
 
 // Helper to parse JSON from Claude responses (handles markdown wrappers and truncated/malformed JSON)
