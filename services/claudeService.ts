@@ -342,7 +342,7 @@ If you can find at least 3 comps, return the array. If you cannot find sufficien
 // Web search for STR data when RentCast doesn't have it
 export const searchWebForSTRData = async (address: string, bedrooms?: number, bathrooms?: number): Promise<{ adr: number; occupancy: number } | null> => {
   try {
-    console.log(`[AirROI STR] Searching web for: ${address}`);
+    if (import.meta.env.DEV) console.log(`[AirROI STR] Searching web for: ${address}`);
 
     const content = await claudeProxy({
       model: getModel('complex_analysis'),
@@ -369,8 +369,7 @@ For example, if AirDNA shows $350/night average ADR and 38% occupancy, return:
 
     const resultText = extractText(content);
     const rawText = resultText.trim();
-    const last500 = rawText.slice(-500);
-    console.log('[AirROI STR] Response last 500 chars:', last500);
+    if (import.meta.env.DEV) console.log('[AirROI STR] Response last 500 chars:', rawText.slice(-500));
 
     // Pattern 1: Look for JSON with adr and occupancy keys anywhere in response
     const jsonMatches = rawText.match(/\{[^{}]*"adr"\s*:\s*\d+[^{}]*"occupancy"\s*:\s*\d+[^{}]*\}/g) ||
@@ -378,11 +377,11 @@ For example, if AirDNA shows $350/night average ADR and 38% occupancy, return:
     
     if (jsonMatches && jsonMatches.length > 0) {
       const jsonText = jsonMatches[jsonMatches.length - 1];
-      console.log('[AirROI STR] Found JSON:', jsonText);
+      if (import.meta.env.DEV) console.log('[AirROI STR] Found JSON:', jsonText);
       const result = parseJSON(jsonText);
       if (result && typeof result.adr === 'number' && typeof result.occupancy === 'number') {
         if (result.adr >= 50 && result.adr <= 1500 && result.occupancy > 0 && result.occupancy <= 100) {
-          console.log(`[AirROI STR] ✅ Parsed JSON - ADR: $${result.adr}, Occ: ${result.occupancy}%`);
+          if (import.meta.env.DEV) console.log(`[AirROI STR] ✅ Parsed JSON - ADR: $${result.adr}, Occ: ${result.occupancy}%`);
           return { adr: result.adr, occupancy: result.occupancy };
         }
       }
@@ -395,18 +394,16 @@ For example, if AirDNA shows $350/night average ADR and 38% occupancy, return:
     const occMatch = rawText.match(/(?:occupancy|occ)[:\s]*(\d{1,2})(?:\s*%|\s*percent)/i) ||
                      rawText.match(/(\d{1,2})\s*%\s*(?:occupancy|occ)/i);
     
-    console.log('[AirROI STR] Text extraction - adrMatch:', adrMatch?.[1], 'occMatch:', occMatch?.[1]);
-    
     if (adrMatch && occMatch) {
       const adr = parseInt(adrMatch[1]);
       const occ = parseInt(occMatch[1]);
       if (adr >= 50 && adr <= 1500 && occ > 0 && occ <= 100) {
-        console.log(`[AirROI STR] ✅ Extracted from text - ADR: $${adr}, Occ: ${occ}%`);
+        if (import.meta.env.DEV) console.log(`[AirROI STR] ✅ Extracted from text - ADR: $${adr}, Occ: ${occ}%`);
         return { adr, occupancy: occ };
       }
     }
 
-    console.log('[AirROI STR] ⚠️ Could not extract STR data, returning null');
+    if (import.meta.env.DEV) console.log('[AirROI STR] ⚠️ Could not extract STR data, returning null');
     return null;
   } catch (e: any) {
     console.error('[AirROI STR] ❌ Failed:', e.message || e);

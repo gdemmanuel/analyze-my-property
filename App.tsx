@@ -438,7 +438,6 @@ const App: React.FC = () => {
   // This handles cached analysis hits where the analysis useEffect doesn't re-run
   useEffect(() => {
     if (!strData?.rent || !insight) return;
-    console.log('[AirROI] Fresh web STR data arrived, overriding ADR to $' + strData.rent);
     setBaseConfig(prev => ({
       ...prev,
       adr: strData.rent,
@@ -446,16 +445,6 @@ const App: React.FC = () => {
     }));
   }, [strData]);
 
-  // Always log web search query state so we can debug ADR issues in prod
-  useEffect(() => {
-    console.log('[AirROI] webSTRQuery state:', {
-      status: webSTRQuery.status,
-      data: webSTRQuery.data,
-      error: webSTRQuery.error,
-      isFetching: webSTRQuery.isFetching,
-      strDataRent: strData?.rent
-    });
-  }, [webSTRQuery.status, webSTRQuery.data, webSTRQuery.isFetching]);
 
   useEffect(() => {
     if (!isAnalyzing) return;
@@ -492,17 +481,6 @@ const App: React.FC = () => {
         ltrMonthlyRent: result.suggestedLTRRent || prev.ltrMonthlyRent
       }));
       
-      // Debug logging to see which ADR source is being used
-      if (import.meta.env.DEV) {
-        const selectedAdr = strData?.rent || result.proFormaScenarios?.[1]?.adr || result.suggestedADR || prev.adr;
-        console.log('[App] ADR Source Prioritization:', {
-          'strData (Web Search)': strData?.rent ? `✅ $${strData.rent}` : '❌ null/undefined',
-          'proFormaScenarios[1]': result.proFormaScenarios?.[1]?.adr ? `$${result.proFormaScenarios[1].adr}` : 'undefined',
-          'suggestedADR (Claude)': result.suggestedADR ? `$${result.suggestedADR}` : 'undefined',
-          'SELECTED': `$${selectedAdr}`,
-          'strData full object': strData
-        });
-      }
       setActiveTab('dashboard');
       setIsAnalyzing(false);
       setAnalysisError(null);
