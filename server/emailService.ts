@@ -118,15 +118,15 @@ export async function sendWelcomeEmail(email: string, name?: string): Promise<bo
         ['STR / MTR / LTR strategy comparison', '✓', '✓'],
         ['AI-powered underwriting', '✓', '✓'],
         ['Save properties to Portfolio', '✓', '✓'],
-        ['Sensitivity Analysis', '—', '✓'],
-        ['Amenity ROI Panel', '—', '✓'],
-        ['Professional Lender Packet export', '—', '✓'],
-        ['Path to Yes scenarios', '—', '✓'],
+        ['Sensitivity Analysis', '—', 'See how ADR &amp; occupancy changes affect ROI'],
+        ['Amenity ROI Panel', '—', 'Calculate payback periods for each upgrade'],
+        ['Professional Lender Packet export', '—', 'Polished PDF reports for lenders'],
+        ['Path to Yes scenarios', '—', 'AI finds ways to make deals work'],
       ].map(([feature, free, pro], i) => `
       <tr style="background:${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
         <td style="padding:10px 14px;font-size:14px;color:#475569;">${feature}</td>
         <td style="padding:10px 14px;font-size:14px;color:${free === '—' ? '#cbd5e1' : '#0f172a'};text-align:center;font-weight:${free === '—' ? '400' : '700'};">${free}</td>
-        <td style="padding:10px 14px;font-size:14px;color:${pro === '✓' ? '#4CAF50' : '#cbd5e1'};text-align:center;font-weight:700;">${pro}</td>
+        <td style="padding:10px 14px;font-size:13px;color:${pro === '—' ? '#cbd5e1' : '#0f172a'};text-align:left;font-weight:${pro === '—' ? '400' : '600'};">${pro === '✓' ? '✓' : (pro === '—' ? '—' : pro)}</td>
       </tr>`).join('')}
     </table>
 
