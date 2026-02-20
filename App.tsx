@@ -208,8 +208,12 @@ const App: React.FC = () => {
       window.history.replaceState({}, '', window.location.pathname);
     } else if (params.get('upgrade') === 'true') {
       // User clicked upgrade link (e.g., from email) — trigger checkout flow
-      window.history.replaceState({}, '', window.location.pathname);
+      // Don't clean URL yet — let handleUpgrade() execute first
       handleUpgrade();
+      // Clean up URL after a small delay to ensure handleUpgrade() started
+      setTimeout(() => {
+        window.history.replaceState({}, '', window.location.pathname);
+      }, 100);
     }
   }, [handleUpgrade, toast]);
 
