@@ -206,8 +206,12 @@ const App: React.FC = () => {
     } else if (params.get('upgrade') === 'cancelled') {
       toast.info('Upgrade cancelled. You can upgrade anytime from your profile.');
       window.history.replaceState({}, '', window.location.pathname);
+    } else if (params.get('upgrade') === 'true') {
+      // User clicked upgrade link (e.g., from email) — trigger checkout flow
+      window.history.replaceState({}, '', window.location.pathname);
+      handleUpgrade();
     }
-  }, []);
+  }, [handleUpgrade, toast]);
 
   // Auth: Check for active session and listen for auth changes
   useEffect(() => {

@@ -442,4 +442,54 @@ router.patch('/:userId/role', requireAuth, async (req: Request, res: Response) =
   }
 });
 
+/**
+ * DELETE /api/user/:userId (ADMIN ONLY)
+ * Delete a user account and all related data
+ */
+router.delete('/:userId', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Check if user is admin
+    const { getUserProfile } = await import('../supabaseAuth');
+    const profile = await getUserProfile(req.user.id);
+    
+    if (!profile || !profile.is_admin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    const { supabaseAdmin } = await import('../supabaseAuth');
+
+    // 1. Delete from Supabase Auth
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    
+    if (authError) {
+      console.error('[Admin] Failed to delete user from auth:', authError);
+      return res.status(500).json({ error: 'Failed to delete user from authentication system' });
+    }
+
+    // 2. Clean up related data (Auth deletion might not cascade automatically)
+    await Promise.all([
+      supabaseAdmin.from('assessments').delete().eq('user_id', userId),
+      supabaseAdmin.from('user_usage').delete().eq('user_id', userId),
+      supabaseAdmin.from('user_settings').delete().eq('user_id', userId),
+      supabaseAdmin.from('user_profiles').delete().eq('id', userId),
+    ]);
+
+    console.log(`[Admin] ✅ Successfully deleted user ${userId} and related data`);
+    return res.json({ success: true, message: 'User deleted successfully' });
+  } catch (error: any) {
+    console.error('[Admin] Error deleting user:', error);
+    return res.status(500).json({ error: 'Internal server error during user deletion' });
+  }
+});
+
 export default router;
