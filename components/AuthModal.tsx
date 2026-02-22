@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, User } from 'lucide-react';
+import { X, Mail, Lock } from 'lucide-react';
 import { supabase } from '../src/lib/supabase';
 import { useToast } from './ui/ToastContext';
 
@@ -8,15 +8,20 @@ interface AuthModalProps {
   onClose: () => void;
   /** When provided, modal opens in this mode (e.g. 'signup' when user must sign up to underwrite) */
   initialMode?: 'signin' | 'signup' | 'reset';
+  onOpenTos?: () => void;
+  onOpenPrivacy?: () => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'signin' }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'signin', onOpenTos, onOpenPrivacy }) => {
   const toast = useToast();
   const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>(initialMode);
 
   // When modal opens, apply initialMode so e.g. "Underwrite" can open signup directly
   React.useEffect(() => {
-    if (isOpen) setMode(initialMode);
+    if (isOpen) {
+      setMode(initialMode);
+      setTosAccepted(false);
+    }
   }, [isOpen, initialMode]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,6 +29,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [tosAccepted, setTosAccepted] = useState(false);
 
   if (!isOpen) return null;
 
@@ -220,10 +226,41 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
             </div>
           )}
 
+          {/* TOS consent checkbox (signup only) */}
+          {mode === 'signup' && (
+            <label className="flex items-start gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={tosAccepted}
+                onChange={(e) => setTosAccepted(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0"
+              />
+              <span className="text-xs text-slate-500 leading-relaxed">
+                I agree to the{' '}
+                <button
+                  type="button"
+                  onClick={() => onOpenTos?.()}
+                  className="text-blue-600 hover:text-blue-700 underline underline-offset-2"
+                >
+                  Terms of Service
+                </button>
+                {' '}and{' '}
+                <button
+                  type="button"
+                  onClick={() => onOpenPrivacy?.()}
+                  className="text-blue-600 hover:text-blue-700 underline underline-offset-2"
+                >
+                  Privacy Policy
+                </button>
+                . I understand that analysis results are AI-generated estimates and not financial advice.
+              </span>
+            </label>
+          )}
+
           {/* Submit button */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || (mode === 'signup' && !tosAccepted)}
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors font-medium"
           >
             {loading ? 'Loading...' : mode === 'reset' ? 'Send Reset Link' : mode === 'signin' ? 'Sign In' : 'Sign Up'}

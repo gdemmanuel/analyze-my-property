@@ -738,6 +738,17 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           </div>
         </div>
       )}
+
+      {/* Investment Disclaimer */}
+      <div className="mt-8 pt-6 border-t border-slate-100 print:mt-4">
+        <p className="text-[11px] text-slate-400 leading-relaxed text-center">
+          <span className="font-semibold text-slate-500">Disclaimer:</span> This analysis is for informational purposes
+          only and does not constitute financial, investment, or legal advice. Projections are AI-generated estimates
+          based on market data and user-provided inputs — actual results may vary materially. Always conduct independent
+          due diligence and consult a licensed real estate professional or financial advisor before making any investment
+          decision.
+        </p>
+      </div>
     </div>
   );
 };

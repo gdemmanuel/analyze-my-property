@@ -34,6 +34,8 @@ import { UserMenu } from './components/UserMenu';
 import { DataMigrationNotice } from './components/DataMigration';
 import HelpModal from './components/HelpModal';
 import UpgradeNudge from './components/UpgradeNudge';
+import TermsOfService from './components/legal/TermsOfService';
+import PrivacyPolicy from './components/legal/PrivacyPolicy';
 
 
 const App: React.FC = () => {
@@ -48,6 +50,8 @@ const App: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalInitialMode, setAuthModalInitialMode] = useState<'signin' | 'signup'>('signin');
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showTosModal, setShowTosModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [analysesUsedToday, setAnalysesUsedToday] = useState(0);
   
@@ -216,6 +220,12 @@ const App: React.FC = () => {
       setTimeout(() => {
         window.history.replaceState({}, '', window.location.pathname);
       }, 100);
+    } else if (params.get('terms') === 'true') {
+      setShowTosModal(true);
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (params.get('privacy') === 'true') {
+      setShowPrivacyModal(true);
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }, [handleUpgrade, toast]);
 
@@ -1425,6 +1435,26 @@ const App: React.FC = () => {
         </div>{/* end flex row */}
       </main>
 
+      {/* FOOTER */}
+      <footer className="text-center text-xs text-slate-400 py-4 border-t border-slate-200 mt-8 print:hidden">
+        <span>© 2026 Analyze My Property &nbsp;·&nbsp;</span>
+        <button
+          type="button"
+          onClick={() => setShowTosModal(true)}
+          className="hover:text-slate-600 underline underline-offset-2 transition-colors"
+        >
+          Terms of Service
+        </button>
+        <span> &nbsp;·&nbsp; </span>
+        <button
+          type="button"
+          onClick={() => setShowPrivacyModal(true)}
+          className="hover:text-slate-600 underline underline-offset-2 transition-colors"
+        >
+          Privacy Policy
+        </button>
+      </footer>
+
       {/* COMPARISON MODAL */}
       {showComparisonModal && (
         <ComparisonModal
@@ -1444,12 +1474,26 @@ const App: React.FC = () => {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         initialMode={authModalInitialMode}
+        onOpenTos={() => setShowTosModal(true)}
+        onOpenPrivacy={() => setShowPrivacyModal(true)}
       />
 
       {/* HELP MODAL */}
       <HelpModal
         isOpen={showHelpModal}
         onClose={() => setShowHelpModal(false)}
+      />
+
+      {/* TERMS OF SERVICE MODAL */}
+      <TermsOfService
+        isOpen={showTosModal}
+        onClose={() => setShowTosModal(false)}
+      />
+
+      {/* PRIVACY POLICY MODAL */}
+      <PrivacyPolicy
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
       />
 
       {/* DATA MIGRATION NOTICE */}
