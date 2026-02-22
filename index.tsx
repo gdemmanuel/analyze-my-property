@@ -1,7 +1,10 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import App from './App';
+import LandingPage from './src/pages/LandingPage';
+import SampleAnalysis from './src/pages/SampleAnalysis';
 import './src/index.css';
 import { ReactQueryProvider } from './src/lib/queryClient';
 import ErrorBoundary, { AppCrashFallback } from './components/ui/ErrorBoundary';
@@ -19,7 +22,13 @@ root.render(
     <ErrorBoundary fallback={<AppCrashFallback />}>
       <ToastProvider>
         <ReactQueryProvider>
-          <App />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/app" element={<App />} />
+              <Route path="/sample" element={<SampleAnalysis />} />
+            </Routes>
+          </BrowserRouter>
         </ReactQueryProvider>
         <ToastContainer />
       </ToastProvider>

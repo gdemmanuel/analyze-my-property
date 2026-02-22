@@ -139,7 +139,7 @@ const App: React.FC = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ returnUrlBase: window.location.origin }),
+        body: JSON.stringify({ returnUrlBase: window.location.origin + '/app' }),
       });
       const data = await res.json();
       if (!res.ok) {
