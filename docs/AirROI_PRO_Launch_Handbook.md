@@ -1,8 +1,8 @@
 # Analyze My Property Launch Handbook
 **AI-Powered Real Estate Investment Analysis Platform**
 
-**Version:** 2.5
-**Date:** February 2026  
+**Version:** 2.6
+**Date:** February 22, 2026  
 **Document Type:** Product Launch Guide
 
 ---
@@ -469,6 +469,28 @@ Real-time API cost tracking with per-model granularity and budget alerting.
 - **Test Routes**: All `/api/test/*` endpoints disabled when `NODE_ENV=production`
 - **Test Dashboard**: `public/test-dashboard.html` removed from production build
 
+### Legal & Compliance — Disclaimers ✅ COMPLETE
+
+**Investment Disclaimer** — ✅ IMPLEMENTED
+- `DashboardTab.tsx` line 742-745: Investment disclaimer displayed on all property analyses
+- States: "This analysis is for informational purposes only. Results are estimates based on user inputs and third-party data. Actual property performance may vary significantly. Always conduct your own due diligence and consult with financial, legal, and tax professionals before making any investment decision."
+
+**No Financial Advice Disclaimer** — ✅ IMPLEMENTED  
+- `TermsOfService.tsx` section 3: "No Investment Advice — Important Disclaimer"
+- Clearly states AirROI PRO is an analytical tool only and does not provide financial, legal, or tax advice
+
+**Data Accuracy Disclaimer** — ✅ IMPLEMENTED
+- `TermsOfService.tsx` section 10: "Disclaimer of Warranties"
+- Covers data sourcing from RentCast API, Claude AI, and web search; notes we cannot guarantee completeness or correctness
+
+**Terms of Service** — ✅ COMPLETE
+- `components/legal/TermsOfService.tsx` (full document)
+- Covers: Acceptable Use, Intellectual Property, Refund Policy (14-day money-back guarantee), Termination Rights, Liability Limitation, Indemnification
+
+**Privacy Policy** — ✅ READY FOR DEPLOYMENT
+- Implemented in Supabase Auth configuration
+- Covers: Data Collection, Data Usage, Data Sharing, Cookies, User Rights (GDPR), Data Retention, Security measures
+
 ### Environment Variables
 
 ```
@@ -870,4 +892,4 @@ Browser localStorage is used as a temporary cache and is cleared on sign-out for
 
 **Document prepared for Analyze My Property Launch**
 **Last Updated:** February 22, 2026
-**Version:** 2.5
+**Version:** 2.6
