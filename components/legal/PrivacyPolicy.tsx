@@ -109,8 +109,8 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ isOpen, onClose }) => {
             </ul>
             <p className="mt-2">
               To exercise any of these rights, email us at{' '}
-              <a href="mailto:privacy@analyzemyproperty.com" className="text-[#4CAF50] hover:underline">
-                privacy@analyzemyproperty.com
+              <a href="mailto:support@analyzemyproperty.com" className="text-[#4CAF50] hover:underline">
+                support@analyzemyproperty.com
               </a>
             </p>
           </section>
@@ -146,8 +146,8 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ isOpen, onClose }) => {
             <h3 className="font-bold text-slate-900 mb-2">10. Contact</h3>
             <p>
               Privacy questions? Contact us at{' '}
-              <a href="mailto:privacy@analyzemyproperty.com" className="text-[#4CAF50] hover:underline">
-                privacy@analyzemyproperty.com
+              <a href="mailto:support@analyzemyproperty.com" className="text-[#4CAF50] hover:underline">
+                support@analyzemyproperty.com
               </a>
             </p>
           </section>

@@ -41,7 +41,7 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ isOpen, onClose }) => {
               (RentCast), and user-provided inputs to generate property analysis reports.
             </p>
             <p className="mt-2">
-              <strong>The Service is provided for informational and educational purposes only.</strong> Nothing on this
+              <strong>The Service is provided for informational purposes only.</strong> Nothing on this
               platform constitutes financial advice, investment advice, legal advice, or a recommendation to buy, sell,
               or hold any real estate asset or financial instrument.
             </p>
@@ -168,8 +168,8 @@ const TermsOfService: React.FC<TermsOfServiceProps> = ({ isOpen, onClose }) => {
             <h3 className="font-bold text-slate-900 mb-2">14. Contact</h3>
             <p>
               Questions about these Terms? Contact us at{' '}
-              <a href="mailto:hello@analyzemyproperty.com" className="text-[#4CAF50] hover:underline">
-                hello@analyzemyproperty.com
+              <a href="mailto:support@analyzemyproperty.com" className="text-[#4CAF50] hover:underline">
+                support@analyzemyproperty.com
               </a>
             </p>
           </section>
