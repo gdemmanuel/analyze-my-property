@@ -1,7 +1,7 @@
 # Analyze My Property Launch Handbook
 **AI-Powered Real Estate Investment Analysis Platform**
 
-**Version:** 2.3
+**Version:** 2.5
 **Date:** February 2026  
 **Document Type:** Product Launch Guide
 
@@ -136,7 +136,8 @@ Express Server (:3002)
     |-- /api/rentcast/*         --> RentCast API (transparent passthrough)
     |-- /api/admin/metrics      --> In-memory MetricsStore
     |-- /api/admin/cache/clear  --> Cache management
-    |-- /api/auth/session       --> Session creation
+    |-- /api/user/*             --> Supabase user routes (profile, assessments, usage)
+    |-- /api/stripe/*           --> Stripe checkout, webhooks, billing portal
     |-- /api/health             --> Health check
     |
     |-- Static files (dist/)    --> SPA fallback
@@ -412,11 +413,11 @@ All prompts return structured JSON for seamless UI integration.
 
 ### Rate Limits — Per-User Tier Enforcement
 
-Implemented in `server/auth.ts`. Each user's usage is tracked by session token (or IP fallback for anonymous users). Counters reset automatically.
+Implemented in `server/supabaseAuth.ts`. Each authenticated user's usage is tracked in the `user_usage` Supabase table. Limits are configurable from the Admin tab and persisted in `admin_settings`. Counters reset automatically.
 
 - **Free Tier**: 3 analyses/day, 15 Claude calls/hour
 - **Pro Tier**: 50 analyses/day, 100 Claude calls/hour
-- **Daily Reset**: 24 hours from first request
+- **Daily Reset**: 24 hours from first request of the day
 - **Hourly Reset**: 1 hour from first Claude call
 
 ### Claude Queue (`server/claudeQueue.ts`)
@@ -461,12 +462,12 @@ Real-time API cost tracking with per-model granularity and budget alerting.
 - **API Keys**: Server-side only (Express proxy). No `VITE_` prefix for secrets.
 - **Security Headers**: Helmet middleware (HSTS, X-Frame-Options, etc.)
 - **CORS**: Configurable via `CORS_ORIGIN` env var. Defaults to localhost in dev.
-- **Rate Limiting**: IP-based via express-rate-limit + per-user tier limits via session auth
-- **Authentication**: Session-based auth with usage tracking, tier enforcement, IP fallback for anonymous users
-- **Data Storage**: Browser localStorage (portfolio, settings). No server-side persistence.
+- **Rate Limiting**: IP-based via express-rate-limit + per-user tier limits via Supabase database
+- **Authentication**: Supabase Auth (email/password + Google OAuth), JWT verification on all protected routes, RLS policies on all tables
+- **Data Storage**: Supabase PostgreSQL (assessments, profiles, usage, settings). localStorage cleared on sign-out.
 - **Input Validation**: Basic sanitization on API routes
 - **Test Routes**: All `/api/test/*` endpoints disabled when `NODE_ENV=production`
-- **Test Dashboard**: `public/test-dashboard.html` exists but only functions in development (API calls go through dev-only routes)
+- **Test Dashboard**: `public/test-dashboard.html` removed from production build
 
 ### Environment Variables
 
@@ -474,22 +475,31 @@ Real-time API cost tracking with per-model granularity and budget alerting.
 # Server-side only (NEVER exposed to browser)
 ANTHROPIC_API_KEY=sk-ant-api03-...
 RENTCAST_API_KEY=your-key-here
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your-service-role-key
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRO_PRICE_ID=price_...
+RESEND_API_KEY=re_...
 
-# CORS origins (comma-separated, defaults to localhost)
-CORS_ORIGIN=https://yourdomain.com
+# CORS origins (comma-separated, first value used for email links)
+CORS_ORIGIN=https://analyzemyproperty.com,https://www.analyzemyproperty.com
+
+# Client-side (Supabase public keys)
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 
 # Client-side (optional)
-VITE_GOOGLE_MAPS_API_KEY=your-key-here
+VITE_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
 ```
 
 ### What Needs to Change for Production
 
-- Replace session auth with real auth (Supabase, Clerk, or Auth0) for persistent user accounts
+- ~~Replace session auth with real auth~~ — ✅ Done (Supabase Auth)
 - Add Content Security Policy (currently disabled for Tailwind inline styles)
-- Add HTTPS enforcement (handled by hosting platform)
-- Add environment variable validation on startup
-- Consider Redis for cache and session persistence across deploys
-- Remove `public/test-dashboard.html` from production build (or add to `.gitignore`)
+- Add HTTPS enforcement (handled by Railway/hosting platform)
+- Consider Redis for in-memory cache persistence across deploys (not required for MVP)
+- ~~Remove `public/test-dashboard.html` from production build~~ — ✅ Done (deleted)
 
 ---
 
@@ -624,10 +634,15 @@ npm run test:load           # All scenarios
 
 ## 11. Data Model
 
-### Current: Browser localStorage
+### Current: Supabase PostgreSQL (Production)
 
-- **`airroi_saved_assessments`** — Array of `SavedAssessment` objects
-- **`airroi_amenities`** — Custom amenity configurations
+- **`user_profiles`** — User tier (free/pro), admin flag, Stripe customer ID, created_at
+- **`user_usage`** — Daily analysis count, hourly Claude call count, reset timestamps
+- **`assessments`** — Saved property analyses per user (synced from/to client)
+- **`user_settings`** — Per-user global configuration
+- **`admin_settings`** — Persisted admin configuration (tier limits, daily budget)
+
+Browser localStorage is used as a temporary cache and is cleared on sign-out for privacy.
 
 ### Core TypeScript Interfaces
 
@@ -654,31 +669,16 @@ npm run test:load           # All scenarios
 - AVM: avmValueRange, avmComparables with correlation scores
 - Listing: listingDetails (DOM, type, agent, price history)
 
-### Future: Cloud Database (Supabase PostgreSQL)
-
-```
-users/
-  - id, email, displayName, subscription, createdAt
-
-assessments/
-  - id, userId, address, config, insight, strategy
-  - metrics (capRate, cashOnCash, annualNoi)
-  - createdAt, updatedAt
-
-settings/
-  - userId, defaultConfig, amenities
-```
-
 ---
 
 ## 12. Pricing & Packaging
 
 ### Pricing Tiers
 
-- **Free**: $0/mo — 3 analyses/month, basic features
-- **Pro**: $29/mo — 25 analyses/month, full features, PDF export, portfolio
-- **Team**: $79/mo — 100 analyses/month, 3 seats, shared portfolios
-- **Enterprise**: $199/mo — Unlimited, API access, white-label, priority support
+- **Free**: $0/mo — 3 analyses/day (7-day full trial, then limited), basic features, portfolio, STR/MTR/LTR comparison
+- **Pro**: $29/mo — 50 analyses/day, full features, Sensitivity Analysis, Amenity ROI, Lender Packet export, Path to Yes scenarios
+- **Team**: $79/mo — 100 analyses/day, 3 seats, shared portfolios *(planned)*
+- **Enterprise**: $199/mo — Unlimited, API access, white-label, priority support *(planned)*
 
 ### Cost per Analysis
 
@@ -796,11 +796,31 @@ settings/
   - `PHASE_17_TESTING.md` (testing checklist) — ✅ DONE
   - `PHASE_17_PROGRESS.md` (implementation log) — ✅ DONE
 
-**Phase 19: UI Polish & Trial Messaging** ✅ COMPLETE
+**Phase 18: Stripe Payments** ✅ COMPLETE
+- Stripe Checkout integration for Pro subscription ($29/mo) — ✅ DONE
+- Stripe webhook handler (`checkout.session.completed`, `customer.subscription.*`) — ✅ DONE
+- Billing portal for subscription management — ✅ DONE
+- Tier enforcement (free: 3/day, pro: 50/day) via Supabase database — ✅ DONE
+- Upgrade confirmation email on successful payment — ✅ DONE
+- `?upgrade=true` deep link from emails triggers Stripe checkout — ✅ DONE
+- Admin settings persistence across server restarts (Supabase `admin_settings` table) — ✅ DONE
+
+**Phase 19: UI Polish, Trial Messaging & Email** ✅ COMPLETE
 - Improved trial banner messaging (professional, clearer language) — ✅ DONE
-- Fixed SAMPLE watermarks on Pro analysis panels (top/bottom instead of overlapping) — ✅ DONE
-- Trial banner now displays: "Free Trial · X days remaining" with clear subtitle — ✅ DONE
-- Cached properties correctly excluded from analysis count (no message needed) — ✅ DONE
+- Fixed SAMPLE watermarks on Pro analysis panels — ✅ DONE
+- Trial banner displays: "Free Trial · X days remaining" — ✅ DONE
+- Transactional email service via Resend (`noreply@analyzemyproperty.com`) — ✅ DONE
+  - Branded confirmation email template (Supabase email template)
+  - Welcome email with Free vs Pro comparison table (sent once after first login)
+  - Trial expiring email (manual trigger; automated scheduler is post-launch)
+  - Trial expired email (manual trigger; automated scheduler is post-launch)
+  - Upgrade confirmation email (triggered by Stripe webhook)
+- Upgrade nudge sidebar for free-tier users (usage counter + locked features list) — ✅ DONE
+- Help & Guide modal (how-to's, calculations, strategies, FAQ) — ✅ DONE
+- Admin user deletion endpoint (`DELETE /api/user/:userId`) — ✅ DONE
+- Saved assessments persisted in Supabase database — ✅ DONE
+- AMR label for MTR/LTR strategy (Average Monthly Rate) — ✅ DONE
+- STR/MTR/LTR strategy toggle enlarged and repositioned — ✅ DONE
 
 **Phase 20: Map Integration**
 - Google Maps API key already in .env
@@ -814,11 +834,11 @@ settings/
 - `React.memo` and `useCallback` for render optimization
 - Reduce/remove 5s pre-analysis delay if rate limiting is stable
 
-**Phase 22: Payments (Stripe)**
-- Stripe integration for subscription billing
-- Free/Pro/Team/Enterprise tier enforcement
-- Usage tracking and overage handling
-- Billing portal and invoice management
+**Phase 22: Automated Trial Email Scheduler**
+- Cron job (Railway scheduled task or Supabase Edge Function) to trigger:
+  - Trial expiring email at day 6 of 7-day trial
+  - Trial expired email at day 8+
+- `sendTrialExpiryEmail` and `sendTrialExpiredEmail` are already implemented in `server/emailService.ts`
 
 **Phase 23: Testing & CI/CD**
 - Unit tests (Vitest) for financial logic and services
@@ -849,5 +869,5 @@ settings/
 ---
 
 **Document prepared for Analyze My Property Launch**
-**Last Updated:** February 19, 2026
-**Version:** 2.4
+**Last Updated:** February 22, 2026
+**Version:** 2.5
