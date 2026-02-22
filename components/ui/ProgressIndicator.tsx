@@ -187,7 +187,9 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
       {/* Estimated Time */}
       <div className="mt-4 pt-4 border-t border-slate-700/50 flex items-center justify-between text-[10px]">
         <span className="text-slate-500">
-          Estimated: ~{formatTime(totalEstimated - Math.min(elapsedSeconds, totalEstimated))} remaining
+          {elapsedSeconds >= totalEstimated
+            ? 'Still analyzing... please wait'
+            : `Estimated: ~${formatTime(totalEstimated - Math.min(elapsedSeconds, totalEstimated))} remaining`}
         </span>
         <span className="text-slate-400 font-medium">
           {Math.round(progressPercent)}% complete
